@@ -1,23 +1,3 @@
-FROM node:24-alpine AS dev
-
-WORKDIR /app
-
-RUN apk add --no-cache tini \
-    && chown node:node /app
-
-COPY --chown=node:node package*.json ./
-
-USER node
-
-RUN npm ci
-
-COPY --chown=node:node . .
-
-EXPOSE 5173
-
-ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
 FROM node:24-alpine AS build
 
 WORKDIR /app

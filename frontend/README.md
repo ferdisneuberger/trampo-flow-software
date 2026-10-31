@@ -164,14 +164,6 @@ docker compose up -d --build
 
 O serviço `web` serve o build de produção com Nginx, mas não publica porta no host. O acesso fica em `http://localhost:5173` pelo serviço `ingress`, que encaminha `/` para o frontend e `/api` para `http://api:3000`. O Compose padrão não monta o código como volume: alterações exigem rebuild da imagem.
 
-Para desenvolvimento com HMR, use o override na raiz do projeto:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
-
-Nesse modo, o serviço `web` usa o estágio `dev` do Dockerfile, monta `frontend/` como volume e executa o Vite com HMR. O volume `web_node_modules` preserva as dependências. O acesso continua sendo pela porta do ingress, inclusive para o WebSocket do HMR; o roteamento de `/api` também é feito pelo ingress.
-
 Para logs do frontend:
 
 ```bash

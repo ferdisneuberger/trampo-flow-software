@@ -147,21 +147,9 @@ docker compose up -d --build
 
 Na inicialização, o container da API executa `prisma migrate deploy` antes de iniciar o build compilado (`node dist/main`). As migrações existentes em `backend/prisma/migrations` são aplicadas automaticamente.
 
-O serviço `ingress` é a única entrada pública no host (`127.0.0.1:${WEB_PORT:-5173}`). Ele encaminha `/api/*` para `http://api:3000`, removendo o prefixo `/api`, e o restante para `http://web:5173`. O container `web` serve apenas o build estático de produção com Nginx e fallback de SPA. API e frontend não publicam portas no host. O Compose padrão não monta o código como volume; para desenvolvimento com HMR, use o override `docker-compose.dev.yml`.
-
-### Desenvolvimento com HMR
-
-Para montar o código e subir API e frontend em modo desenvolvimento:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
-
-Nesse modo, a API roda `npm run start:dev` e o frontend roda o Vite com HMR. Os volumes `api_node_modules` e `web_node_modules` preservam as dependências. O acesso continua sendo pela porta do ingress, inclusive para o WebSocket do HMR; o roteamento de `/api` também é feito pelo ingress, e não pelo Vite.
+O serviço `ingress` é a única entrada pública no host (`127.0.0.1:${WEB_PORT:-5173}`). Ele encaminha `/api/*` para `http://api:3000`, removendo o prefixo `/api`, e o restante para `http://web:5173`. O container `web` serve apenas o build estático de produção com Nginx e fallback de SPA. API e frontend não publicam portas no host. O Compose padrão não monta o código como volume; alterações exigem rebuild da imagem.
 
 > A migração `20261023230000_applications` substitui a antiga tabela `job_applications` pelas tabelas `applications` e `application_files`. A migração inicial é preservada para manter o histórico.
-
-> Se você já executou uma versão anterior deste projeto, os volumes `trampo-flow_api_node_modules` e `trampo-flow_web_node_modules` podem conter dependências antigas. Remova-os antes de subir: `docker volume rm trampo-flow_api_node_modules trampo-flow_web_node_modules`.
 
 ### Serviços
 
@@ -241,7 +229,7 @@ Na raiz do projeto:
 docker compose up -d --build
 ```
 
-O serviço `web` serve o build de produção com Nginx, mas não publica porta no host. O acesso fica em `http://localhost:5173` pelo serviço `ingress`, que encaminha `/api` para `http://api:3000` dentro da rede do Compose. Para desenvolvimento com HMR, use o override descrito em [Subir o ambiente](#subir-o-ambiente).
+O serviço `web` serve o build de produção com Nginx, mas não publica porta no host. O acesso fica em `http://localhost:5173` pelo serviço `ingress`, que encaminha `/api` para `http://api:3000` dentro da rede do Compose. Para desenvolvimento local fora do Docker, veja [Executar localmente](#executar-localmente).
 
 Para acompanhar os logs:
 
@@ -569,7 +557,6 @@ backend/test/
 │   └── ingress/
 │       └── nginx.conf
 ├── docker-compose.yml
-├── docker-compose.dev.yml
 ├── .env.example
 └── README.md
 ```
@@ -664,10 +651,6 @@ docker compose build api web
 docker compose exec ingress nginx -t
 docker compose up -d --force-recreate ingress
 
-# Instalar dependências dentro dos containers no modo de desenvolvimento
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec api npm install
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec web npm install
-
 # Criar uma nova migração localmente
 cd backend
 npx prisma migrate dev --name nome_da_migracao
@@ -713,14 +696,6 @@ docker compose build api
 docker compose up -d api
 ```
 
-No modo de desenvolvimento, o `prestart:dev` executa `prisma generate` a cada início. Se o volume de dependências estiver inconsistente, recrie-o:
-
-```bash
-docker compose down
-docker volume rm trampo-flow_api_node_modules
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
-
 **Frontend não conecta à API**
 
 No Compose, o ingress encaminha `/api` para `http://api:3000` e `VITE_API_URL` é `/api`. Confirme que `web` e `api` estão saudáveis e que o ingress responde:
@@ -732,15 +707,7 @@ docker compose exec ingress nginx -t
 docker compose exec ingress wget -qO- http://api:3000/health
 ```
 
-A entrada local é `http://localhost:5173`; o health check público local fica em `http://localhost:5173/api/health`. Se o HMR não conectar no modo de desenvolvimento, confirme que o navegador está usando a porta do ingress e revise o suporte a WebSocket em `infra/ingress/nginx.conf`. No desenvolvimento local fora do Docker, o proxy é feito pelo Vite com `VITE_API_PROXY_TARGET` (`http://localhost:3000`). Se estiver usando `VITE_API_URL` com uma URL absoluta, verifique o CORS da API.
-
-Se as dependências do frontend no modo de desenvolvimento estiverem inconsistentes, recrie o volume:
-
-```bash
-docker compose down
-docker volume rm trampo-flow_web_node_modules
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
+A entrada local é `http://localhost:5173`; o health check público local fica em `http://localhost:5173/api/health`. No desenvolvimento local fora do Docker, o proxy é feito pelo Vite com `VITE_API_PROXY_TARGET` (`http://localhost:3000`). Se estiver usando `VITE_API_URL` com uma URL absoluta, verifique o CORS da API.
 
 **Banco em estado inconsistente**
 
