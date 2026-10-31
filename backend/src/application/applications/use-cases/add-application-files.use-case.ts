@@ -1,0 +1,38 @@
+import { Injectable } from '@nestjs/common';
+import { Application } from '../../../domain/applications/entities/application.entity';
+import { CreateApplicationFileInput } from '../../../domain/applications/entities/application-file.entity';
+import { ApplicationRepository } from '../../../domain/applications/repositories/application.repository';
+import { ApplicationAlreadyDeletedError } from '../errors/application-already-deleted.error';
+import { ApplicationNotFoundError } from '../errors/application-not-found.error';
+
+export type AddApplicationFilesInput = {
+  applicationId: string;
+  files: CreateApplicationFileInput[];
+};
+
+@Injectable()
+export class AddApplicationFilesUseCase {
+  constructor(
+    private readonly applicationRepository: ApplicationRepository,
+  ) {}
+
+  async execute(input: AddApplicationFilesInput): Promise<Application> {
+    const application = await this.applicationRepository.findById(
+      input.applicationId,
+    );
+
+    if (!application) {
+      throw new ApplicationNotFoundError(input.applicationId);
+    }
+
+    if (application.isDeleted) {
+      throw new ApplicationAlreadyDeletedError(input.applicationId);
+    }
+
+    application.addFiles(input.files);
+
+    await this.applicationRepository.update(application);
+
+    return application;
+  }
+}

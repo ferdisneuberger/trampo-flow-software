@@ -1,0 +1,106 @@
+name: trampo-flow
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trampo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trampo_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-trampo_flow}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - backend
+
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: sh -c "./node_modules/.bin/prisma migrate deploy && node dist/main"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-trampo}:${POSTGRES_PASSWORD:-trampo_dev}@postgres:5432/${POSTGRES_DB:-trampo_flow}
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,https://app.example.com}"
+      AUTH_USERNAME: "${AUTH_USERNAME:?defina AUTH_USERNAME no arquivo .env}"
+      AUTH_PASSWORD: "${AUTH_PASSWORD:?defina AUTH_PASSWORD no arquivo .env}"
+      JWT_SECRET: "${JWT_SECRET:?defina JWT_SECRET no arquivo .env}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-8h}"
+      LOGIN_MAX_ATTEMPTS: "${LOGIN_MAX_ATTEMPTS:-10}"
+      LOGIN_WINDOW_SECONDS: "${LOGIN_WINDOW_SECONDS:-900}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5173/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+
+  ingress:
+    image: nginxinc/nginx-unprivileged:alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:-5173}:8080"
+    volumes:
+      - ./infra/ingress/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    driver: bridge

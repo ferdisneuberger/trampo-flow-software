@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApplicationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+model Application {
+  id           String            @id @db.Uuid
+  title        String            @db.VarChar(120)
+  link         String            @db.VarChar(2048)
+  status       ApplicationStatus @default(PENDING)
+  currentPhase String            @map("current_phase") @db.VarChar(120)
+  files        ApplicationFile[]
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  deletedAt    DateTime?         @map("deleted_at")
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("applications")
+}
+
+model ApplicationFile {
+  id            String      @id @db.Uuid
+  applicationId String      @map("application_id") @db.Uuid
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  name          String      @db.VarChar(255)
+  url           String      @db.VarChar(2048)
+  mimeType      String      @map("mime_type") @db.VarChar(100)
+  sizeInBytes   Int         @map("size_in_bytes")
+  uploadedAt    DateTime    @default(now()) @map("uploaded_at")
+
+  @@index([applicationId])
+  @@map("application_files")
+}
