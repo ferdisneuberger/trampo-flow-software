@@ -8,25 +8,20 @@ import { Application } from '../../../../domain/applications/entities/applicatio
 import { ApplicationFile } from '../../../../domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../../../domain/applications/enums/application-status.enum';
 
-const statusToDomain: Record<
-  PrismaApplicationStatus,
-  ApplicationStatus
-> = {
+const statusToDomain: Record<PrismaApplicationStatus, ApplicationStatus> = {
   [PrismaApplicationStatus.PENDING]: ApplicationStatus.PENDING,
   [PrismaApplicationStatus.IN_PROGRESS]: ApplicationStatus.IN_PROGRESS,
   [PrismaApplicationStatus.COMPLETED]: ApplicationStatus.COMPLETED,
   [PrismaApplicationStatus.REJECTED]: ApplicationStatus.REJECTED,
 };
 
-const statusToPersistence: Record<
-  ApplicationStatus,
-  PrismaApplicationStatus
-> = {
-  [ApplicationStatus.PENDING]: PrismaApplicationStatus.PENDING,
-  [ApplicationStatus.IN_PROGRESS]: PrismaApplicationStatus.IN_PROGRESS,
-  [ApplicationStatus.COMPLETED]: PrismaApplicationStatus.COMPLETED,
-  [ApplicationStatus.REJECTED]: PrismaApplicationStatus.REJECTED,
-};
+const statusToPersistence: Record<ApplicationStatus, PrismaApplicationStatus> =
+  {
+    [ApplicationStatus.PENDING]: PrismaApplicationStatus.PENDING,
+    [ApplicationStatus.IN_PROGRESS]: PrismaApplicationStatus.IN_PROGRESS,
+    [ApplicationStatus.COMPLETED]: PrismaApplicationStatus.COMPLETED,
+    [ApplicationStatus.REJECTED]: PrismaApplicationStatus.REJECTED,
+  };
 
 export type PrismaApplicationWithFiles = PrismaApplication & {
   files: PrismaApplicationFile[];
@@ -56,9 +51,7 @@ export class ApplicationMapper {
     });
   }
 
-  static toCreateData(
-    application: Application,
-  ): Prisma.ApplicationCreateInput {
+  static toCreateData(application: Application): Prisma.ApplicationCreateInput {
     return {
       id: application.id,
       title: application.title,

@@ -1,0 +1,32 @@
+{
+  "name": "trampo-flow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development tooling for the Trampo Flow monorepo.",
+  "scripts": {
+    "prepare": "husky",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "lint-staged": {
+    "backend/**/*.ts": [
+      "bash -c 'cd backend && ./node_modules/.bin/eslint --fix \"$@\"' _",
+      "prettier --write"
+    ],
+    "frontend/**/*.{ts,tsx}": [
+      "bash -c 'cd frontend && ./node_modules/.bin/eslint --fix \"$@\"' _",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10"
+  }
+}

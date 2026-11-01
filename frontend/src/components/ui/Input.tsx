@@ -42,10 +42,7 @@ export function Input({
         {...props}
       />
       {error ? (
-        <p
-          id={descriptionId}
-          className="text-xs font-medium text-rose-600"
-        >
+        <p id={descriptionId} className="text-xs font-medium text-rose-600">
           {error}
         </p>
       ) : hint ? (

@@ -115,9 +115,7 @@ describe('Application', () => {
     );
 
     expect(application.title).toBe('Backend Engineer');
-    expect(application.link).toBe(
-      'https://example.com/jobs/backend-engineer',
-    );
+    expect(application.link).toBe('https://example.com/jobs/backend-engineer');
   });
 
   it('adds multiple files and refreshes updatedAt', () => {
@@ -241,10 +239,7 @@ describe('Application', () => {
 
   it.each([
     ['TITLE_REQUIRED', { title: '   ' }],
-    [
-      'TITLE_TOO_LONG',
-      { title: 'a'.repeat(APPLICATION_TITLE_MAX_LENGTH + 1) },
-    ],
+    ['TITLE_TOO_LONG', { title: 'a'.repeat(APPLICATION_TITLE_MAX_LENGTH + 1) }],
     ['LINK_REQUIRED', { link: '   ' }],
     ['INVALID_LINK', { link: 'not-a-url' }],
     ['INVALID_LINK', { link: 'ftp://example.com/jobs/1' }],

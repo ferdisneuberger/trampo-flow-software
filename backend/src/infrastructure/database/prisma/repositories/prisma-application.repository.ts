@@ -26,9 +26,7 @@ export class PrismaApplicationRepository implements ApplicationRepository {
     return record ? ApplicationMapper.toDomain(record) : null;
   }
 
-  async findAll(
-    options?: FindAllApplicationsOptions,
-  ): Promise<Application[]> {
+  async findAll(options?: FindAllApplicationsOptions): Promise<Application[]> {
     const records = await this.prisma.application.findMany({
       where: options?.includeDeleted ? undefined : { deletedAt: null },
       include: { files: true },

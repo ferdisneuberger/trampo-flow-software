@@ -13,9 +13,7 @@ export type UpdateApplicationInput = UpdateApplicationProps & {
 
 @Injectable()
 export class UpdateApplicationUseCase {
-  constructor(
-    private readonly applicationRepository: ApplicationRepository,
-  ) {}
+  constructor(private readonly applicationRepository: ApplicationRepository) {}
 
   async execute(input: UpdateApplicationInput): Promise<Application> {
     const application = await this.applicationRepository.findById(input.id);

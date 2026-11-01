@@ -31,10 +31,7 @@ export function ConfirmDialog({
   return (
     <Modal isOpen={isOpen} title={title} onClose={onClose}>
       <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm leading-6 text-rose-700">
-        <AlertTriangle
-          className="mt-0.5 size-5 shrink-0"
-          aria-hidden="true"
-        />
+        <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
         <p>{description}</p>
       </div>
       {children}

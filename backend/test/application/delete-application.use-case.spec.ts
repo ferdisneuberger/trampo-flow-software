@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  DeleteApplicationUseCase,
-} from '../../src/application/applications/use-cases/delete-application.use-case';
+import { DeleteApplicationUseCase } from '../../src/application/applications/use-cases/delete-application.use-case';
 import { ApplicationDeleteMode } from '../../src/application/applications/types/application-delete-mode';
 import { InMemoryApplicationRepository } from '../repositories/in-memory-application.repository';
 import {

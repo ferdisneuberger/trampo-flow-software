@@ -55,7 +55,7 @@ export function useApplications(): UseApplicationsResult {
   }, [refresh]);
 
   const runMutation = useCallback(
-    async <T,>(operation: () => Promise<T>): Promise<T> => {
+    async <T>(operation: () => Promise<T>): Promise<T> => {
       setIsMutating(true);
       setError(null);
 
@@ -85,10 +85,7 @@ export function useApplications(): UseApplicationsResult {
   );
 
   const updateApplication = useCallback(
-    async (
-      id: string,
-      input: UpdateApplicationInput,
-    ): Promise<Application> => {
+    async (id: string, input: UpdateApplicationInput): Promise<Application> => {
       const application = await runMutation(() =>
         applicationsService.update(id, input),
       );
@@ -121,10 +118,7 @@ export function useApplications(): UseApplicationsResult {
   );
 
   const deleteApplication = useCallback(
-    async (
-      id: string,
-      mode: DeleteApplicationMode = 'soft',
-    ): Promise<void> => {
+    async (id: string, mode: DeleteApplicationMode = 'soft'): Promise<void> => {
       await runMutation(() => applicationsService.remove(id, mode));
 
       setApplications((current) =>

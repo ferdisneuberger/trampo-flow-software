@@ -12,9 +12,7 @@ export type AddApplicationFilesInput = {
 
 @Injectable()
 export class AddApplicationFilesUseCase {
-  constructor(
-    private readonly applicationRepository: ApplicationRepository,
-  ) {}
+  constructor(private readonly applicationRepository: ApplicationRepository) {}
 
   async execute(input: AddApplicationFilesInput): Promise<Application> {
     const application = await this.applicationRepository.findById(

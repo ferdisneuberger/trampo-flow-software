@@ -20,10 +20,7 @@ export function ApplicationStatusBadge({
 }: ApplicationStatusBadgeProps) {
   return (
     <Badge tone={statusTones[status]}>
-      <span
-        className="size-1.5 rounded-full bg-current"
-        aria-hidden="true"
-      />
+      <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
       {APPLICATION_STATUS_LABELS[status]}
     </Badge>
   );

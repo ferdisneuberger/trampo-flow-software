@@ -4,9 +4,7 @@ import { ApplicationRepository } from '../../../domain/applications/repositories
 
 @Injectable()
 export class ListApplicationsUseCase {
-  constructor(
-    private readonly applicationRepository: ApplicationRepository,
-  ) {}
+  constructor(private readonly applicationRepository: ApplicationRepository) {}
 
   execute(): Promise<Application[]> {
     return this.applicationRepository.findAll();

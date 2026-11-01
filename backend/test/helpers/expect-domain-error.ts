@@ -1,10 +1,7 @@
 import { expect } from 'vitest';
 import { DomainError } from '../../src/domain/shared/errors/domain.error';
 
-export function expectDomainError(
-  callback: () => unknown,
-  code: string,
-): void {
+export function expectDomainError(callback: () => unknown, code: string): void {
   try {
     callback();
   } catch (error) {

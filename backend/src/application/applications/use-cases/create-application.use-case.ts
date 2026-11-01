@@ -9,9 +9,7 @@ export type CreateApplicationInput = CreateApplicationProps;
 
 @Injectable()
 export class CreateApplicationUseCase {
-  constructor(
-    private readonly applicationRepository: ApplicationRepository,
-  ) {}
+  constructor(private readonly applicationRepository: ApplicationRepository) {}
 
   async execute(input: CreateApplicationInput): Promise<Application> {
     const application = Application.create(input);

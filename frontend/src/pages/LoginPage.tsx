@@ -63,9 +63,7 @@ export function LoginPage() {
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-900">
             {env.appName}
           </h1>
-          <p className="mt-1 text-sm text-ink-500">
-            Gestão de candidaturas
-          </p>
+          <p className="mt-1 text-sm text-ink-500">Gestão de candidaturas</p>
         </div>
 
         <Card className="p-6 sm:p-8">
@@ -129,9 +127,7 @@ export function LoginPage() {
 
           <div className="mt-6 flex items-start gap-2 rounded-xl border border-line bg-surface p-3 text-xs leading-5 text-ink-500">
             <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-            <p>
-              Acesso restrito.
-            </p>
+            <p>Acesso restrito.</p>
           </div>
         </Card>
 

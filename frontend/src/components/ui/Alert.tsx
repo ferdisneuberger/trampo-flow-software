@@ -31,9 +31,7 @@ export function Alert({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{title}</p>
         {description && (
-          <p className="mt-1 text-sm leading-6 opacity-90">
-            {description}
-          </p>
+          <p className="mt-1 text-sm leading-6 opacity-90">{description}</p>
         )}
       </div>
       {action && <div className="shrink-0">{action}</div>}

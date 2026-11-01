@@ -14,12 +14,10 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   REJECTED: 'Recusada',
 };
 
-export const APPLICATION_STATUS_OPTIONS = APPLICATION_STATUSES.map(
-  (value) => ({
-    value,
-    label: APPLICATION_STATUS_LABELS[value],
-  }),
-);
+export const APPLICATION_STATUS_OPTIONS = APPLICATION_STATUSES.map((value) => ({
+  value,
+  label: APPLICATION_STATUS_LABELS[value],
+}));
 
 export type ApplicationFile = {
   id: string;

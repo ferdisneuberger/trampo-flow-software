@@ -15,9 +15,7 @@ export const APPLICATION_TITLE_MAX_LENGTH = 120;
 export const APPLICATION_LINK_MAX_LENGTH = 2048;
 export const APPLICATION_CURRENT_PHASE_MAX_LENGTH = 120;
 
-export type ApplicationFileInput =
-  | CreateApplicationFileInput
-  | ApplicationFile;
+export type ApplicationFileInput = CreateApplicationFileInput | ApplicationFile;
 
 export type CreateApplicationProps = {
   title: string;

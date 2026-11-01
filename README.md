@@ -20,11 +20,11 @@ Aplicação full stack para acompanhar candidaturas de emprego. O backend é uma
 
 O backend é organizado por camadas, com o contexto de candidaturas em `applications`.
 
-| Camada | Responsabilidade | Dependências permitidas |
-| ------ | ---------------- | ----------------------- |
-| `domain` | Entidades, regras de negócio, enums, erros de domínio e interfaces de repositório | Nenhuma dependência de framework, HTTP ou banco |
-| `application` | Casos de uso, DTOs de entrada e erros de aplicação | `domain`; `@Injectable` do Nest para DI e `class-validator` nos DTOs, sem HTTP ou Prisma |
-| `infrastructure` | Controllers, módulos Nest, persistência Prisma, mappers, presenters e filtros HTTP | `application` e `domain` |
+| Camada           | Responsabilidade                                                                   | Dependências permitidas                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `domain`         | Entidades, regras de negócio, enums, erros de domínio e interfaces de repositório  | Nenhuma dependência de framework, HTTP ou banco                                          |
+| `application`    | Casos de uso, DTOs de entrada e erros de aplicação                                 | `domain`; `@Injectable` do Nest para DI e `class-validator` nos DTOs, sem HTTP ou Prisma |
+| `infrastructure` | Controllers, módulos Nest, persistência Prisma, mappers, presenters e filtros HTTP | `application` e `domain`                                                                 |
 
 ### Fluxo de uma requisição
 
@@ -68,39 +68,39 @@ O `backend/src/main.ts` configura:
 
 ### Candidatura (`Application`)
 
-| Campo | Tipo | Regra |
-| ----- | ---- | ----- |
-| `id` | UUID | Gerado na criação |
-| `title` | string | Obrigatório, até 120 caracteres |
-| `link` | string | Obrigatório, URL HTTP/HTTPS válida, até 2048 caracteres |
-| `status` | enum | Um dos status fixos abaixo; padrão `PENDING` |
-| `currentPhase` | string | Obrigatório, texto livre, até 120 caracteres |
-| `files` | lista | Zero ou mais currículos/anexos |
-| `createdAt` | data | Preenchido na criação |
-| `updatedAt` | data | Atualizado em cada alteração |
-| `deletedAt` | data ou nulo | Preenchido na exclusão lógica |
+| Campo          | Tipo         | Regra                                                   |
+| -------------- | ------------ | ------------------------------------------------------- |
+| `id`           | UUID         | Gerado na criação                                       |
+| `title`        | string       | Obrigatório, até 120 caracteres                         |
+| `link`         | string       | Obrigatório, URL HTTP/HTTPS válida, até 2048 caracteres |
+| `status`       | enum         | Um dos status fixos abaixo; padrão `PENDING`            |
+| `currentPhase` | string       | Obrigatório, texto livre, até 120 caracteres            |
+| `files`        | lista        | Zero ou mais currículos/anexos                          |
+| `createdAt`    | data         | Preenchido na criação                                   |
+| `updatedAt`    | data         | Atualizado em cada alteração                            |
+| `deletedAt`    | data ou nulo | Preenchido na exclusão lógica                           |
 
 ### Status fixos
 
-| Valor na API | Rótulo |
-| ------------ | ------ |
-| `PENDING` | Aguardando |
+| Valor na API  | Rótulo       |
+| ------------- | ------------ |
+| `PENDING`     | Aguardando   |
 | `IN_PROGRESS` | Em Andamento |
-| `COMPLETED` | Finalizada |
-| `REJECTED` | Recusada |
+| `COMPLETED`   | Finalizada   |
+| `REJECTED`    | Recusada     |
 
 Os status são um conjunto fechado. A API retorna o valor do enum e a documentação mantém o rótulo em português.
 
 ### Arquivo (`ApplicationFile`)
 
-| Campo | Tipo | Regra |
-| ----- | ---- | ----- |
-| `id` | UUID | Gerado na criação |
-| `name` | string | Obrigatório, até 255 caracteres |
-| `url` | string | Obrigatório, URL HTTP/HTTPS válida, até 2048 caracteres |
-| `mimeType` | string | Obrigatório, formato `type/subtype`, até 100 caracteres |
-| `sizeInBytes` | inteiro | Positivo |
-| `uploadedAt` | data | Opcional na entrada; padrão é o momento do anexo |
+| Campo         | Tipo    | Regra                                                   |
+| ------------- | ------- | ------------------------------------------------------- |
+| `id`          | UUID    | Gerado na criação                                       |
+| `name`        | string  | Obrigatório, até 255 caracteres                         |
+| `url`         | string  | Obrigatório, URL HTTP/HTTPS válida, até 2048 caracteres |
+| `mimeType`    | string  | Obrigatório, formato `type/subtype`, até 100 caracteres |
+| `sizeInBytes` | inteiro | Positivo                                                |
+| `uploadedAt`  | data    | Opcional na entrada; padrão é o momento do anexo        |
 
 O agregado permite múltiplos arquivos por candidatura. O backend armazena os metadados e a URL do arquivo; o upload binário para um storage externo não faz parte desta etapa.
 
@@ -155,12 +155,12 @@ O serviço `ingress` é a única entrada pública no host (`127.0.0.1:${WEB_PORT
 
 ### Serviços
 
-| Serviço  | URL                       | Observações |
-| -------- | ------------------------- | ----------- |
-| Frontend | http://localhost:5173     | Entrada única pelo ingress; build de produção servido por Nginx |
+| Serviço  | URL                       | Observações                                                                                   |
+| -------- | ------------------------- | --------------------------------------------------------------------------------------------- |
+| Frontend | http://localhost:5173     | Entrada única pelo ingress; build de produção servido por Nginx                               |
 | API      | http://localhost:5173/api | Via ingress; `GET /api/health` e `POST /api/auth/login` são públicos; demais rotas exigem JWT |
-| Adminer  | http://localhost:8080     | Interface web do PostgreSQL em `127.0.0.1` |
-| Postgres | `localhost:5432`          | Acesso por cliente SQL externo em `127.0.0.1` |
+| Adminer  | http://localhost:8080     | Interface web do PostgreSQL em `127.0.0.1`                                                    |
+| Postgres | `localhost:5432`          | Acesso por cliente SQL externo em `127.0.0.1`                                                 |
 
 A API não publica a porta `3000` e o container `web` não publica a `5173`; o único serviço com porta publicada para acesso externo é o `ingress` (`127.0.0.1:${WEB_PORT:-5173}`). A API só é acessível pela rede do Compose ou pela entrada do ingress.
 
@@ -180,14 +180,14 @@ Os valores são os padrões do `docker-compose.yml`. Se você alterou o `.env`, 
 
 A API usa JWT assinado com HS256. Não há tabela de usuários: a aplicação valida um único usuário definido no `.env` da raiz, que é lido pelo serviço `api` via Docker Compose.
 
-| Variável | Obrigatória | Descrição |
-| -------- | ----------- | --------- |
-| `AUTH_USERNAME` | sim | Usuário aceito no login |
-| `AUTH_PASSWORD` | sim | Senha em texto plano no `.env` (não versionado) |
-| `JWT_SECRET` | sim | Segredo HMAC com pelo menos 32 caracteres |
-| `JWT_EXPIRES_IN` | não | Validade do token (`30m`, `8h`, `7d`); padrão `8h` |
-| `LOGIN_MAX_ATTEMPTS` | não | Falhas consecutivas antes do bloqueio; padrão `10` |
-| `LOGIN_WINDOW_SECONDS` | não | Janela e duração do bloqueio; padrão `900` |
+| Variável               | Obrigatória | Descrição                                          |
+| ---------------------- | ----------- | -------------------------------------------------- |
+| `AUTH_USERNAME`        | sim         | Usuário aceito no login                            |
+| `AUTH_PASSWORD`        | sim         | Senha em texto plano no `.env` (não versionado)    |
+| `JWT_SECRET`           | sim         | Segredo HMAC com pelo menos 32 caracteres          |
+| `JWT_EXPIRES_IN`       | não         | Validade do token (`30m`, `8h`, `7d`); padrão `8h` |
+| `LOGIN_MAX_ATTEMPTS`   | não         | Falhas consecutivas antes do bloqueio; padrão `10` |
+| `LOGIN_WINDOW_SECONDS` | não         | Janela e duração do bloqueio; padrão `900`         |
 
 Gere um segredo forte com `openssl rand -hex 32` e mantenha o `.env` fora do Git. Restrinja o arquivo ao seu usuário com `chmod 600 .env`. O login é feito em `POST /auth/login` e retorna um `accessToken`; envie-o nas demais rotas como `Authorization: Bearer <token>`.
 
@@ -306,23 +306,23 @@ curl -X POST http://localhost:5173/api/applications \
 
 Campos aceitos:
 
-| Campo | Tipo | Obrigatório | Regra |
-| ----- | ---- | ----------- | ----- |
-| `title` | string | sim | até 120 caracteres |
-| `link` | string | sim | URL HTTP/HTTPS válida, até 2048 caracteres |
-| `currentPhase` | string | sim | até 120 caracteres |
-| `status` | enum | não | `PENDING`, `IN_PROGRESS`, `COMPLETED` ou `REJECTED`; padrão `PENDING` |
-| `files` | array | não | lista de arquivos com os metadados abaixo |
+| Campo          | Tipo   | Obrigatório | Regra                                                                 |
+| -------------- | ------ | ----------- | --------------------------------------------------------------------- |
+| `title`        | string | sim         | até 120 caracteres                                                    |
+| `link`         | string | sim         | URL HTTP/HTTPS válida, até 2048 caracteres                            |
+| `currentPhase` | string | sim         | até 120 caracteres                                                    |
+| `status`       | enum   | não         | `PENDING`, `IN_PROGRESS`, `COMPLETED` ou `REJECTED`; padrão `PENDING` |
+| `files`        | array  | não         | lista de arquivos com os metadados abaixo                             |
 
 Metadados de cada arquivo:
 
-| Campo | Tipo | Obrigatório | Regra |
-| ----- | ---- | ----------- | ----- |
-| `name` | string | sim | até 255 caracteres |
-| `url` | string | sim | URL HTTP/HTTPS válida, até 2048 caracteres |
-| `mimeType` | string | sim | formato `type/subtype`, até 100 caracteres |
-| `sizeInBytes` | inteiro | sim | maior que zero |
-| `uploadedAt` | string | não | data ISO 8601; padrão é o momento do anexo |
+| Campo         | Tipo    | Obrigatório | Regra                                      |
+| ------------- | ------- | ----------- | ------------------------------------------ |
+| `name`        | string  | sim         | até 255 caracteres                         |
+| `url`         | string  | sim         | URL HTTP/HTTPS válida, até 2048 caracteres |
+| `mimeType`    | string  | sim         | formato `type/subtype`, até 100 caracteres |
+| `sizeInBytes` | inteiro | sim         | maior que zero                             |
+| `uploadedAt`  | string  | não         | data ISO 8601; padrão é o momento do anexo |
 
 ### Listar candidaturas
 
@@ -397,15 +397,15 @@ Erros de domínio e aplicação:
 }
 ```
 
-| Situação | HTTP | Código |
-| -------- | ---- | ------ |
-| Token ausente, inválido ou expirado | `401` | Mensagem padrão do guard |
-| Muitas tentativas de login | `429` | `TOO_MANY_ATTEMPTS` |
-| Recurso não encontrado | `404` | `APPLICATION_NOT_FOUND` |
-| Candidatura já excluída | `409` | `APPLICATION_ALREADY_DELETED` |
-| Modo de exclusão inválido | `400` | `INVALID_DELETE_MODE` |
-| Validação de domínio | `400` | Código específico, como `TITLE_REQUIRED` |
-| Validação de DTO | `400` | Formato padrão do NestJS com `statusCode: 400` |
+| Situação                            | HTTP  | Código                                         |
+| ----------------------------------- | ----- | ---------------------------------------------- |
+| Token ausente, inválido ou expirado | `401` | Mensagem padrão do guard                       |
+| Muitas tentativas de login          | `429` | `TOO_MANY_ATTEMPTS`                            |
+| Recurso não encontrado              | `404` | `APPLICATION_NOT_FOUND`                        |
+| Candidatura já excluída             | `409` | `APPLICATION_ALREADY_DELETED`                  |
+| Modo de exclusão inválido           | `400` | `INVALID_DELETE_MODE`                          |
+| Validação de domínio                | `400` | Código específico, como `TITLE_REQUIRED`       |
+| Validação de DTO                    | `400` | Formato padrão do NestJS com `statusCode: 400` |
 
 ## Testes
 
@@ -581,42 +581,42 @@ O `backend/.env.example` aponta para `localhost:5432`. O `prestart:dev` executa 
 
 Scripts disponíveis em `backend/package.json`:
 
-| Script | Descrição |
-| ------ | --------- |
-| `npm run start:dev` | Inicia em modo watch |
-| `npm run build` | Compila para `dist/` |
-| `npm run start:prod` | Executa o build compilado |
-| `npm test` | Executa os testes unitários |
-| `npm run test:cov` | Executa os testes com cobertura |
-| `npm run test:typecheck` | Valida os tipos dos fontes e testes |
-| `npm run prisma:generate` | Gera o Prisma Client |
-| `npm run prisma:migrate` | Cria/aplica migrações em desenvolvimento |
-| `npm run prisma:studio` | Abre o Prisma Studio |
+| Script                    | Descrição                                |
+| ------------------------- | ---------------------------------------- |
+| `npm run start:dev`       | Inicia em modo watch                     |
+| `npm run build`           | Compila para `dist/`                     |
+| `npm run start:prod`      | Executa o build compilado                |
+| `npm test`                | Executa os testes unitários              |
+| `npm run test:cov`        | Executa os testes com cobertura          |
+| `npm run test:typecheck`  | Valida os tipos dos fontes e testes      |
+| `npm run prisma:generate` | Gera o Prisma Client                     |
+| `npm run prisma:migrate`  | Cria/aplica migrações em desenvolvimento |
+| `npm run prisma:studio`   | Abre o Prisma Studio                     |
 
 ## Variáveis de ambiente
 
 ### Compose (raiz)
 
-| Variável            | Padrão        | Descrição |
-| ------------------- | ------------- | --------- |
-| `POSTGRES_USER`     | `trampo`      | Usuário do PostgreSQL |
-| `POSTGRES_PASSWORD` | `trampo_dev`  | Senha do PostgreSQL |
-| `POSTGRES_DB`       | `trampo_flow` | Banco criado na inicialização |
-| `POSTGRES_PORT`     | `5432`        | Porta do Postgres em `127.0.0.1` |
-| `ADMINER_PORT`      | `8080`        | Porta do Adminer em `127.0.0.1` |
-| `WEB_PORT`          | `5173`        | Porta local do ingress em `127.0.0.1` |
+| Variável            | Padrão         | Descrição                                                 |
+| ------------------- | -------------- | --------------------------------------------------------- |
+| `POSTGRES_USER`     | `trampo`       | Usuário do PostgreSQL                                     |
+| `POSTGRES_PASSWORD` | `trampo_dev`   | Senha do PostgreSQL                                       |
+| `POSTGRES_DB`       | `trampo_flow`  | Banco criado na inicialização                             |
+| `POSTGRES_PORT`     | `5432`         | Porta do Postgres em `127.0.0.1`                          |
+| `ADMINER_PORT`      | `8080`         | Porta do Adminer em `127.0.0.1`                           |
+| `WEB_PORT`          | `5173`         | Porta local do ingress em `127.0.0.1`                     |
 | `CORS_ORIGINS`      | origens locais | Origens permitidas no CORS da API (separadas por vírgula) |
 
 As variáveis `AUTH_USERNAME`, `AUTH_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `LOGIN_MAX_ATTEMPTS` e `LOGIN_WINDOW_SECONDS` também ficam no `.env` da raiz e são repassadas ao serviço `api`; veja [Autenticação](#autenticação).
 
 ### Backend (`backend/.env`)
 
-| Variável       | Padrão | Descrição |
-| -------------- | ------ | --------- |
-| `NODE_ENV`     | `development` | Ambiente de execução |
-| `PORT`         | `3000` | Porta interna da API |
-| `DATABASE_URL` | `postgresql://trampo:trampo_dev@localhost:5432/trampo_flow` | Conexão usada localmente e pelo Prisma CLI |
-| `CORS_ORIGINS` | origens locais | Origens permitidas no CORS (separadas por vírgula) |
+| Variável       | Padrão                                                      | Descrição                                          |
+| -------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| `NODE_ENV`     | `development`                                               | Ambiente de execução                               |
+| `PORT`         | `3000`                                                      | Porta interna da API                               |
+| `DATABASE_URL` | `postgresql://trampo:trampo_dev@localhost:5432/trampo_flow` | Conexão usada localmente e pelo Prisma CLI         |
+| `CORS_ORIGINS` | origens locais                                              | Origens permitidas no CORS (separadas por vírgula) |
 
 As variáveis de autenticação também são lidas do ambiente; veja [Autenticação](#autenticação).
 
@@ -624,9 +624,9 @@ No Docker, o Compose define `DATABASE_URL` apontando para o host `postgres` e so
 
 ### Frontend (`frontend/.env`)
 
-| Variável | Padrão | Descrição |
-| -------- | ------ | --------- |
-| `VITE_API_URL` | `/api` | URL base usada pelo cliente Axios |
+| Variável                | Padrão                  | Descrição                                                    |
+| ----------------------- | ----------------------- | ------------------------------------------------------------ |
+| `VITE_API_URL`          | `/api`                  | URL base usada pelo cliente Axios                            |
 | `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Destino do proxy `/api` apenas no Vite local (`npm run dev`) |
 
 No Compose, o proxy `/api` é definido em `infra/ingress/nginx.conf` e aponta para `http://api:3000` dentro da rede do Compose; o Vite não faz proxy nesse ambiente. O `frontend/nginx.conf` de produção serve apenas os arquivos estáticos. Mantenha `VITE_API_URL=/api`. Se publicar o frontend separado da API, defina `VITE_API_URL` com a URL absoluta da API e ajuste o CORS no backend.
