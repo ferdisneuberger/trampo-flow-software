@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ApplicationHttpResponse } from '../presenters/application.presenter';
 
 export class AuthenticatedUserResponse {
   @ApiProperty({ format: 'uuid' })
@@ -29,6 +30,42 @@ export class LoginResponse {
 
   @ApiProperty({ type: AuthenticatedUserResponse })
   user!: AuthenticatedUserResponse;
+}
+
+export class ApplicationStatusCountResponse {
+  @ApiProperty({ example: 3 })
+  PENDING!: number;
+
+  @ApiProperty({ example: 5 })
+  IN_PROGRESS!: number;
+
+  @ApiProperty({ example: 4 })
+  COMPLETED!: number;
+
+  @ApiProperty({ example: 0 })
+  REJECTED!: number;
+}
+
+export class ApplicationStatsResponse {
+  @ApiProperty({ example: 12 })
+  total!: number;
+
+  @ApiProperty({ type: ApplicationStatusCountResponse })
+  byStatus!: ApplicationStatusCountResponse;
+}
+
+export class PaginatedApplicationsResponse {
+  @ApiProperty({ type: [ApplicationHttpResponse] })
+  items!: ApplicationHttpResponse[];
+
+  @ApiProperty({
+    nullable: true,
+    example: 'MjAyNi0xMC0xMlQxMjowMDowMC4wMDBafDZkMGYzZjdl',
+  })
+  nextCursor!: string | null;
+
+  @ApiProperty({ example: true })
+  hasMore!: boolean;
 }
 
 export class HealthResponse {

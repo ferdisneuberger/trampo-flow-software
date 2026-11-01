@@ -1,8 +1,23 @@
 import { Application } from '../entities/application.entity';
+import { ApplicationStatus } from '../enums/application-status.enum';
 
-export type FindAllApplicationsOptions = {
-  includeDeleted?: boolean;
+export type ApplicationSort = 'recent' | 'stale';
+
+export type ApplicationCursor = {
+  sort: ApplicationSort;
+  value: Date;
+  id: string;
 };
+
+export type FindApplicationsPageOptions = {
+  limit: number;
+  sort: ApplicationSort;
+  search?: string;
+  status?: ApplicationStatus;
+  cursor?: ApplicationCursor;
+};
+
+export type ApplicationStatusCount = Record<ApplicationStatus, number>;
 
 export abstract class ApplicationRepository {
   abstract create(application: Application, userId: string): Promise<void>;
@@ -13,10 +28,12 @@ export abstract class ApplicationRepository {
    */
   abstract findById(id: string, userId: string): Promise<Application | null>;
 
-  abstract findAll(
+  abstract findPage(
     userId: string,
-    options?: FindAllApplicationsOptions,
+    options: FindApplicationsPageOptions,
   ): Promise<Application[]>;
+
+  abstract countByStatus(userId: string): Promise<ApplicationStatusCount>;
 
   abstract update(application: Application, userId: string): Promise<void>;
 

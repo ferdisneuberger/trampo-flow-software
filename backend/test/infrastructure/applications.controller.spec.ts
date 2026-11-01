@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AddApplicationFilesUseCase } from '../../src/application/applications/use-cases/add-application-files.use-case';
 import type { CreateApplicationUseCase } from '../../src/application/applications/use-cases/create-application.use-case';
 import type { DeleteApplicationUseCase } from '../../src/application/applications/use-cases/delete-application.use-case';
+import type { GetApplicationStatsUseCase } from '../../src/application/applications/use-cases/get-application-stats.use-case';
+import { encodeCursor } from '../../src/application/applications/types/application-cursor';
 import type { ListApplicationsUseCase } from '../../src/application/applications/use-cases/list-applications.use-case';
 import type { UpdateApplicationUseCase } from '../../src/application/applications/use-cases/update-application.use-case';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
@@ -19,16 +21,18 @@ function createController() {
   const update = vi.fn();
   const remove = vi.fn();
   const addFiles = vi.fn();
+  const stats = vi.fn();
 
   const controller = new ApplicationsController(
     { execute: create } as unknown as CreateApplicationUseCase,
     { execute: list } as unknown as ListApplicationsUseCase,
+    { execute: stats } as unknown as GetApplicationStatsUseCase,
     { execute: update } as unknown as UpdateApplicationUseCase,
     { execute: remove } as unknown as DeleteApplicationUseCase,
     { execute: addFiles } as unknown as AddApplicationFilesUseCase,
   );
 
-  return { controller, create, list, update, remove, addFiles };
+  return { controller, create, list, update, remove, addFiles, stats };
 }
 
 describe('ApplicationsController', () => {
@@ -93,17 +97,99 @@ describe('ApplicationsController', () => {
     expect(input.files).toBeUndefined();
   });
 
-  it('lista apenas as candidaturas do usuário do token', async () => {
+  it('lista a página do usuário do token com cursor e hasMore', async () => {
+    const { controller, list } = createController();
+    const application = makeRestoredApplication({ title: 'Uma' });
+    const nextCursor = {
+      sort: 'recent' as const,
+      value: application.createdAt,
+      id: application.id,
+    };
+
+    list.mockResolvedValue({ items: [application], nextCursor });
+
+    const response = await controller.list(USER_ID, {});
+
+    expect(list).toHaveBeenCalledWith({
+      userId: USER_ID,
+      limit: undefined,
+      sort: undefined,
+      search: undefined,
+      status: undefined,
+      cursor: undefined,
+    });
+    expect(response.items).toHaveLength(1);
+    expect(response.items[0]).toMatchObject({ title: 'Uma' });
+    expect(typeof response.items[0]?.createdAt).toBe('string');
+    expect(response.hasMore).toBe(true);
+    expect(typeof response.nextCursor).toBe('string');
+  });
+
+  it('repassa busca, status, limite e ordenação para o caso de uso', async () => {
     const { controller, list } = createController();
 
-    list.mockResolvedValue([makeRestoredApplication({ title: 'Uma' })]);
+    list.mockResolvedValue({ items: [], nextCursor: null });
 
-    const response = await controller.list(USER_ID);
+    await controller.list(USER_ID, {
+      search: 'nubank',
+      status: ApplicationStatus.IN_PROGRESS,
+      limit: 10,
+      sort: 'stale',
+    });
 
-    expect(list).toHaveBeenCalledWith(USER_ID);
-    expect(response).toHaveLength(1);
-    expect(response[0]).toMatchObject({ title: 'Uma' });
-    expect(typeof response[0]?.createdAt).toBe('string');
+    expect(list).toHaveBeenCalledWith({
+      userId: USER_ID,
+      limit: 10,
+      sort: 'stale',
+      search: 'nubank',
+      status: ApplicationStatus.IN_PROGRESS,
+      cursor: undefined,
+    });
+  });
+
+  it('decodifica o cursor recebido', async () => {
+    const { controller, list } = createController();
+    const encoded = encodeCursor({
+      sort: 'recent',
+      value: new Date('2026-01-01T00:00:00.000Z'),
+      id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+    });
+
+    list.mockResolvedValue({ items: [], nextCursor: null });
+
+    await controller.list(USER_ID, { cursor: encoded });
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: {
+          sort: 'recent',
+          value: new Date('2026-01-01T00:00:00.000Z'),
+          id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+        },
+      }),
+    );
+  });
+
+  it('rejeita cursor inválido', async () => {
+    const { controller, list } = createController();
+
+    await expect(
+      controller.list(USER_ID, { cursor: 'invalido' }),
+    ).rejects.toMatchObject({ code: 'INVALID_CURSOR' });
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it('devolve os contadores do usuário', async () => {
+    const { controller, stats } = createController();
+    const summary = {
+      total: 3,
+      byStatus: { PENDING: 1, IN_PROGRESS: 2, COMPLETED: 0, REJECTED: 0 },
+    };
+
+    stats.mockResolvedValue(summary);
+
+    await expect(controller.stats(USER_ID)).resolves.toEqual(summary);
+    expect(stats).toHaveBeenCalledWith(USER_ID);
   });
 
   it('encaminha apenas os campos informados no update', async () => {
