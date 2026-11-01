@@ -44,8 +44,16 @@ export async function createTestPrisma(): Promise<PrismaService> {
   return prisma;
 }
 
-export async function truncateAll(prisma: PrismaService): Promise<void> {
+export async function truncateApplicationData(
+  prisma: PrismaService,
+): Promise<void> {
   await prisma.$executeRawUnsafe(
     'TRUNCATE TABLE "application_files", "applications" RESTART IDENTITY CASCADE',
+  );
+}
+
+export async function truncateUserData(prisma: PrismaService): Promise<void> {
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE TABLE "users" RESTART IDENTITY CASCADE',
   );
 }

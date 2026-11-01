@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
-import { AuthService } from './auth.service';
+import { UserRepository } from '../../domain/users/repositories/user.repository';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { TokenService, type JwtPayload } from './token.service';
 
@@ -19,10 +19,10 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly tokenService: TokenService,
-    private readonly authService: AuthService,
+    private readonly userRepository: UserRepository,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -51,8 +51,9 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const payload = this.tokenService.verify(token);
+    const userExists = await this.userRepository.existsById(payload.sub);
 
-    if (!this.authService.isCurrentUser(payload.sub)) {
+    if (!userExists) {
       throw new UnauthorizedException('Token inválido ou expirado.');
     }
 
