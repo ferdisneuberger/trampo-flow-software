@@ -5,7 +5,6 @@ import type { DeleteApplicationUseCase } from '../../src/application/application
 import type { ListApplicationsUseCase } from '../../src/application/applications/use-cases/list-applications.use-case';
 import type { UpdateApplicationUseCase } from '../../src/application/applications/use-cases/update-application.use-case';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
-import type { AuthenticatedRequest } from '../../src/infrastructure/auth/jwt-auth.guard';
 import { ApplicationsController } from '../../src/infrastructure/http/controllers/applications.controller';
 import {
   makeApplication,
@@ -13,10 +12,6 @@ import {
 } from '../factories/application.factory';
 
 const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
-
-const request = {
-  user: { sub: USER_ID },
-} as unknown as AuthenticatedRequest;
 
 function createController() {
   const create = vi.fn();
@@ -58,7 +53,7 @@ describe('ApplicationsController', () => {
           },
         ],
       },
-      request,
+      USER_ID,
     );
 
     const [input] = create.mock.calls[0] as [Record<string, unknown>];
@@ -88,7 +83,7 @@ describe('ApplicationsController', () => {
         link: 'https://example.com/jobs/backend',
         currentPhase: 'Triagem',
       },
-      request,
+      USER_ID,
     );
 
     const [input] = create.mock.calls[0] as [Record<string, unknown>];
@@ -101,7 +96,7 @@ describe('ApplicationsController', () => {
 
     list.mockResolvedValue([makeRestoredApplication({ title: 'Uma' })]);
 
-    const response = await controller.list(request);
+    const response = await controller.list(USER_ID);
 
     expect(list).toHaveBeenCalledWith(USER_ID);
     expect(response).toHaveLength(1);
@@ -117,7 +112,7 @@ describe('ApplicationsController', () => {
     await controller.update(
       '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       { currentPhase: 'Entrevista' },
-      request,
+      USER_ID,
     );
 
     expect(update).toHaveBeenCalledWith({
@@ -148,7 +143,7 @@ describe('ApplicationsController', () => {
           },
         ],
       },
-      request,
+      USER_ID,
     );
 
     expect(addFiles).toHaveBeenCalledWith({
@@ -171,7 +166,7 @@ describe('ApplicationsController', () => {
     await controller.remove(
       '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       { mode: 'hard' },
-      request,
+      USER_ID,
     );
 
     expect(remove).toHaveBeenCalledWith({
@@ -179,21 +174,5 @@ describe('ApplicationsController', () => {
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       mode: 'hard',
     });
-  });
-
-  it('rejeita quando o token não trouxe usuário', async () => {
-    const { controller, create } = createController();
-
-    await expect(
-      controller.create(
-        {
-          title: 'Backend Engineer',
-          link: 'https://example.com/jobs/backend',
-          currentPhase: 'Triagem',
-        },
-        {} as unknown as AuthenticatedRequest,
-      ),
-    ).rejects.toThrow();
-    expect(create).not.toHaveBeenCalled();
   });
 });

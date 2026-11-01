@@ -5,8 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -19,7 +17,7 @@ import { LoginDto } from '../../../application/auth/dtos/login.dto';
 import { AuthenticateUserUseCase } from '../../../application/auth/use-cases/authenticate-user.use-case';
 import { GetUserProfileUseCase } from '../../../application/auth/use-cases/get-user-profile.use-case';
 import { UnauthorizedError } from '../../../application/shared/errors/unauthorized.error';
-import type { AuthenticatedRequest } from '../../auth/jwt-auth.guard';
+import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import { LoginRateLimiter } from '../../auth/login-rate-limiter.service';
 import { Public } from '../../auth/public.decorator';
 import { TokenService } from '../../auth/token.service';
@@ -85,13 +83,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Devolve o usuário autenticado' })
   @ApiOkResponse({ type: AuthenticatedUserResponse })
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
-  async me(@Req() request: AuthenticatedRequest) {
-    const userId = request.user?.sub;
-
-    if (!userId) {
-      throw new UnauthorizedException('Token inválido ou expirado.');
-    }
-
+  async me(@CurrentUserId() userId: string) {
     const user = await this.getUserProfile.execute(userId);
 
     return {

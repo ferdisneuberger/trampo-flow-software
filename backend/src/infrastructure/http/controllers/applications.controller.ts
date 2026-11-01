@@ -10,8 +10,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -39,7 +37,7 @@ import { ListApplicationsUseCase } from '../../../application/applications/use-c
 import { UpdateApplicationUseCase } from '../../../application/applications/use-cases/update-application.use-case';
 import { APPLICATION_DELETE_MODES } from '../../../application/applications/types/application-delete-mode';
 import { CreateApplicationFileInput } from '../../../domain/applications/entities/application-file.entity';
-import type { AuthenticatedRequest } from '../../auth/jwt-auth.guard';
+import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import {
   ApplicationHttpResponse,
   ApplicationPresenter,
@@ -69,10 +67,10 @@ export class ApplicationsController {
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
   async create(
     @Body() dto: CreateApplicationDto,
-    @Req() request: AuthenticatedRequest,
+    @CurrentUserId() userId: string,
   ) {
     const application = await this.createApplicationUseCase.execute({
-      userId: ApplicationsController.requireUserId(request),
+      userId,
       title: dto.title,
       link: dto.link,
       currentPhase: dto.currentPhase,
@@ -87,10 +85,8 @@ export class ApplicationsController {
   @ApiOperation({ summary: 'Lista as candidaturas ativas' })
   @ApiOkResponse({ type: [ApplicationHttpResponse] })
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
-  async list(@Req() request: AuthenticatedRequest) {
-    const applications = await this.listApplicationsUseCase.execute(
-      ApplicationsController.requireUserId(request),
-    );
+  async list(@CurrentUserId() userId: string) {
+    const applications = await this.listApplicationsUseCase.execute(userId);
 
     return applications.map((application) =>
       ApplicationPresenter.toHTTP(application),
@@ -115,10 +111,10 @@ export class ApplicationsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateApplicationDto,
-    @Req() request: AuthenticatedRequest,
+    @CurrentUserId() userId: string,
   ) {
     const application = await this.updateApplicationUseCase.execute({
-      userId: ApplicationsController.requireUserId(request),
+      userId,
       id,
       title: dto.title,
       link: dto.link,
@@ -148,10 +144,10 @@ export class ApplicationsController {
   async addFiles(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AddApplicationFilesDto,
-    @Req() request: AuthenticatedRequest,
+    @CurrentUserId() userId: string,
   ) {
     const application = await this.addApplicationFilesUseCase.execute({
-      userId: ApplicationsController.requireUserId(request),
+      userId,
       applicationId: id,
       files: dto.files.map((file) => ApplicationsController.toFileInput(file)),
     });
@@ -185,23 +181,13 @@ export class ApplicationsController {
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: DeleteApplicationQueryDto,
-    @Req() request: AuthenticatedRequest,
+    @CurrentUserId() userId: string,
   ): Promise<void> {
     await this.deleteApplicationUseCase.execute({
-      userId: ApplicationsController.requireUserId(request),
+      userId,
       id,
       mode: query.mode,
     });
-  }
-
-  private static requireUserId(request: AuthenticatedRequest): string {
-    const userId = request.user?.sub;
-
-    if (!userId) {
-      throw new UnauthorizedException('Token inválido ou expirado.');
-    }
-
-    return userId;
   }
 
   private static toFileInput(
