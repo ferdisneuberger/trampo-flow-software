@@ -791,6 +791,21 @@ docker compose down -v
 docker compose up --build
 ```
 
+## Decisões e limitações conhecidas
+
+Esta seção deixa explícito o que o projeto **não** faz, e por quê. Nenhum item é bug: são escolhas de escopo, cada uma com a alternativa que seria necessária para mudar.
+
+- **Sessão no navegador.** O token fica no `localStorage`, legível por qualquer script da mesma origem. Mitigado por CSP estrita (`script-src 'self'`), ausência de `dangerouslySetInnerHTML`/`eval` e TTL de 8h. Para mudar: cookie `httpOnly` + `Secure` + `SameSite`, com token CSRF e CORS `credentials` — resolve XSS, mas abre CSRF.
+- **Logout.** É local: o token já emitido continua válido até expirar. Para mudar: revogação por `jti` ou `tokenVersion` no usuário.
+- **Rate limit de login.** Em memória, global e por janela fixa; zera no restart e não é compartilhado entre réplicas. Para mudar: contador no Postgres (ou Redis) por `username` + IP, com janela deslizante.
+- **Listagem.** `GET /applications` devolve todas as candidaturas ativas, sem paginação. Para mudar: `?page`/`?cursor` com `take`/`skip` no Prisma e "carregar mais" na interface.
+- **Arquivos.** `ApplicationFile` guarda nome, MIME, tamanho e URL; não há upload de binário. Para mudar: storage de objetos (S3/MinIO) com URL pré-assinada e upload multipart.
+- **Usuários.** A tabela `users` existe no Postgres, mas não há registro público nem troca de senha pela interface: criar usuário é operação administrativa. Para mudar: endpoint de troca de senha com invalidação de tokens e, se fizer sentido, cadastro por convite.
+- **Autorização.** Todo usuário autenticado enxerga todas as candidaturas; não há papéis nem isolamento por dono. Para mudar: coluna `user_id` em `applications` e filtro por usuário em todos os repositórios.
+- **Custo do guard.** Valida a assinatura e consulta `users` a cada requisição (um `SELECT` por chave primária). Para mudar: cache em memória com TTL curto, se o volume justificar.
+- **Testes de UI.** Componentes e páginas não têm teste automatizado; a cobertura atual está em hooks, utilitários e serviços. Para mudar: Testing Library nos fluxos principais ou Playwright no caminho crítico.
+- **Observabilidade.** Log padrão do Nest/Fastify, sem request-id nem métricas. Para mudar: Pino estruturado, correlação de requisição e endpoint de métricas.
+
 ## Licença
 
 MIT — veja [LICENSE](LICENSE).

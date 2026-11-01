@@ -37,8 +37,8 @@ Fora do escopo:
 - negação de serviço e flood;
 - relatos gerados apenas por scanner, sem prova de impacto;
 - vulnerabilidades em dependências sem CVE aplicável ao uso do projeto;
-- más práticas já documentadas no README (token em `localStorage`, rate limit em
-  memória, ausência de paginação).
+- más práticas já documentadas em "Decisões e limitações conhecidas" no README
+  (sessão no `localStorage`, rate limit em memória, ausência de paginação).
 
 ## Práticas adotadas
 
