@@ -201,6 +201,8 @@ curl -X POST http://localhost:5173/api/auth/login \
 
 O `sub` do token é o **id** do usuário (UUID), não o username. O guard valida a assinatura e confirma que o usuário ainda existe no banco a cada requisição, então apagar um usuário invalida os tokens dele imediatamente.
 
+As rotas de `/applications` operam apenas sobre as candidaturas do usuário do token. Um id pertencente a outra conta responde `404`, e não `403`, para não revelar que o registro existe.
+
 Apenas `POST /auth/login` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend guarda o token no `localStorage`, restaura a sessão em `GET /auth/me` e remove o token em qualquer resposta `401`. O logout é local: um token já emitido continua válido até expirar. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais usernames estão cadastrados.
 
 ## Frontend
@@ -801,7 +803,7 @@ Esta seção deixa explícito o que o projeto **não** faz, e por quê. Nenhum i
 - **Listagem.** `GET /applications` devolve todas as candidaturas ativas, sem paginação. Para mudar: `?page`/`?cursor` com `take`/`skip` no Prisma e "carregar mais" na interface.
 - **Arquivos.** `ApplicationFile` guarda nome, MIME, tamanho e URL; não há upload de binário. Para mudar: storage de objetos (S3/MinIO) com URL pré-assinada e upload multipart.
 - **Usuários.** A tabela `users` existe no Postgres, mas não há registro público nem troca de senha pela interface: criar usuário é operação administrativa. Para mudar: endpoint de troca de senha com invalidação de tokens e, se fizer sentido, cadastro por convite.
-- **Autorização.** Todo usuário autenticado enxerga todas as candidaturas; não há papéis nem isolamento por dono. Para mudar: coluna `user_id` em `applications` e filtro por usuário em todos os repositórios.
+- **Papéis e permissões.** Cada usuário enxerga apenas as próprias candidaturas, mas não há papéis (administrador, leitor) nem compartilhamento entre contas. Para mudar: modelo de papéis e regras de autorização por recurso.
 - **Custo do guard.** Valida a assinatura e consulta `users` a cada requisição (um `SELECT` por chave primária). Para mudar: cache em memória com TTL curto, se o volume justificar.
 - **Testes de UI.** Componentes e páginas não têm teste automatizado; a cobertura atual está em hooks, utilitários e serviços. Para mudar: Testing Library nos fluxos principais ou Playwright no caminho crítico.
 - **Observabilidade.** Log padrão do Nest/Fastify, sem request-id nem métricas. Para mudar: Pino estruturado, correlação de requisição e endpoint de métricas.

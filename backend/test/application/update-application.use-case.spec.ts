@@ -13,6 +13,8 @@ import {
   makeRestoredApplication,
 } from '../factories/application.factory';
 
+const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
+
 describe('UpdateApplicationUseCase', () => {
   let repository: InMemoryApplicationRepository;
   let useCase: UpdateApplicationUseCase;
@@ -25,11 +27,12 @@ describe('UpdateApplicationUseCase', () => {
     file = makeApplicationFile();
     application = makeRestoredApplication({ files: [file] });
 
-    await repository.create(application);
+    await repository.create(application, USER_ID);
   });
 
   it('updates the title and preserves the other fields and files', async () => {
     const updated = await useCase.execute({
+      userId: USER_ID,
       id: application.id,
       title: '  Staff Engineer  ',
     });
@@ -51,6 +54,7 @@ describe('UpdateApplicationUseCase', () => {
 
   it('updates the link', async () => {
     const updated = await useCase.execute({
+      userId: USER_ID,
       id: application.id,
       link: '  https://example.com/jobs/new-role  ',
     });
@@ -61,6 +65,7 @@ describe('UpdateApplicationUseCase', () => {
 
   it('updates the current phase', async () => {
     const updated = await useCase.execute({
+      userId: USER_ID,
       id: application.id,
       currentPhase: '  Entrevista técnica  ',
     });
@@ -76,6 +81,7 @@ describe('UpdateApplicationUseCase', () => {
     ApplicationStatus.REJECTED,
   ])('updates the fixed status to %s', async (status) => {
     const updated = await useCase.execute({
+      userId: USER_ID,
       id: application.id,
       status,
     });
@@ -85,6 +91,7 @@ describe('UpdateApplicationUseCase', () => {
 
   it('updates multiple fields at once', async () => {
     const updated = await useCase.execute({
+      userId: USER_ID,
       id: application.id,
       title: '  Engineering Manager  ',
       link: '  https://example.com/jobs/engineering-manager  ',
@@ -101,13 +108,14 @@ describe('UpdateApplicationUseCase', () => {
 
   it('persists the updated application in the repository', async () => {
     await useCase.execute({
+      userId: USER_ID,
       id: application.id,
       title: 'Staff Engineer',
       currentPhase: 'Proposta',
       status: ApplicationStatus.COMPLETED,
     });
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.title).toBe('Staff Engineer');
     expect(stored?.currentPhase).toBe('Proposta');
@@ -120,13 +128,13 @@ describe('UpdateApplicationUseCase', () => {
     const id = randomUUID();
 
     await expect(
-      useCase.execute({ id, title: 'New title' }),
+      useCase.execute({ userId: USER_ID, id, title: 'New title' }),
     ).rejects.toMatchObject({
       name: 'ApplicationNotFoundError',
       code: 'APPLICATION_NOT_FOUND',
     });
 
-    expect(await repository.findById(id)).toBeNull();
+    expect(await repository.findById(id, USER_ID)).toBeNull();
   });
 
   it('rejects an update for a soft-deleted application', async () => {
@@ -135,30 +143,30 @@ describe('UpdateApplicationUseCase', () => {
     });
 
     await repository.clear();
-    await repository.create(deleted);
+    await repository.create(deleted, USER_ID);
 
     await expect(
-      useCase.execute({ id: deleted.id, title: 'New title' }),
+      useCase.execute({ userId: USER_ID, id: deleted.id, title: 'New title' }),
     ).rejects.toMatchObject({
       name: 'ApplicationAlreadyDeletedError',
       code: 'APPLICATION_ALREADY_DELETED',
     });
 
-    const stored = await repository.findById(deleted.id);
+    const stored = await repository.findById(deleted.id, USER_ID);
 
     expect(stored?.title).toBe('Backend Engineer');
     expect(stored?.isDeleted).toBe(true);
   });
 
   it('rejects an update without any fields', async () => {
-    await expect(useCase.execute({ id: application.id })).rejects.toMatchObject(
-      {
-        name: 'DomainError',
-        code: 'NO_FIELDS_TO_UPDATE',
-      },
-    );
+    await expect(
+      useCase.execute({ userId: USER_ID, id: application.id }),
+    ).rejects.toMatchObject({
+      name: 'DomainError',
+      code: 'NO_FIELDS_TO_UPDATE',
+    });
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.title).toBe(application.title);
     expect(stored?.updatedAt.toISOString()).toBe(
@@ -169,13 +177,14 @@ describe('UpdateApplicationUseCase', () => {
   it('does not mutate the stored application when validation fails', async () => {
     await expect(
       useCase.execute({
+        userId: USER_ID,
         id: application.id,
         title: 'New title',
         link: 'ftp://example.com/jobs/new-role',
       }),
     ).rejects.toMatchObject({ code: 'INVALID_LINK' });
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.title).toBe('Backend Engineer');
     expect(stored?.link).toBe('https://example.com/jobs/backend-engineer');
@@ -184,7 +193,7 @@ describe('UpdateApplicationUseCase', () => {
     );
   });
 
-  it.each<[string, Omit<UpdateApplicationInput, 'id'>]>([
+  it.each<[string, Omit<UpdateApplicationInput, 'id' | 'userId'>]>([
     ['TITLE_REQUIRED', { title: '   ' }],
     ['TITLE_TOO_LONG', { title: 'a'.repeat(121) }],
     ['LINK_REQUIRED', { link: '   ' }],
@@ -195,10 +204,10 @@ describe('UpdateApplicationUseCase', () => {
     ['INVALID_STATUS', { status: 'ARCHIVED' as ApplicationStatus }],
   ])('rejects invalid update input with %s', async (code, overrides) => {
     await expect(
-      useCase.execute({ id: application.id, ...overrides }),
+      useCase.execute({ userId: USER_ID, id: application.id, ...overrides }),
     ).rejects.toMatchObject({ code });
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.title).toBe('Backend Engineer');
     expect(stored?.link).toBe('https://example.com/jobs/backend-engineer');
@@ -207,5 +216,19 @@ describe('UpdateApplicationUseCase', () => {
     expect(stored?.updatedAt.toISOString()).toBe(
       application.updatedAt.toISOString(),
     );
+  });
+
+  it('rejects updating an application from another user', async () => {
+    await expect(
+      useCase.execute({
+        userId: 'outro-usuario',
+        id: application.id,
+        title: 'Invasão',
+      }),
+    ).rejects.toMatchObject({ code: 'APPLICATION_NOT_FOUND' });
+
+    const stored = await repository.findById(application.id, USER_ID);
+
+    expect(stored?.title).toBe(application.title);
   });
 });

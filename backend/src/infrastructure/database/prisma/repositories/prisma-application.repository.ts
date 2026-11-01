@@ -11,24 +11,33 @@ import { PrismaService } from '../prisma.service';
 export class PrismaApplicationRepository implements ApplicationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(application: Application): Promise<void> {
+  async create(application: Application, userId: string): Promise<void> {
     await this.prisma.application.create({
-      data: ApplicationMapper.toCreateData(application),
+      data: {
+        ...ApplicationMapper.toCreateData(application),
+        user: { connect: { id: userId } },
+      },
     });
   }
 
-  async findById(id: string): Promise<Application | null> {
-    const record = await this.prisma.application.findUnique({
-      where: { id },
+  async findById(id: string, userId: string): Promise<Application | null> {
+    const record = await this.prisma.application.findFirst({
+      where: { id, userId },
       include: { files: true },
     });
 
     return record ? ApplicationMapper.toDomain(record) : null;
   }
 
-  async findAll(options?: FindAllApplicationsOptions): Promise<Application[]> {
+  async findAll(
+    userId: string,
+    options?: FindAllApplicationsOptions,
+  ): Promise<Application[]> {
     const records = await this.prisma.application.findMany({
-      where: options?.includeDeleted ? undefined : { deletedAt: null },
+      where: {
+        userId,
+        ...(options?.includeDeleted ? {} : { deletedAt: null }),
+      },
       include: { files: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -36,12 +45,18 @@ export class PrismaApplicationRepository implements ApplicationRepository {
     return records.map((record) => ApplicationMapper.toDomain(record));
   }
 
-  async update(application: Application): Promise<void> {
+  async update(application: Application, userId: string): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
-      await transaction.application.update({
-        where: { id: application.id },
+      const updated = await transaction.application.updateMany({
+        where: { id: application.id, userId },
         data: ApplicationMapper.toUpdateData(application),
       });
+
+      if (updated.count === 0) {
+        throw new Error(
+          `Application "${application.id}" was not found for this user.`,
+        );
+      }
 
       const fileIds = application.files.map((file) => file.id);
 
@@ -68,9 +83,15 @@ export class PrismaApplicationRepository implements ApplicationRepository {
     });
   }
 
-  async delete(application: Application): Promise<void> {
-    await this.prisma.application.delete({
-      where: { id: application.id },
+  async delete(application: Application, userId: string): Promise<void> {
+    const deleted = await this.prisma.application.deleteMany({
+      where: { id: application.id, userId },
     });
+
+    if (deleted.count === 0) {
+      throw new Error(
+        `Application "${application.id}" was not found for this user.`,
+      );
+    }
   }
 }

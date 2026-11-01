@@ -11,6 +11,7 @@ export default defineConfig({
     include: ['test/**/*.spec.ts'],
     clearMocks: true,
     hookTimeout: 60_000,
+    fileParallelism: !hasTestDatabase,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

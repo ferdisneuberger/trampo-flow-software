@@ -16,6 +16,8 @@ enum ApplicationStatus {
 
 model Application {
   id           String            @id @db.Uuid
+  userId       String            @map("user_id") @db.Uuid
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String            @db.VarChar(120)
   link         String            @db.VarChar(2048)
   status       ApplicationStatus @default(PENDING)
@@ -25,8 +27,9 @@ model Application {
   updatedAt    DateTime          @updatedAt @map("updated_at")
   deletedAt    DateTime?         @map("deleted_at")
 
-  @@index([status])
-  @@index([deletedAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, status])
+  @@index([userId, deletedAt])
   @@map("applications")
 }
 
@@ -37,6 +40,7 @@ model User {
   lastLoginAt  DateTime? @map("last_login_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
+  applications Application[]
 
   @@map("users")
 }

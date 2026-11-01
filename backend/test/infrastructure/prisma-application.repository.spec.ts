@@ -15,6 +15,31 @@ import {
   truncateApplicationData,
 } from '../helpers/test-database';
 
+const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
+const OTHER_USER_ID = 'b1e2d3c4-5f60-4a7b-8c9d-0e1f2a3b4c5d';
+const PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdA==$a2V5';
+
+async function seedUsers(prisma: PrismaService): Promise<void> {
+  for (const [id, username] of [
+    [USER_ID, 'repository-user'],
+    [OTHER_USER_ID, 'repository-other-user'],
+  ] as const) {
+    const now = new Date();
+
+    await prisma.user.upsert({
+      where: { id },
+      update: {},
+      create: {
+        id,
+        username,
+        passwordHash: PASSWORD_HASH,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+  }
+}
+
 function restoreWithFiles(
   application: Application,
   files: ApplicationFile[],
@@ -38,6 +63,7 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
 
   beforeAll(async () => {
     prisma = await createTestPrisma();
+    await seedUsers(prisma);
     repository = new PrismaApplicationRepository(prisma);
   }, 60_000);
 
@@ -55,8 +81,8 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       files: [makeApplicationFile({ name: 'curriculo.pdf' })],
     });
 
-    await repository.create(application);
-    const stored = await repository.findById(application.id);
+    await repository.create(application, USER_ID);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored).not.toBeNull();
     expect(stored?.id).toBe(application.id);
@@ -69,6 +95,7 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
   it('devolve null para id inexistente', async () => {
     const stored = await repository.findById(
       '00000000-0000-0000-0000-000000000000',
+      USER_ID,
     );
 
     expect(stored).toBeNull();
@@ -80,11 +107,11 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
 
     deleted.softDelete();
 
-    await repository.create(active);
-    await repository.create(deleted);
+    await repository.create(active, USER_ID);
+    await repository.create(deleted, USER_ID);
 
-    const visible = await repository.findAll();
-    const all = await repository.findAll({ includeDeleted: true });
+    const visible = await repository.findAll(USER_ID);
+    const all = await repository.findAll(USER_ID, { includeDeleted: true });
 
     expect(visible.map((item) => item.title)).toEqual(['Ativa']);
     expect(all).toHaveLength(2);
@@ -102,10 +129,10 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       updatedAt: new Date('2026-02-01T00:00:00.000Z'),
     });
 
-    await repository.create(older);
-    await repository.create(newer);
+    await repository.create(older, USER_ID);
+    await repository.create(newer, USER_ID);
 
-    const stored = await repository.findAll();
+    const stored = await repository.findAll(USER_ID);
 
     expect(stored.map((item) => item.title)).toEqual(['Recente', 'Antiga']);
   });
@@ -115,16 +142,16 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       files: [makeApplicationFile({ name: 'curriculo.pdf' })],
     });
 
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     const withNewFile = restoreWithFiles(application, [
       ...application.files,
       makeApplicationFile({ name: 'portfolio.pdf' }),
     ]);
 
-    await repository.update(withNewFile);
+    await repository.update(withNewFile, USER_ID);
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.files.map((file) => file.name).sort()).toEqual([
       'curriculo.pdf',
@@ -141,15 +168,15 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       ],
     });
 
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     const remaining = application.files.filter(
       (file) => file.name === 'curriculo.pdf',
     );
 
-    await repository.update(restoreWithFiles(application, remaining));
+    await repository.update(restoreWithFiles(application, remaining), USER_ID);
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.files.map((file) => file.name)).toEqual(['curriculo.pdf']);
     expect(await prisma.applicationFile.count()).toBe(1);
@@ -158,7 +185,7 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
   it('propaga o erro quando a candidatura não existe', async () => {
     const missing = makeRestoredApplication();
 
-    await expect(repository.update(missing)).rejects.toThrow();
+    await expect(repository.update(missing, USER_ID)).rejects.toThrow();
   });
 
   it('remove fisicamente a candidatura e seus arquivos', async () => {
@@ -166,10 +193,10 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       files: [makeApplicationFile()],
     });
 
-    await repository.create(application);
-    await repository.delete(application);
+    await repository.create(application, USER_ID);
+    await repository.delete(application, USER_ID);
 
-    expect(await repository.findById(application.id)).toBeNull();
+    expect(await repository.findById(application.id, USER_ID)).toBeNull();
     expect(await prisma.application.count()).toBe(0);
     expect(await prisma.applicationFile.count()).toBe(0);
   });
@@ -181,16 +208,36 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       updatedAt: createdAt,
     });
 
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     const updated = restoreWithFiles(application, []);
     updated.updateDetails({ currentPhase: 'Entrevista final' });
 
-    await repository.update(updated);
-    const stored = await repository.findById(application.id);
+    await repository.update(updated, USER_ID);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.currentPhase).toBe('Entrevista final');
     expect(stored?.createdAt).toEqual(createdAt);
     expect(stored?.updatedAt.getTime()).toBeGreaterThan(createdAt.getTime());
+  });
+
+  it('não expõe nem altera candidaturas de outro usuário', async () => {
+    const application = makeApplication();
+
+    await repository.create(application, USER_ID);
+
+    await expect(
+      repository.findById(application.id, OTHER_USER_ID),
+    ).resolves.toBeNull();
+    await expect(repository.findAll(OTHER_USER_ID)).resolves.toEqual([]);
+    await expect(
+      repository.update(restoreWithFiles(application, []), OTHER_USER_ID),
+    ).rejects.toThrow();
+    await expect(
+      repository.delete(application, OTHER_USER_ID),
+    ).rejects.toThrow();
+    await expect(
+      repository.findById(application.id, USER_ID),
+    ).resolves.not.toBeNull();
   });
 });

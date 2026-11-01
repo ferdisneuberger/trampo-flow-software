@@ -5,11 +5,18 @@ import type { DeleteApplicationUseCase } from '../../src/application/application
 import type { ListApplicationsUseCase } from '../../src/application/applications/use-cases/list-applications.use-case';
 import type { UpdateApplicationUseCase } from '../../src/application/applications/use-cases/update-application.use-case';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
+import type { AuthenticatedRequest } from '../../src/infrastructure/auth/jwt-auth.guard';
 import { ApplicationsController } from '../../src/infrastructure/http/controllers/applications.controller';
 import {
   makeApplication,
   makeRestoredApplication,
 } from '../factories/application.factory';
+
+const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
+
+const request = {
+  user: { sub: USER_ID },
+} as unknown as AuthenticatedRequest;
 
 function createController() {
   const create = vi.fn();
@@ -30,29 +37,33 @@ function createController() {
 }
 
 describe('ApplicationsController', () => {
-  it('cria a candidatura convertendo uploadedAt para Date', async () => {
+  it('cria a candidatura do usuário do token convertendo uploadedAt', async () => {
     const { controller, create } = createController();
     const application = makeApplication({ status: ApplicationStatus.PENDING });
 
     create.mockResolvedValue(application);
 
-    const response = await controller.create({
-      title: 'Backend Engineer',
-      link: 'https://example.com/jobs/backend',
-      currentPhase: 'Triagem',
-      files: [
-        {
-          name: 'curriculo.pdf',
-          url: 'https://example.com/files/curriculo.pdf',
-          mimeType: 'application/pdf',
-          sizeInBytes: 1024,
-          uploadedAt: '2026-01-01T00:00:00.000Z',
-        },
-      ],
-    });
+    const response = await controller.create(
+      {
+        title: 'Backend Engineer',
+        link: 'https://example.com/jobs/backend',
+        currentPhase: 'Triagem',
+        files: [
+          {
+            name: 'curriculo.pdf',
+            url: 'https://example.com/files/curriculo.pdf',
+            mimeType: 'application/pdf',
+            sizeInBytes: 1024,
+            uploadedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+      request,
+    );
 
     const [input] = create.mock.calls[0] as [Record<string, unknown>];
 
+    expect(input.userId).toBe(USER_ID);
     expect(input.files).toEqual([
       {
         name: 'curriculo.pdf',
@@ -71,24 +82,28 @@ describe('ApplicationsController', () => {
 
     create.mockResolvedValue(makeApplication());
 
-    await controller.create({
-      title: 'Backend Engineer',
-      link: 'https://example.com/jobs/backend',
-      currentPhase: 'Triagem',
-    });
+    await controller.create(
+      {
+        title: 'Backend Engineer',
+        link: 'https://example.com/jobs/backend',
+        currentPhase: 'Triagem',
+      },
+      request,
+    );
 
     const [input] = create.mock.calls[0] as [Record<string, unknown>];
 
     expect(input.files).toBeUndefined();
   });
 
-  it('lista convertendo entidades para HTTP', async () => {
+  it('lista apenas as candidaturas do usuário do token', async () => {
     const { controller, list } = createController();
 
     list.mockResolvedValue([makeRestoredApplication({ title: 'Uma' })]);
 
-    const response = await controller.list();
+    const response = await controller.list(request);
 
+    expect(list).toHaveBeenCalledWith(USER_ID);
     expect(response).toHaveLength(1);
     expect(response[0]).toMatchObject({ title: 'Uma' });
     expect(typeof response[0]?.createdAt).toBe('string');
@@ -99,11 +114,14 @@ describe('ApplicationsController', () => {
 
     update.mockResolvedValue(makeApplication());
 
-    await controller.update('6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10', {
-      currentPhase: 'Entrevista',
-    });
+    await controller.update(
+      '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+      { currentPhase: 'Entrevista' },
+      request,
+    );
 
     expect(update).toHaveBeenCalledWith({
+      userId: USER_ID,
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       title: undefined,
       link: undefined,
@@ -117,19 +135,24 @@ describe('ApplicationsController', () => {
 
     addFiles.mockResolvedValue(makeApplication());
 
-    await controller.addFiles('6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10', {
-      files: [
-        {
-          name: 'portfolio.pdf',
-          url: 'https://example.com/files/portfolio.pdf',
-          mimeType: 'application/pdf',
-          sizeInBytes: 2048,
-          uploadedAt: '2026-02-01T00:00:00.000Z',
-        },
-      ],
-    });
+    await controller.addFiles(
+      '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+      {
+        files: [
+          {
+            name: 'portfolio.pdf',
+            url: 'https://example.com/files/portfolio.pdf',
+            mimeType: 'application/pdf',
+            sizeInBytes: 2048,
+            uploadedAt: '2026-02-01T00:00:00.000Z',
+          },
+        ],
+      },
+      request,
+    );
 
     expect(addFiles).toHaveBeenCalledWith({
+      userId: USER_ID,
       applicationId: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       files: [
         expect.objectContaining({
@@ -140,18 +163,37 @@ describe('ApplicationsController', () => {
     });
   });
 
-  it('repassa o modo de exclusão', async () => {
+  it('repassa o modo de exclusão com o usuário do token', async () => {
     const { controller, remove } = createController();
 
     remove.mockResolvedValue(undefined);
 
-    await controller.remove('6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10', {
-      mode: 'hard',
-    });
+    await controller.remove(
+      '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+      { mode: 'hard' },
+      request,
+    );
 
     expect(remove).toHaveBeenCalledWith({
+      userId: USER_ID,
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       mode: 'hard',
     });
+  });
+
+  it('rejeita quando o token não trouxe usuário', async () => {
+    const { controller, create } = createController();
+
+    await expect(
+      controller.create(
+        {
+          title: 'Backend Engineer',
+          link: 'https://example.com/jobs/backend',
+          currentPhase: 'Triagem',
+        },
+        {} as unknown as AuthenticatedRequest,
+      ),
+    ).rejects.toThrow();
+    expect(create).not.toHaveBeenCalled();
   });
 });

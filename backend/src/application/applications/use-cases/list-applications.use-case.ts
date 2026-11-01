@@ -6,7 +6,7 @@ import { ApplicationRepository } from '../../../domain/applications/repositories
 export class ListApplicationsUseCase {
   constructor(private readonly applicationRepository: ApplicationRepository) {}
 
-  execute(): Promise<Application[]> {
-    return this.applicationRepository.findAll();
+  execute(userId: string): Promise<Application[]> {
+    return this.applicationRepository.findAll(userId);
   }
 }

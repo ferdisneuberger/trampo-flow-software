@@ -5,6 +5,11 @@ import {
   FindAllApplicationsOptions,
 } from '../../src/domain/applications/repositories/application.repository';
 
+type Entry = {
+  userId: string;
+  application: Application;
+};
+
 function cloneApplication(application: Application): Application {
   return Application.restore({
     id: application.id,
@@ -29,24 +34,36 @@ function cloneApplication(application: Application): Application {
 }
 
 export class InMemoryApplicationRepository implements ApplicationRepository {
-  private readonly applications = new Map<string, Application>();
+  private readonly applications = new Map<string, Entry>();
 
-  async create(application: Application): Promise<void> {
+  async create(application: Application, userId: string): Promise<void> {
     if (this.applications.has(application.id)) {
       throw new Error(`Application "${application.id}" already exists.`);
     }
 
-    this.applications.set(application.id, cloneApplication(application));
+    this.applications.set(application.id, {
+      userId,
+      application: cloneApplication(application),
+    });
   }
 
-  async findById(id: string): Promise<Application | null> {
-    const application = this.applications.get(id);
+  async findById(id: string, userId: string): Promise<Application | null> {
+    const entry = this.applications.get(id);
 
-    return application ? cloneApplication(application) : null;
+    if (!entry || entry.userId !== userId) {
+      return null;
+    }
+
+    return cloneApplication(entry.application);
   }
 
-  async findAll(options?: FindAllApplicationsOptions): Promise<Application[]> {
+  async findAll(
+    userId: string,
+    options?: FindAllApplicationsOptions,
+  ): Promise<Application[]> {
     return [...this.applications.values()]
+      .filter((entry) => entry.userId === userId)
+      .map((entry) => entry.application)
       .filter(
         (application) =>
           options?.includeDeleted === true || !application.isDeleted,
@@ -57,15 +74,26 @@ export class InMemoryApplicationRepository implements ApplicationRepository {
       .map(cloneApplication);
   }
 
-  async update(application: Application): Promise<void> {
-    if (!this.applications.has(application.id)) {
+  async update(application: Application, userId: string): Promise<void> {
+    const entry = this.applications.get(application.id);
+
+    if (!entry || entry.userId !== userId) {
       throw new Error(`Application "${application.id}" does not exist.`);
     }
 
-    this.applications.set(application.id, cloneApplication(application));
+    this.applications.set(application.id, {
+      userId,
+      application: cloneApplication(application),
+    });
   }
 
-  async delete(application: Application): Promise<void> {
+  async delete(application: Application, userId: string): Promise<void> {
+    const entry = this.applications.get(application.id);
+
+    if (!entry || entry.userId !== userId) {
+      throw new Error(`Application "${application.id}" does not exist.`);
+    }
+
     this.applications.delete(application.id);
   }
 

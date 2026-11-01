@@ -90,9 +90,18 @@ async function main() {
 
   const now = Date.now();
 
+  const user = await prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
+
+  if (!user) {
+    throw new Error(
+      'seed: nenhum usuário encontrado. Suba a API uma vez com AUTH_USERNAME e AUTH_PASSWORD para criar o primeiro usuário.',
+    );
+  }
+
   await prisma.application.createMany({
     data: samples.map((sample, index) => ({
       id: randomUUID(),
+      userId: user.id,
       ...sample,
       createdAt: new Date(now - index * 86_400_000),
       updatedAt: new Date(now - index * 86_400_000),

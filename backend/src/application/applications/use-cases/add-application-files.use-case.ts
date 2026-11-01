@@ -7,6 +7,7 @@ import { ApplicationNotFoundError } from '../errors/application-not-found.error'
 
 export type AddApplicationFilesInput = {
   applicationId: string;
+  userId: string;
   files: CreateApplicationFileInput[];
 };
 
@@ -17,6 +18,7 @@ export class AddApplicationFilesUseCase {
   async execute(input: AddApplicationFilesInput): Promise<Application> {
     const application = await this.applicationRepository.findById(
       input.applicationId,
+      input.userId,
     );
 
     if (!application) {
@@ -29,7 +31,7 @@ export class AddApplicationFilesUseCase {
 
     application.addFiles(input.files);
 
-    await this.applicationRepository.update(application);
+    await this.applicationRepository.update(application, input.userId);
 
     return application;
   }
