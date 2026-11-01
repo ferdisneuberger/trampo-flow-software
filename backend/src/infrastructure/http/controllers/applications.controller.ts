@@ -11,6 +11,18 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AddApplicationFilesDto } from '../../../application/applications/dtos/add-application-files.dto';
 import {
   CreateApplicationDto,
@@ -23,9 +35,16 @@ import { CreateApplicationUseCase } from '../../../application/applications/use-
 import { DeleteApplicationUseCase } from '../../../application/applications/use-cases/delete-application.use-case';
 import { ListApplicationsUseCase } from '../../../application/applications/use-cases/list-applications.use-case';
 import { UpdateApplicationUseCase } from '../../../application/applications/use-cases/update-application.use-case';
+import { APPLICATION_DELETE_MODES } from '../../../application/applications/types/application-delete-mode';
 import { CreateApplicationFileInput } from '../../../domain/applications/entities/application-file.entity';
-import { ApplicationPresenter } from '../presenters/application.presenter';
+import {
+  ApplicationHttpResponse,
+  ApplicationPresenter,
+} from '../presenters/application.presenter';
+import { ErrorResponse } from '../schemas/http.schemas';
 
+@ApiTags('applications')
+@ApiBearerAuth('bearer')
 @Controller('applications')
 export class ApplicationsController {
   constructor(
@@ -37,6 +56,14 @@ export class ApplicationsController {
   ) {}
 
   @Post()
+  @ApiOperation({ summary: 'Cria uma candidatura' })
+  @ApiCreatedResponse({ type: ApplicationHttpResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Dados inválidos.',
+    type: ErrorResponse,
+  })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
   async create(@Body() dto: CreateApplicationDto) {
     const application = await this.createApplicationUseCase.execute({
       title: dto.title,
@@ -50,6 +77,9 @@ export class ApplicationsController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Lista as candidaturas ativas' })
+  @ApiOkResponse({ type: [ApplicationHttpResponse] })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
   async list() {
     const applications = await this.listApplicationsUseCase.execute();
 
@@ -59,6 +89,20 @@ export class ApplicationsController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Atualiza uma candidatura' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: ApplicationHttpResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Dados inválidos ou nenhum campo informado.',
+    type: ErrorResponse,
+  })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Candidatura não encontrada.',
+    type: ErrorResponse,
+  })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateApplicationDto,
@@ -75,6 +119,21 @@ export class ApplicationsController {
   }
 
   @Post(':id/files')
+  @ApiOperation({ summary: 'Anexa arquivos a uma candidatura' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: AddApplicationFilesDto })
+  @ApiOkResponse({ type: ApplicationHttpResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Arquivo inválido ou lista vazia.',
+    type: ErrorResponse,
+  })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Candidatura não encontrada.',
+    type: ErrorResponse,
+  })
   async addFiles(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AddApplicationFilesDto,
@@ -89,6 +148,27 @@ export class ApplicationsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Exclui uma candidatura (lógica por padrão, física com mode=hard)',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiQuery({
+    name: 'mode',
+    required: false,
+    enum: APPLICATION_DELETE_MODES,
+  })
+  @ApiNoContentResponse({ description: 'Candidatura excluída.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Modo inválido ou candidatura já excluída.',
+    type: ErrorResponse,
+  })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Candidatura não encontrada.',
+    type: ErrorResponse,
+  })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: DeleteApplicationQueryDto,

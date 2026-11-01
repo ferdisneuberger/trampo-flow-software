@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum,
   IsNotEmpty,
@@ -9,12 +10,22 @@ import {
 import { ApplicationStatus } from '../../../domain/applications/enums/application-status.enum';
 
 export class UpdateApplicationDto {
+  @ApiPropertyOptional({
+    description: 'Título da vaga.',
+    example: 'Backend Engineer - Nubank',
+    maxLength: 120,
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
   title?: string;
 
+  @ApiPropertyOptional({
+    description: 'Link da vaga.',
+    example: 'https://example.com/jobs/nubank-backend',
+    maxLength: 2048,
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
@@ -26,12 +37,22 @@ export class UpdateApplicationDto {
   })
   link?: string;
 
+  @ApiPropertyOptional({
+    description: 'Fase atual do processo seletivo.',
+    example: 'Entrevista técnica',
+    maxLength: 120,
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
   currentPhase?: string;
 
+  @ApiPropertyOptional({
+    description: 'Status da candidatura.',
+    enum: ApplicationStatus,
+    enumName: 'ApplicationStatus',
+  })
   @IsOptional()
   @IsEnum(ApplicationStatus)
   status?: ApplicationStatus;

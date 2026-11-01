@@ -5,8 +5,11 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exception.filter';
+
+const DOCS_PATH = 'docs';
 
 const securityHeaders = {
   'Cache-Control': 'no-store',
@@ -17,6 +20,32 @@ const securityHeaders = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
 };
+
+// O Swagger UI carrega CSS, JS e um script inline de inicialização. A política
+// restritiva acima bloquearia a página inteira, então ela é aliviada apenas
+// nas rotas de documentação.
+const docsSecurityHeaders = {
+  ...securityHeaders,
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline'",
+    "connect-src 'self'",
+  ].join('; '),
+};
+
+function isDocsRequest(url: string): boolean {
+  const path = url.split('?')[0] ?? '';
+
+  return (
+    path === `/${DOCS_PATH}` ||
+    path.startsWith(`/${DOCS_PATH}/`) ||
+    path === `/${DOCS_PATH}-json` ||
+    path === `/${DOCS_PATH}-yaml`
+  );
+}
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -30,8 +59,10 @@ async function bootstrap(): Promise<void> {
   const port = Number(configService.get<string>('PORT') ?? 3000);
   const fastify = app.getHttpAdapter().getInstance();
 
-  fastify.addHook('onSend', async (_request, reply, payload) => {
-    reply.headers(securityHeaders);
+  fastify.addHook('onSend', async (request, reply, payload) => {
+    reply.headers(
+      isDocsRequest(request.url) ? docsSecurityHeaders : securityHeaders,
+    );
 
     return payload;
   });
@@ -62,6 +93,27 @@ async function bootstrap(): Promise<void> {
     maxAge: 86400,
   });
   app.enableShutdownHooks();
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Trampo Flow API')
+    .setDescription(
+      'API de acompanhamento de candidaturas. Todas as rotas, exceto login, health e documentação, exigem um token JWT.',
+    )
+    .setVersion('1.0.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'bearer',
+    )
+    .addTag('applications', 'Candidaturas e arquivos anexados')
+    .addTag('auth', 'Autenticação e perfil')
+    .addTag('health', 'Disponibilidade da API')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+
+  SwaggerModule.setup(DOCS_PATH, app, document, {
+    swaggerOptions: { persistAuthorization: true },
+  });
 
   await app.listen({
     port,
