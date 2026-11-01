@@ -422,6 +422,23 @@ npm run test:cov     # cobertura com V8
 npm run test:typecheck # typecheck dos fontes e testes
 ```
 
+### Testes de integração com Postgres
+
+O repositório Prisma é testado contra um PostgreSQL real, com migrations aplicadas e `TRUNCATE` entre os casos. Esses testes são pulados quando `TEST_DATABASE_URL` não está definida, então `npm test` continua funcionando sem banco.
+
+```bash
+# cria um banco separado, terminado em _test
+docker compose exec postgres createdb -U trampo trampo_flow_test
+
+cd backend
+TEST_DATABASE_URL=postgresql://trampo:trampo_dev@127.0.0.1:5432/trampo_flow_test \
+  npm run test:cov
+```
+
+O helper de teste recusa qualquer URL cujo banco não termine em `_test` e recusa uma URL igual a `DATABASE_URL`, para que um valor copiado por engano não apague dados de desenvolvimento.
+
+O `TEST_DATABASE_URL` também é o que ativa o threshold de cobertura: sem ele, os arquivos pulados distorceriam a média e o limite é ignorado.
+
 Cenários cobertos:
 
 - Criação com status padrão, status explícito, múltiplos arquivos e metadados.
@@ -437,6 +454,12 @@ Cenários cobertos:
 - Autenticação do usuário único, emissão/validação do JWT e rejeição de tokens inválidos.
 - Bloqueio global de login após falhas consecutivas, expiração da janela e reset em caso de sucesso.
 - Guard global: rotas públicas, preflight, token ausente, esquema inválido e token de outro usuário.
+- Mapper Prisma ↔ domínio: round-trip, todos os status, arquivos aninhados e `deletedAt`.
+- Presenter HTTP: campos, datas em ISO e lista de arquivos.
+- Filtro de exceções: mapeamento de domínio para 400, 404 e 409.
+- Controllers: conversão de `uploadedAt`, repasse de campos e modo de exclusão.
+- Repositório Prisma contra Postgres: persistência, filtro de excluídos, ordenação,
+  inclusão e remoção de arquivos na mesma transação, exclusão em cascata.
 
 Estrutura dos testes:
 
@@ -452,12 +475,21 @@ backend/test/
 │   ├── application-file.entity.spec.ts
 │   └── application.entity.spec.ts
 ├── infrastructure/
+│   ├── application.mapper.spec.ts
+│   ├── application.presenter.spec.ts
+│   ├── applications.controller.spec.ts
+│   ├── auth.controller.spec.ts
 │   ├── auth.service.spec.ts
+│   ├── domain-exception.filter.spec.ts
+│   ├── health.controller.spec.ts
 │   ├── jwt-auth.guard.spec.ts
 │   ├── login-rate-limiter.service.spec.ts
+│   ├── prisma-application.repository.spec.ts
+│   ├── prisma.service.spec.ts
 │   └── token.service.spec.ts
 ├── factories/application.factory.ts
 ├── helpers/expect-domain-error.ts
+├── helpers/test-database.ts
 └── repositories/in-memory-application.repository.ts
 ```
 
