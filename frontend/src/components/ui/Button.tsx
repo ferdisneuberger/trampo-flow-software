@@ -3,11 +3,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '../../utils/cn';
 
 type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'ghost'
-  | 'ghost-danger'
-  | 'danger';
+  'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger';
 type ButtonSize = 'sm' | 'md';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

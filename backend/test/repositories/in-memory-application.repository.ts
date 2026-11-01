@@ -45,17 +45,14 @@ export class InMemoryApplicationRepository implements ApplicationRepository {
     return application ? cloneApplication(application) : null;
   }
 
-  async findAll(
-    options?: FindAllApplicationsOptions,
-  ): Promise<Application[]> {
+  async findAll(options?: FindAllApplicationsOptions): Promise<Application[]> {
     return [...this.applications.values()]
       .filter(
         (application) =>
           options?.includeDeleted === true || !application.isDeleted,
       )
       .sort(
-        (left, right) =>
-          right.createdAt.getTime() - left.createdAt.getTime(),
+        (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
       )
       .map(cloneApplication);
   }

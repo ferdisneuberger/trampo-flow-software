@@ -90,9 +90,7 @@ export function AppShell() {
 
       <footer className="border-t border-line/80">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-6 text-xs text-ink-400 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p>
-            {env.appName} — organize suas candidaturas em um só lugar.
-          </p>
+          <p>{env.appName} — organize suas candidaturas em um só lugar.</p>
           <p>React · Vite · TypeScript · Tailwind CSS</p>
         </div>
       </footer>

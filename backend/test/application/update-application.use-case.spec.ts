@@ -93,9 +93,7 @@ describe('UpdateApplicationUseCase', () => {
     });
 
     expect(updated.title).toBe('Engineering Manager');
-    expect(updated.link).toBe(
-      'https://example.com/jobs/engineering-manager',
-    );
+    expect(updated.link).toBe('https://example.com/jobs/engineering-manager');
     expect(updated.currentPhase).toBe('Proposta');
     expect(updated.status).toBe(ApplicationStatus.COMPLETED);
     expect(updated.files[0].id).toBe(file.id);
@@ -180,9 +178,7 @@ describe('UpdateApplicationUseCase', () => {
     const stored = await repository.findById(application.id);
 
     expect(stored?.title).toBe('Backend Engineer');
-    expect(stored?.link).toBe(
-      'https://example.com/jobs/backend-engineer',
-    );
+    expect(stored?.link).toBe('https://example.com/jobs/backend-engineer');
     expect(stored?.updatedAt.toISOString()).toBe(
       application.updatedAt.toISOString(),
     );
@@ -195,14 +191,8 @@ describe('UpdateApplicationUseCase', () => {
     ['INVALID_LINK', { link: 'not-a-url' }],
     ['LINK_TOO_LONG', { link: `https://example.com/${'a'.repeat(2048)}` }],
     ['CURRENT_PHASE_REQUIRED', { currentPhase: '   ' }],
-    [
-      'CURRENT_PHASE_TOO_LONG',
-      { currentPhase: 'a'.repeat(121) },
-    ],
-    [
-      'INVALID_STATUS',
-      { status: 'ARCHIVED' as ApplicationStatus },
-    ],
+    ['CURRENT_PHASE_TOO_LONG', { currentPhase: 'a'.repeat(121) }],
+    ['INVALID_STATUS', { status: 'ARCHIVED' as ApplicationStatus }],
   ])('rejects invalid update input with %s', async (code, overrides) => {
     await expect(
       useCase.execute({ id: application.id, ...overrides }),
@@ -211,9 +201,7 @@ describe('UpdateApplicationUseCase', () => {
     const stored = await repository.findById(application.id);
 
     expect(stored?.title).toBe('Backend Engineer');
-    expect(stored?.link).toBe(
-      'https://example.com/jobs/backend-engineer',
-    );
+    expect(stored?.link).toBe('https://example.com/jobs/backend-engineer');
     expect(stored?.currentPhase).toBe('Triagem');
     expect(stored?.status).toBe(ApplicationStatus.PENDING);
     expect(stored?.updatedAt.toISOString()).toBe(

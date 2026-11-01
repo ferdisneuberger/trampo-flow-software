@@ -15,10 +15,7 @@ export const applicationsService = {
   },
 
   async create(input: CreateApplicationInput): Promise<Application> {
-    const { data } = await apiClient.post<Application>(
-      '/applications',
-      input,
-    );
+    const { data } = await apiClient.post<Application>('/applications', input);
 
     return data;
   },

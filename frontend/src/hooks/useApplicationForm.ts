@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useState,
-  type FormEvent,
-} from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type {
   Application,
   ApplicationStatus,
@@ -182,9 +177,7 @@ function validate(
   return errors;
 }
 
-function toFileInput(
-  file: ApplicationFileDraft,
-): CreateApplicationFileInput {
+function toFileInput(file: ApplicationFileDraft): CreateApplicationFileInput {
   return {
     name: file.name.trim(),
     url: file.url.trim(),
@@ -273,11 +266,7 @@ export function useApplicationForm({
   }, []);
 
   const updateFile = useCallback(
-    (
-      clientId: string,
-      field: ApplicationFileDraftField,
-      value: string,
-    ) => {
+    (clientId: string, field: ApplicationFileDraftField, value: string) => {
       setFiles((current) =>
         current.map((file) =>
           file.clientId === clientId ? { ...file, [field]: value } : file,
@@ -293,9 +282,7 @@ export function useApplicationForm({
   );
 
   const removeFile = useCallback((clientId: string) => {
-    setFiles((current) =>
-      current.filter((file) => file.clientId !== clientId),
-    );
+    setFiles((current) => current.filter((file) => file.clientId !== clientId));
     setErrors((current) => ({
       ...current,
       files: undefined,

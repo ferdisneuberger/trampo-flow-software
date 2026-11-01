@@ -1,8 +1,4 @@
-import {
-  createContext,
-  useContext,
-  type PropsWithChildren,
-} from 'react';
+import { createContext, useContext, type PropsWithChildren } from 'react';
 import {
   useApplications,
   type UseApplicationsResult,

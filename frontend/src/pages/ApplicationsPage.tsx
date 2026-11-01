@@ -49,8 +49,7 @@ export function ApplicationsPage() {
     useState<Application | null>(null);
   const [deletingApplication, setDeletingApplication] =
     useState<Application | null>(null);
-  const [deleteMode, setDeleteMode] =
-    useState<DeleteApplicationMode>('soft');
+  const [deleteMode, setDeleteMode] = useState<DeleteApplicationMode>('soft');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ApplicationStatusFilter>('ALL');

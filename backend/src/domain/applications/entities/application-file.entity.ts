@@ -79,10 +79,7 @@ export class ApplicationFile {
 
     const uploadedAt = input.uploadedAt ?? new Date();
 
-    if (
-      !(uploadedAt instanceof Date) ||
-      Number.isNaN(uploadedAt.getTime())
-    ) {
+    if (!(uploadedAt instanceof Date) || Number.isNaN(uploadedAt.getTime())) {
       throw new DomainError(
         'Upload date must be a valid date.',
         'INVALID_UPLOADED_AT',

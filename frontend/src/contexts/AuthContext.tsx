@@ -26,9 +26,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(
-    () => tokenStorage.get() !== null,
-  );
+  const [isLoading, setIsLoading] = useState(() => tokenStorage.get() !== null);
 
   useEffect(() => {
     const token = tokenStorage.get();

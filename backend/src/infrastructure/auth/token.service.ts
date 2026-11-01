@@ -174,7 +174,11 @@ function decodeSegment<T>(encoded: string): T {
       Buffer.from(encoded, 'base64url').toString('utf8'),
     );
 
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
       throw new Error('Segmento JWT inválido.');
     }
 
@@ -192,9 +196,7 @@ function parseExpiresIn(value: string): number {
   const match = /^(\d+)([smhd])?$/i.exec(value.trim());
 
   if (!match) {
-    throw new Error(
-      'JWT_EXPIRES_IN deve ser uma duração como 30m, 8h ou 7d.',
-    );
+    throw new Error('JWT_EXPIRES_IN deve ser uma duração como 30m, 8h ou 7d.');
   }
 
   const amount = Number(match[1]);

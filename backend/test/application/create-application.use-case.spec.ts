@@ -115,14 +115,8 @@ describe('CreateApplicationUseCase', () => {
     ['LINK_TOO_LONG', { link: `https://example.com/${'a'.repeat(2048)}` }],
     ['CURRENT_PHASE_REQUIRED', { currentPhase: '   ' }],
     ['CURRENT_PHASE_REQUIRED', { currentPhase: undefined }],
-    [
-      'CURRENT_PHASE_TOO_LONG',
-      { currentPhase: 'a'.repeat(121) },
-    ],
-    [
-      'INVALID_STATUS',
-      { status: 'ARCHIVED' as ApplicationStatus },
-    ],
+    ['CURRENT_PHASE_TOO_LONG', { currentPhase: 'a'.repeat(121) }],
+    ['INVALID_STATUS', { status: 'ARCHIVED' as ApplicationStatus }],
     [
       'FILE_NAME_REQUIRED',
       { files: [makeApplicationFileInput({ name: '   ' })] },
@@ -155,7 +149,11 @@ describe('CreateApplicationUseCase', () => {
     ],
     [
       'MIME_TYPE_TOO_LONG',
-      { files: [makeApplicationFileInput({ mimeType: `${'a'.repeat(101)}/pdf` })] },
+      {
+        files: [
+          makeApplicationFileInput({ mimeType: `${'a'.repeat(101)}/pdf` }),
+        ],
+      },
     ],
     [
       'INVALID_FILE_SIZE',
@@ -172,18 +170,19 @@ describe('CreateApplicationUseCase', () => {
     [
       'INVALID_UPLOADED_AT',
       {
-        files: [
-          makeApplicationFileInput({ uploadedAt: new Date('invalid') }),
-        ],
+        files: [makeApplicationFileInput({ uploadedAt: new Date('invalid') })],
       },
     ],
-  ])('rejects invalid input with %s and does not persist', async (code, overrides) => {
-    await expect(
-      useCase.execute({ ...validInput, ...overrides }),
-    ).rejects.toMatchObject({ code });
+  ])(
+    'rejects invalid input with %s and does not persist',
+    async (code, overrides) => {
+      await expect(
+        useCase.execute({ ...validInput, ...overrides }),
+      ).rejects.toMatchObject({ code });
 
-    expect(repository.count).toBe(0);
-  });
+      expect(repository.count).toBe(0);
+    },
+  );
 
   it('does not persist an application when the last file is invalid', async () => {
     await expect(

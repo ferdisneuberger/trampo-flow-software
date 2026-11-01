@@ -1,10 +1,7 @@
 import axios from 'axios';
 import { env } from '../../config/env';
 import { normalizeApiError } from './errors';
-import {
-  AUTH_UNAUTHORIZED_EVENT,
-  tokenStorage,
-} from './token-storage';
+import { AUTH_UNAUTHORIZED_EVENT, tokenStorage } from './token-storage';
 
 export const apiClient = axios.create({
   baseURL: env.apiUrl,

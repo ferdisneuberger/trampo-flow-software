@@ -64,8 +64,7 @@ export class LoginRateLimiter {
     this.state = {
       failures,
       lastAttemptAt: now,
-      blockedUntil:
-        failures >= this.maxFailures ? now + this.windowMs : 0,
+      blockedUntil: failures >= this.maxFailures ? now + this.windowMs : 0,
     };
   }
 

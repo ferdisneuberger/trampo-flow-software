@@ -15,9 +15,7 @@ export type DeleteApplicationInput = {
 
 @Injectable()
 export class DeleteApplicationUseCase {
-  constructor(
-    private readonly applicationRepository: ApplicationRepository,
-  ) {}
+  constructor(private readonly applicationRepository: ApplicationRepository) {}
 
   async execute(input: DeleteApplicationInput): Promise<void> {
     const mode = input.mode ?? 'soft';

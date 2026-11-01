@@ -28,19 +28,19 @@ Página (pages)
             -> API NestJS
 ```
 
-| Camada | Responsabilidade |
-| ------ | ---------------- |
-| `components/ui` | Design system base: botões, inputs, cards, modais, badges, alertas e estados vazios |
-| `components/auth` | Rota protegida e tela de carregamento da sessão |
-| `components/layout` | Estrutura global da aplicação (header, navegação, conteúdo e footer) |
-| `components/applications` | Componentes específicos do domínio de candidaturas |
-| `pages` | Composição das telas e orquestração dos fluxos |
-| `hooks` | Lógica de estado e comportamento reutilizável |
-| `contexts` | Estado compartilhado de candidaturas e de autenticação |
-| `services` | Tipos do domínio, autenticação e chamadas HTTP isoladas |
-| `config` | Configurações derivadas de variáveis de ambiente |
-| `utils` | Funções puras de formatação, validação e classes CSS |
-| `styles` | Tokens do tema e estilos globais do Tailwind |
+| Camada                    | Responsabilidade                                                                    |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `components/ui`           | Design system base: botões, inputs, cards, modais, badges, alertas e estados vazios |
+| `components/auth`         | Rota protegida e tela de carregamento da sessão                                     |
+| `components/layout`       | Estrutura global da aplicação (header, navegação, conteúdo e footer)                |
+| `components/applications` | Componentes específicos do domínio de candidaturas                                  |
+| `pages`                   | Composição das telas e orquestração dos fluxos                                      |
+| `hooks`                   | Lógica de estado e comportamento reutilizável                                       |
+| `contexts`                | Estado compartilhado de candidaturas e de autenticação                              |
+| `services`                | Tipos do domínio, autenticação e chamadas HTTP isoladas                             |
+| `config`                  | Configurações derivadas de variáveis de ambiente                                    |
+| `utils`                   | Funções puras de formatação, validação e classes CSS                                |
+| `styles`                  | Tokens do tema e estilos globais do Tailwind                                        |
 
 ### Decisões de design
 
@@ -185,18 +185,18 @@ O Vite encaminha requisições `/api/*` para `http://localhost:3000`, removendo 
 
 ### Scripts
 
-| Script | Descrição |
-| ------ | --------- |
-| `npm run dev` | Inicia o Vite em modo desenvolvimento |
-| `npm run build` | Executa o typecheck e gera o build em `dist/` |
-| `npm run typecheck` | Valida os tipos sem gerar arquivos |
-| `npm run preview` | Serve o build de produção localmente |
+| Script              | Descrição                                     |
+| ------------------- | --------------------------------------------- |
+| `npm run dev`       | Inicia o Vite em modo desenvolvimento         |
+| `npm run build`     | Executa o typecheck e gera o build em `dist/` |
+| `npm run typecheck` | Valida os tipos sem gerar arquivos            |
+| `npm run preview`   | Serve o build de produção localmente          |
 
 ## Variáveis de ambiente
 
-| Variável | Padrão | Descrição |
-| -------- | ------ | --------- |
-| `VITE_API_URL` | `/api` | URL base usada pelo cliente Axios |
+| Variável                | Padrão                  | Descrição                                                    |
+| ----------------------- | ----------------------- | ------------------------------------------------------------ |
+| `VITE_API_URL`          | `/api`                  | URL base usada pelo cliente Axios                            |
 | `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Destino do proxy `/api` apenas no Vite local (`npm run dev`) |
 
 No Docker, o Compose define apenas `VITE_API_URL=/api`; o proxy `/api` é feito pelo ingress e aponta para `http://api:3000`. Em desenvolvimento local, mantenha `VITE_API_URL=/api` para usar o proxy do Vite e evitar CORS.
@@ -219,15 +219,15 @@ No build de produção, o `nginx.conf` serve apenas os arquivos estáticos e apl
 
 ## Integração com a API
 
-| Operação | Método | Endpoint |
-| -------- | ------ | -------- |
-| Login | `POST` | `/auth/login` |
-| Perfil atual | `GET` | `/auth/me` |
-| Listar | `GET` | `/applications` |
-| Criar | `POST` | `/applications` |
-| Atualizar | `PATCH` | `/applications/:id` |
-| Anexar arquivos | `POST` | `/applications/:id/files` |
-| Excluir | `DELETE` | `/applications/:id?mode=soft\|hard` |
+| Operação        | Método   | Endpoint                            |
+| --------------- | -------- | ----------------------------------- |
+| Login           | `POST`   | `/auth/login`                       |
+| Perfil atual    | `GET`    | `/auth/me`                          |
+| Listar          | `GET`    | `/applications`                     |
+| Criar           | `POST`   | `/applications`                     |
+| Atualizar       | `PATCH`  | `/applications/:id`                 |
+| Anexar arquivos | `POST`   | `/applications/:id/files`           |
+| Excluir         | `DELETE` | `/applications/:id?mode=soft\|hard` |
 
 Os tipos de resposta e entrada ficam em `src/services/applications.types.ts`. Os rótulos em português dos status (`PENDING`, `IN_PROGRESS`, `COMPLETED`, `REJECTED`) também são definidos nesse arquivo.
 

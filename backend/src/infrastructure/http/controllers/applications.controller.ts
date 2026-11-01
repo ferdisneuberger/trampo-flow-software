@@ -43,7 +43,7 @@ export class ApplicationsController {
       link: dto.link,
       currentPhase: dto.currentPhase,
       status: dto.status,
-      files: dto.files?.map(ApplicationsController.toFileInput),
+      files: dto.files?.map((file) => ApplicationsController.toFileInput(file)),
     });
 
     return ApplicationPresenter.toHTTP(application);
@@ -81,7 +81,7 @@ export class ApplicationsController {
   ) {
     const application = await this.addApplicationFilesUseCase.execute({
       applicationId: id,
-      files: dto.files.map(ApplicationsController.toFileInput),
+      files: dto.files.map((file) => ApplicationsController.toFileInput(file)),
     });
 
     return ApplicationPresenter.toHTTP(application);
