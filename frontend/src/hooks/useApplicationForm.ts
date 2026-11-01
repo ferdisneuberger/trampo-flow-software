@@ -12,6 +12,8 @@ import { isHttpUrl } from '../utils/validation';
 export type ApplicationFormValues = {
   title: string;
   link: string;
+  company: string;
+  companyUrl: string;
   currentPhase: string;
   status: ApplicationStatus;
 };
@@ -30,7 +32,16 @@ export type ApplicationFileDraft = {
 type ApplicationFileDraftField = 'name' | 'url' | 'mimeType' | 'sizeInBytes';
 
 export type ApplicationFormErrors = Partial<
-  Record<'title' | 'link' | 'currentPhase' | 'files' | 'form', string>
+  Record<
+    | 'title'
+    | 'link'
+    | 'company'
+    | 'companyUrl'
+    | 'currentPhase'
+    | 'files'
+    | 'form',
+    string
+  >
 >;
 
 type UseApplicationFormOptions = {
@@ -47,6 +58,8 @@ type UseApplicationFormOptions = {
 const emptyValues: ApplicationFormValues = {
   title: '',
   link: '',
+  company: '',
+  companyUrl: '',
   currentPhase: '',
   status: 'PENDING',
 };
@@ -82,6 +95,8 @@ function toValues(application?: Application | null): ApplicationFormValues {
   return {
     title: application.title,
     link: application.link,
+    company: application.company,
+    companyUrl: application.companyUrl ?? '',
     currentPhase: application.currentPhase,
     status: application.status,
   };
@@ -108,6 +123,24 @@ function validate(
     errors.link = 'Use no máximo 2048 caracteres.';
   } else if (!isHttpUrl(link)) {
     errors.link = 'Informe uma URL HTTP ou HTTPS válida.';
+  }
+
+  const company = values.company.trim();
+
+  if (!company) {
+    errors.company = 'Informe a empresa.';
+  } else if (company.length < 2) {
+    errors.company = 'Use pelo menos 2 caracteres.';
+  } else if (company.length > 120) {
+    errors.company = 'Use no máximo 120 caracteres.';
+  }
+
+  const companyUrl = values.companyUrl.trim();
+
+  if (companyUrl && companyUrl.length > 2048) {
+    errors.companyUrl = 'Use no máximo 2048 caracteres.';
+  } else if (companyUrl && !isHttpUrl(companyUrl)) {
+    errors.companyUrl = 'Informe uma URL HTTP ou HTTPS válida.';
   }
 
   const currentPhase = values.currentPhase.trim();
@@ -308,6 +341,8 @@ export function useApplicationForm({
         const payload = {
           title: values.title.trim(),
           link: values.link.trim(),
+          company: values.company.trim(),
+          companyUrl: values.companyUrl.trim() || null,
           currentPhase: values.currentPhase.trim(),
           status: values.status,
         };

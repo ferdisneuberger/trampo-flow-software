@@ -103,6 +103,8 @@ async function main() {
       id: randomUUID(),
       userId: user.id,
       ...sample,
+      company: sample.title.split(' - ').at(-1) ?? sample.title,
+      companyUrl: null,
       createdAt: new Date(now - index * 86_400_000),
       updatedAt: new Date(now - index * 86_400_000),
     })),

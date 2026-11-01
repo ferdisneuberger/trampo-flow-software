@@ -73,6 +73,8 @@ export class ApplicationsController {
       userId,
       title: dto.title,
       link: dto.link,
+      company: dto.company,
+      companyUrl: dto.companyUrl ?? null,
       currentPhase: dto.currentPhase,
       status: dto.status,
       files: dto.files?.map((file) => ApplicationsController.toFileInput(file)),
@@ -118,6 +120,8 @@ export class ApplicationsController {
       id,
       title: dto.title,
       link: dto.link,
+      company: dto.company,
+      companyUrl: dto.companyUrl,
       currentPhase: dto.currentPhase,
       status: dto.status,
     });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   Application,
+  APPLICATION_COMPANY_MAX_LENGTH,
   APPLICATION_CURRENT_PHASE_MAX_LENGTH,
   APPLICATION_TITLE_MAX_LENGTH,
 } from '../../src/domain/applications/entities/application.entity';
@@ -16,6 +17,7 @@ import { expectDomainError } from '../helpers/expect-domain-error';
 const validCreateInput = {
   title: 'Backend Engineer',
   link: 'https://example.com/jobs/backend-engineer',
+  company: 'Nubank',
   currentPhase: 'Triagem',
 };
 
@@ -24,6 +26,7 @@ describe('Application', () => {
     const application = Application.create({
       title: '  Backend Engineer  ',
       link: '  https://example.com/jobs/backend-engineer  ',
+      company: '  Nubank  ',
       currentPhase: '  Entrevista com RH  ',
     });
 
@@ -207,6 +210,9 @@ describe('Application', () => {
       id: '7f0f8f3e-4e1a-4e5d-9d4c-2f8a1b7c9d01',
       title: 'Backend Engineer',
       link: 'https://example.com/jobs/backend-engineer',
+      company: 'Nubank',
+      companyUrl: null,
+      position: 0,
       status: ApplicationStatus.REJECTED,
       currentPhase: 'Feedback final',
       files: [file],
@@ -266,5 +272,76 @@ describe('Application', () => {
     expect(makeApplication({ title: 'Staff Engineer' }).title).toBe(
       'Staff Engineer',
     );
+  });
+});
+
+describe('Application company fields', () => {
+  it('requires a company', () => {
+    expectDomainError(
+      () => Application.create({ ...validCreateInput, company: '   ' }),
+      'COMPANY_REQUIRED',
+    );
+  });
+
+  it('rejects a company shorter than two characters', () => {
+    expectDomainError(
+      () => Application.create({ ...validCreateInput, company: 'N' }),
+      'COMPANY_TOO_SHORT',
+    );
+  });
+
+  it('rejects a company longer than the limit', () => {
+    expectDomainError(
+      () =>
+        Application.create({
+          ...validCreateInput,
+          company: 'a'.repeat(APPLICATION_COMPANY_MAX_LENGTH + 1),
+        }),
+      'COMPANY_TOO_LONG',
+    );
+  });
+
+  it('accepts an optional company url', () => {
+    const application = Application.create({
+      ...validCreateInput,
+      companyUrl: 'https://nubank.com.br',
+    });
+
+    expect(application.companyUrl).toBe('https://nubank.com.br');
+  });
+
+  it('rejects an invalid company url', () => {
+    expectDomainError(
+      () =>
+        Application.create({
+          ...validCreateInput,
+          companyUrl: 'nubank.com.br',
+        }),
+      'INVALID_COMPANY_URL',
+    );
+  });
+
+  it('treats an empty company url as absent', () => {
+    const application = Application.create({
+      ...validCreateInput,
+      companyUrl: '   ',
+    });
+
+    expect(application.companyUrl).toBeNull();
+  });
+
+  it('updates the company and clears the url with null', () => {
+    const application = Application.create({
+      ...validCreateInput,
+      companyUrl: 'https://nubank.com.br',
+    });
+
+    application.updateDetails({
+      company: 'Stone',
+      companyUrl: null,
+    });
+
+    expect(application.company).toBe('Stone');
+    expect(application.companyUrl).toBeNull();
   });
 });

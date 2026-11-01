@@ -15,6 +15,9 @@ function cloneApplication(application: Application): Application {
     id: application.id,
     title: application.title,
     link: application.link,
+    company: application.company,
+    companyUrl: application.companyUrl,
+    position: application.position,
     status: application.status,
     currentPhase: application.currentPhase,
     files: application.files.map((file) =>

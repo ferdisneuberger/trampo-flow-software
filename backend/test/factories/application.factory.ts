@@ -34,6 +34,7 @@ export function makeApplication(
   return Application.create({
     title: 'Backend Engineer',
     link: 'https://example.com/jobs/backend-engineer',
+    company: 'Nubank',
     currentPhase: 'Triagem',
     ...overrides,
   });
@@ -48,6 +49,9 @@ export function makeRestoredApplication(
     id: randomUUID(),
     title: 'Backend Engineer',
     link: 'https://example.com/jobs/backend-engineer',
+    company: 'Nubank',
+    companyUrl: null,
+    position: 0,
     status: ApplicationStatus.PENDING,
     currentPhase: 'Triagem',
     files: [],

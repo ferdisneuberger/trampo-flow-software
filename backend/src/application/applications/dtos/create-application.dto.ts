@@ -11,6 +11,7 @@ import {
   IsUrl,
   MaxLength,
   Min,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 import { ApplicationStatus } from '../../../domain/applications/enums/application-status.enum';
@@ -95,6 +96,32 @@ export class CreateApplicationDto {
     require_tld: false,
   })
   link!: string;
+
+  @ApiProperty({
+    description: 'Empresa da vaga.',
+    example: 'Nubank',
+    minLength: 2,
+    maxLength: 120,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(120)
+  company!: string;
+
+  @ApiPropertyOptional({
+    description: 'Site da empresa.',
+    example: 'https://nubank.com.br',
+    maxLength: 2048,
+  })
+  @IsOptional()
+  @IsUrl({
+    protocols: ['http', 'https'],
+    require_protocol: true,
+    require_tld: false,
+  })
+  @MaxLength(2048)
+  companyUrl?: string;
 
   @ApiProperty({
     description: 'Fase atual do processo seletivo.',

@@ -33,6 +33,18 @@ export class ApplicationHttpResponse {
   @ApiProperty({ example: 'https://example.com/jobs/nubank-backend' })
   link!: string;
 
+  @ApiProperty({ example: 'Nubank' })
+  company!: string;
+
+  @ApiProperty({
+    example: 'https://nubank.com.br',
+    nullable: true,
+  })
+  companyUrl!: string | null;
+
+  @ApiProperty({ example: 1000 })
+  position!: number;
+
   @ApiProperty({ enum: ApplicationStatus, enumName: 'ApplicationStatus' })
   status!: ApplicationStatus;
 
@@ -62,6 +74,9 @@ export class ApplicationPresenter {
       id: application.id,
       title: application.title,
       link: application.link,
+      company: application.company,
+      companyUrl: application.companyUrl,
+      position: application.position,
       status: application.status,
       currentPhase: application.currentPhase,
       files: application.files.map((file) =>

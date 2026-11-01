@@ -6,6 +6,7 @@ import {
   IsString,
   IsUrl,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 import { ApplicationStatus } from '../../../domain/applications/enums/application-status.enum';
 
@@ -36,6 +37,34 @@ export class UpdateApplicationDto {
     require_tld: false,
   })
   link?: string;
+
+  @ApiPropertyOptional({
+    description: 'Empresa da vaga.',
+    example: 'Nubank',
+    minLength: 2,
+    maxLength: 120,
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(120)
+  company?: string;
+
+  @ApiPropertyOptional({
+    description: 'Site da empresa. Envie null para limpar.',
+    example: 'https://nubank.com.br',
+    maxLength: 2048,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsUrl({
+    protocols: ['http', 'https'],
+    require_protocol: true,
+    require_tld: false,
+  })
+  @MaxLength(2048)
+  companyUrl?: string | null;
 
   @ApiPropertyOptional({
     description: 'Fase atual do processo seletivo.',

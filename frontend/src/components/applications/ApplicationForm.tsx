@@ -69,6 +69,24 @@ export function ApplicationForm({
           autoFocus
         />
         <Input
+          label="Empresa"
+          placeholder="Ex.: Acme"
+          value={form.values.company}
+          onChange={(event) => form.setField('company', event.target.value)}
+          error={form.errors.company}
+          maxLength={120}
+        />
+        <Input
+          label="Site da empresa"
+          type="url"
+          placeholder="https://empresa.com"
+          value={form.values.companyUrl}
+          onChange={(event) => form.setField('companyUrl', event.target.value)}
+          error={form.errors.companyUrl}
+          hint="Opcional. URL HTTP ou HTTPS."
+          maxLength={2048}
+        />
+        <Input
           label="Link da vaga"
           type="url"
           placeholder="https://empresa.com/vagas/frontend"
