@@ -765,3 +765,9 @@ A entrada local é `http://localhost:5173`; o health check público local fica e
 docker compose down -v
 docker compose up --build
 ```
+
+## Licença
+
+MIT — veja [LICENSE](LICENSE).
+
+Para reportar uma vulnerabilidade, siga [SECURITY.md](SECURITY.md). Não abra issue pública.
