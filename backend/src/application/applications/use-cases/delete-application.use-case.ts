@@ -10,6 +10,7 @@ import { ApplicationError } from '../../shared/errors/application.error';
 
 export type DeleteApplicationInput = {
   id: string;
+  userId: string;
   mode?: ApplicationDeleteMode;
 };
 
@@ -27,7 +28,10 @@ export class DeleteApplicationUseCase {
       );
     }
 
-    const application = await this.applicationRepository.findById(input.id);
+    const application = await this.applicationRepository.findById(
+      input.id,
+      input.userId,
+    );
 
     if (!application) {
       throw new ApplicationNotFoundError(input.id);
@@ -40,11 +44,11 @@ export class DeleteApplicationUseCase {
 
       application.softDelete();
 
-      await this.applicationRepository.update(application);
+      await this.applicationRepository.update(application, input.userId);
 
       return;
     }
 
-    await this.applicationRepository.delete(application);
+    await this.applicationRepository.delete(application, input.userId);
   }
 }

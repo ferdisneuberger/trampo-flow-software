@@ -11,10 +11,13 @@ import {
 } from '../factories/application.factory';
 
 const validInput: CreateApplicationInput = {
+  userId: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
   title: 'Backend Engineer',
   link: 'https://example.com/jobs/backend-engineer',
   currentPhase: 'Triagem',
 };
+
+const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
 
 describe('CreateApplicationUseCase', () => {
   let repository: InMemoryApplicationRepository;
@@ -27,6 +30,7 @@ describe('CreateApplicationUseCase', () => {
 
   it('creates an application with the default status and persists it', async () => {
     const application = await useCase.execute({
+      userId: USER_ID,
       title: '  Backend Engineer  ',
       link: '  https://example.com/jobs/backend-engineer  ',
       currentPhase: '  Triagem  ',
@@ -44,7 +48,7 @@ describe('CreateApplicationUseCase', () => {
       application.createdAt.getTime(),
     );
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored).not.toBeNull();
     expect(stored?.id).toBe(application.id);
@@ -56,6 +60,7 @@ describe('CreateApplicationUseCase', () => {
   it('creates an application with an explicit status and multiple files', async () => {
     const uploadedAt = new Date('2026-02-01T10:00:00.000Z');
     const application = await useCase.execute({
+      userId: USER_ID,
       title: 'Staff Engineer',
       link: 'https://example.com/jobs/staff-engineer',
       currentPhase: 'Entrevista com RH',
@@ -82,7 +87,7 @@ describe('CreateApplicationUseCase', () => {
     );
     expect(application.files[0].id).not.toBe(application.files[1].id);
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.files).toHaveLength(2);
     expect(stored?.files.map((file) => file.name)).toEqual([
@@ -94,10 +99,7 @@ describe('CreateApplicationUseCase', () => {
   it('accepts an existing ApplicationFile instance', async () => {
     const file = makeApplicationFile({ name: 'curriculo.pdf' });
 
-    const application = await useCase.execute({
-      ...validInput,
-      files: [file],
-    });
+    const application = await useCase.execute({ ...validInput, files: [file] });
 
     expect(application.files).toHaveLength(1);
     expect(application.files[0].id).toBe(file.id);
@@ -196,7 +198,7 @@ describe('CreateApplicationUseCase', () => {
     ).rejects.toMatchObject({ code: 'FILE_NAME_REQUIRED' });
 
     expect(repository.count).toBe(0);
-    expect(await repository.findAll()).toEqual([]);
+    expect(await repository.findAll(USER_ID)).toEqual([]);
   });
 
   it('creates independent file ids for identical metadata', async () => {

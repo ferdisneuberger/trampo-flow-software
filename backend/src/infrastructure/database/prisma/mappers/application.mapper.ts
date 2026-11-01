@@ -51,7 +51,9 @@ export class ApplicationMapper {
     });
   }
 
-  static toCreateData(application: Application): Prisma.ApplicationCreateInput {
+  static toCreateData(
+    application: Application,
+  ): Omit<Prisma.ApplicationCreateInput, 'user'> {
     return {
       id: application.id,
       title: application.title,

@@ -16,6 +16,7 @@ function makeRecord(
 ): PrismaApplicationWithFiles {
   return {
     id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+    userId: 'b1e2d3c4-5f60-4a7b-8c9d-0e1f2a3b4c5d',
     title: 'Backend Engineer',
     link: 'https://example.com/jobs/backend',
     status: PrismaApplicationStatus.IN_PROGRESS,

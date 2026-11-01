@@ -9,6 +9,7 @@ import { ApplicationNotFoundError } from '../errors/application-not-found.error'
 
 export type UpdateApplicationInput = UpdateApplicationProps & {
   id: string;
+  userId: string;
 };
 
 @Injectable()
@@ -16,7 +17,10 @@ export class UpdateApplicationUseCase {
   constructor(private readonly applicationRepository: ApplicationRepository) {}
 
   async execute(input: UpdateApplicationInput): Promise<Application> {
-    const application = await this.applicationRepository.findById(input.id);
+    const application = await this.applicationRepository.findById(
+      input.id,
+      input.userId,
+    );
 
     if (!application) {
       throw new ApplicationNotFoundError(input.id);
@@ -33,7 +37,7 @@ export class UpdateApplicationUseCase {
       status: input.status,
     });
 
-    await this.applicationRepository.update(application);
+    await this.applicationRepository.update(application, input.userId);
 
     return application;
   }

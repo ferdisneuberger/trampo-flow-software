@@ -8,6 +8,8 @@ import {
   makeRestoredApplication,
 } from '../factories/application.factory';
 
+const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
+
 describe('AddApplicationFilesUseCase', () => {
   let repository: InMemoryApplicationRepository;
   let useCase: AddApplicationFilesUseCase;
@@ -22,9 +24,10 @@ describe('AddApplicationFilesUseCase', () => {
     const application = makeRestoredApplication({
       files: [existingFile],
     });
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     const updated = await useCase.execute({
+      userId: USER_ID,
       applicationId: application.id,
       files: [
         makeApplicationFileInput({
@@ -43,7 +46,7 @@ describe('AddApplicationFilesUseCase', () => {
       application.updatedAt.getTime(),
     );
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.files).toHaveLength(2);
     expect(stored?.files.map((file) => file.name)).toEqual([
@@ -54,9 +57,10 @@ describe('AddApplicationFilesUseCase', () => {
 
   it('appends multiple files at once with independent ids', async () => {
     const application = makeRestoredApplication();
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     const updated = await useCase.execute({
+      userId: USER_ID,
       applicationId: application.id,
       files: [
         makeApplicationFileInput({ name: 'resume.pdf' }),
@@ -81,6 +85,7 @@ describe('AddApplicationFilesUseCase', () => {
 
     await expect(
       useCase.execute({
+        userId: USER_ID,
         applicationId,
         files: [makeApplicationFileInput()],
       }),
@@ -96,10 +101,11 @@ describe('AddApplicationFilesUseCase', () => {
     const application = makeRestoredApplication({
       deletedAt: new Date('2026-03-01T00:00:00.000Z'),
     });
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     await expect(
       useCase.execute({
+        userId: USER_ID,
         applicationId: application.id,
         files: [makeApplicationFileInput()],
       }),
@@ -108,7 +114,7 @@ describe('AddApplicationFilesUseCase', () => {
       code: 'APPLICATION_ALREADY_DELETED',
     });
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.files).toEqual([]);
     expect(stored?.isDeleted).toBe(true);
@@ -116,10 +122,11 @@ describe('AddApplicationFilesUseCase', () => {
 
   it('rejects an empty file list without changing the application', async () => {
     const application = makeRestoredApplication();
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     await expect(
       useCase.execute({
+        userId: USER_ID,
         applicationId: application.id,
         files: [],
       }),
@@ -128,7 +135,7 @@ describe('AddApplicationFilesUseCase', () => {
       code: 'NO_FILES_PROVIDED',
     });
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.files).toEqual([]);
     expect(stored?.updatedAt.toISOString()).toBe(
@@ -138,10 +145,11 @@ describe('AddApplicationFilesUseCase', () => {
 
   it('does not append any file when one of them is invalid', async () => {
     const application = makeRestoredApplication();
-    await repository.create(application);
+    await repository.create(application, USER_ID);
 
     await expect(
       useCase.execute({
+        userId: USER_ID,
         applicationId: application.id,
         files: [
           makeApplicationFileInput({ name: 'resume.pdf' }),
@@ -150,11 +158,28 @@ describe('AddApplicationFilesUseCase', () => {
       }),
     ).rejects.toMatchObject({ code: 'FILE_NAME_REQUIRED' });
 
-    const stored = await repository.findById(application.id);
+    const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.files).toEqual([]);
     expect(stored?.updatedAt.toISOString()).toBe(
       application.updatedAt.toISOString(),
     );
+  });
+
+  it('rejects attaching files to an application from another user', async () => {
+    const application = makeRestoredApplication();
+    await repository.create(application, USER_ID);
+
+    await expect(
+      useCase.execute({
+        userId: 'outro-usuario',
+        applicationId: application.id,
+        files: [makeApplicationFileInput()],
+      }),
+    ).rejects.toMatchObject({ code: 'APPLICATION_NOT_FOUND' });
+
+    const stored = await repository.findById(application.id, USER_ID);
+
+    expect(stored?.files).toEqual([]);
   });
 });
