@@ -1,27 +1,60 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Application } from '../../../domain/applications/entities/application.entity';
 import { ApplicationFile } from '../../../domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../../domain/applications/enums/application-status.enum';
 
-export type ApplicationFileHttpResponse = {
-  id: string;
-  name: string;
-  url: string;
-  mimeType: string;
-  sizeInBytes: number;
-  uploadedAt: string;
-};
+export class ApplicationFileHttpResponse {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
 
-export type ApplicationHttpResponse = {
-  id: string;
-  title: string;
-  link: string;
-  status: ApplicationStatus;
-  currentPhase: string;
-  files: ApplicationFileHttpResponse[];
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-};
+  @ApiProperty({ example: 'curriculo.pdf' })
+  name!: string;
+
+  @ApiProperty({ example: 'https://example.com/files/curriculo.pdf' })
+  url!: string;
+
+  @ApiProperty({ example: 'application/pdf' })
+  mimeType!: string;
+
+  @ApiProperty({ example: 182_331 })
+  sizeInBytes!: number;
+
+  @ApiProperty({ format: 'date-time' })
+  uploadedAt!: string;
+}
+
+export class ApplicationHttpResponse {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'Backend Engineer - Nubank' })
+  title!: string;
+
+  @ApiProperty({ example: 'https://example.com/jobs/nubank-backend' })
+  link!: string;
+
+  @ApiProperty({ enum: ApplicationStatus, enumName: 'ApplicationStatus' })
+  status!: ApplicationStatus;
+
+  @ApiProperty({ example: 'Teste técnico' })
+  currentPhase!: string;
+
+  @ApiProperty({ type: [ApplicationFileHttpResponse] })
+  files!: ApplicationFileHttpResponse[];
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  updatedAt!: string;
+
+  @ApiProperty({
+    format: 'date-time',
+    nullable: true,
+    description: 'Preenchido quando a candidatura foi excluída logicamente.',
+  })
+  deletedAt!: string | null;
+}
 
 export class ApplicationPresenter {
   static toHTTP(application: Application): ApplicationHttpResponse {

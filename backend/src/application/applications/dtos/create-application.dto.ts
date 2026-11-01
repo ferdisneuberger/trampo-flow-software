@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -15,11 +16,21 @@ import {
 import { ApplicationStatus } from '../../../domain/applications/enums/application-status.enum';
 
 export class CreateApplicationFileDto {
+  @ApiProperty({
+    description: 'Nome do arquivo.',
+    example: 'curriculo.pdf',
+    maxLength: 255,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   name!: string;
 
+  @ApiProperty({
+    description: 'URL pública do arquivo.',
+    example: 'https://example.com/files/curriculo.pdf',
+    maxLength: 2048,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(2048)
@@ -30,26 +41,51 @@ export class CreateApplicationFileDto {
   })
   url!: string;
 
+  @ApiProperty({
+    description: 'Tipo MIME do arquivo.',
+    example: 'application/pdf',
+    maxLength: 100,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   mimeType!: string;
 
+  @ApiProperty({
+    description: 'Tamanho do arquivo em bytes.',
+    example: 182_331,
+    minimum: 1,
+  })
   @IsInt()
   @Min(1)
   sizeInBytes!: number;
 
+  @ApiPropertyOptional({
+    description: 'Data de upload em ISO 8601. Padrão: agora.',
+    format: 'date-time',
+    example: '2026-10-23T18:00:00.000Z',
+  })
   @IsOptional()
   @IsISO8601()
   uploadedAt?: string;
 }
 
 export class CreateApplicationDto {
+  @ApiProperty({
+    description: 'Título da vaga.',
+    example: 'Backend Engineer - Nubank',
+    maxLength: 120,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
   title!: string;
 
+  @ApiProperty({
+    description: 'Link da vaga.',
+    example: 'https://example.com/jobs/nubank-backend',
+    maxLength: 2048,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(2048)
@@ -60,15 +96,29 @@ export class CreateApplicationDto {
   })
   link!: string;
 
+  @ApiProperty({
+    description: 'Fase atual do processo seletivo.',
+    example: 'Teste técnico',
+    maxLength: 120,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
   currentPhase!: string;
 
+  @ApiPropertyOptional({
+    description: 'Status da candidatura. Padrão: PENDING.',
+    enum: ApplicationStatus,
+    enumName: 'ApplicationStatus',
+  })
   @IsOptional()
   @IsEnum(ApplicationStatus)
   status?: ApplicationStatus;
 
+  @ApiPropertyOptional({
+    description: 'Arquivos anexados na criação.',
+    type: [CreateApplicationFileDto],
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

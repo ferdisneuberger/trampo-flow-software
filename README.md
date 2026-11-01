@@ -270,6 +270,8 @@ Consulte [`frontend/README.md`](frontend/README.md) para a estrutura completa e 
 > Todas as rotas de `/applications` exigem `Authorization: Bearer <token>`. Obtenha o token em `POST /auth/login`. `GET /health` e `POST /auth/login` são públicos. Nos exemplos abaixo, substitua `<token>` pelo `accessToken` retornado no login.
 >
 > A API é acessada pela entrada local do ingress em `http://localhost:5173/api`; o prefixo `/api` é removido antes de chegar à API. Se a API estiver rodando fora do Docker em `http://localhost:3000`, remova o prefixo `/api` das URLs.
+>
+> A documentação interativa (OpenAPI) fica em `/docs`: `http://localhost:5173/docs` pelo ingress ou `http://localhost:3000/docs` rodando fora do Docker. O JSON da especificação está em `/docs-json`.
 
 ### Health check
 
