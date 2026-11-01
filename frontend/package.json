@@ -8,8 +8,6 @@
     "build": "tsc -b && vite build",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*.{ts,tsx}\"",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
     "typecheck": "tsc -b",
     "preview": "vite preview"
   },

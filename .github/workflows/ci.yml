@@ -35,9 +35,6 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Check formatting
-        run: npm run format:check
-
       - name: Generate Prisma client
         run: npx prisma generate
 
@@ -79,14 +76,31 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Check formatting
-        run: npm run format:check
-
       - name: Typecheck
         run: npm run typecheck
 
       - name: Build
         run: npm run build
+
+  tooling:
+    name: tooling
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install repository tooling
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
 
   docker:
     name: docker (${{ matrix.service }})
