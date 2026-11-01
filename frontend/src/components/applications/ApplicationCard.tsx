@@ -1,4 +1,5 @@
 import {
+  Building2,
   CalendarDays,
   ExternalLink,
   FileText,
@@ -61,6 +62,22 @@ export function ApplicationCard({
               {application.title}
             </a>
           </h3>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-ink-600">
+            <Building2 className="size-3.5" aria-hidden="true" />
+            {application.companyUrl ? (
+              <a
+                href={application.companyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline-offset-4 transition hover:text-brand-700 hover:underline"
+                title={application.companyUrl}
+              >
+                {application.company}
+              </a>
+            ) : (
+              application.company
+            )}
+          </p>
           <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-ink-500">
             <CalendarDays className="size-3.5" aria-hidden="true" />
             Atualizada em {formatDate(application.updatedAt)}

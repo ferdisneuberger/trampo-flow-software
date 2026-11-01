@@ -20,6 +20,9 @@ model Application {
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String            @db.VarChar(120)
   link         String            @db.VarChar(2048)
+  company      String            @db.VarChar(120)
+  companyUrl   String?           @map("company_url") @db.VarChar(2048)
+  position     Int               @default(0)
   status       ApplicationStatus @default(PENDING)
   currentPhase String            @map("current_phase") @db.VarChar(120)
   files        ApplicationFile[]

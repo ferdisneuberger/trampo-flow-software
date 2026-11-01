@@ -32,6 +32,9 @@ export type Application = {
   id: string;
   title: string;
   link: string;
+  company: string;
+  companyUrl: string | null;
+  position: number;
   status: ApplicationStatus;
   currentPhase: string;
   files: ApplicationFile[];
@@ -51,6 +54,8 @@ export type CreateApplicationFileInput = {
 export type CreateApplicationInput = {
   title: string;
   link: string;
+  company: string;
+  companyUrl?: string | null;
   currentPhase: string;
   status?: ApplicationStatus;
   files?: CreateApplicationFileInput[];
@@ -59,6 +64,8 @@ export type CreateApplicationInput = {
 export type UpdateApplicationInput = {
   title?: string;
   link?: string;
+  company?: string;
+  companyUrl?: string | null;
   currentPhase?: string;
   status?: ApplicationStatus;
 };

@@ -14,6 +14,7 @@ const validInput: CreateApplicationInput = {
   userId: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
   title: 'Backend Engineer',
   link: 'https://example.com/jobs/backend-engineer',
+  company: 'Nubank',
   currentPhase: 'Triagem',
 };
 
@@ -33,6 +34,7 @@ describe('CreateApplicationUseCase', () => {
       userId: USER_ID,
       title: '  Backend Engineer  ',
       link: '  https://example.com/jobs/backend-engineer  ',
+      company: '  Nubank  ',
       currentPhase: '  Triagem  ',
     });
 
@@ -64,6 +66,7 @@ describe('CreateApplicationUseCase', () => {
       title: 'Staff Engineer',
       link: 'https://example.com/jobs/staff-engineer',
       currentPhase: 'Entrevista com RH',
+      company: 'Nubank',
       status: ApplicationStatus.IN_PROGRESS,
       files: [
         makeApplicationFileInput({ name: 'resume.pdf' }),

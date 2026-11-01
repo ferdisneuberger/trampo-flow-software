@@ -68,17 +68,20 @@ O `backend/src/main.ts` configura:
 
 ### Candidatura (`Application`)
 
-| Campo          | Tipo         | Regra                                                   |
-| -------------- | ------------ | ------------------------------------------------------- |
-| `id`           | UUID         | Gerado na criação                                       |
-| `title`        | string       | Obrigatório, até 120 caracteres                         |
-| `link`         | string       | Obrigatório, URL HTTP/HTTPS válida, até 2048 caracteres |
-| `status`       | enum         | Um dos status fixos abaixo; padrão `PENDING`            |
-| `currentPhase` | string       | Obrigatório, texto livre, até 120 caracteres            |
-| `files`        | lista        | Zero ou mais currículos/anexos                          |
-| `createdAt`    | data         | Preenchido na criação                                   |
-| `updatedAt`    | data         | Atualizado em cada alteração                            |
-| `deletedAt`    | data ou nulo | Preenchido na exclusão lógica                           |
+| Campo          | Tipo           | Regra                                                   |
+| -------------- | -------------- | ------------------------------------------------------- |
+| `id`           | UUID           | Gerado na criação                                       |
+| `title`        | string         | Obrigatório, até 120 caracteres                         |
+| `link`         | string         | Obrigatório, URL HTTP/HTTPS válida, até 2048 caracteres |
+| `company`      | string         | Obrigatório, 2 a 120 caracteres                         |
+| `companyUrl`   | string ou nulo | Opcional, URL HTTP/HTTPS válida, até 2048 caracteres    |
+| `position`     | inteiro        | Ordem manual dentro da coluna do quadro                 |
+| `status`       | enum           | Um dos status fixos abaixo; padrão `PENDING`            |
+| `currentPhase` | string         | Obrigatório, texto livre, até 120 caracteres            |
+| `files`        | lista          | Zero ou mais currículos/anexos                          |
+| `createdAt`    | data           | Preenchido na criação                                   |
+| `updatedAt`    | data           | Atualizado em cada alteração                            |
+| `deletedAt`    | data ou nulo   | Preenchido na exclusão lógica                           |
 
 ### Status fixos
 
@@ -314,6 +317,8 @@ curl -X POST http://localhost:5173/api/applications \
   -d '{
     "title": "Backend Engineer",
     "link": "https://example.com/jobs/backend-engineer",
+    "company": "Nubank",
+    "companyUrl": "https://nubank.com.br",
     "currentPhase": "Triagem",
     "files": [
       {
@@ -332,6 +337,8 @@ Campos aceitos:
 | -------------- | ------ | ----------- | --------------------------------------------------------------------- |
 | `title`        | string | sim         | até 120 caracteres                                                    |
 | `link`         | string | sim         | URL HTTP/HTTPS válida, até 2048 caracteres                            |
+| `company`      | string | sim         | 2 a 120 caracteres                                                    |
+| `companyUrl`   | string | não         | URL HTTP/HTTPS válida, até 2048 caracteres                            |
 | `currentPhase` | string | sim         | até 120 caracteres                                                    |
 | `status`       | enum   | não         | `PENDING`, `IN_PROGRESS`, `COMPLETED` ou `REJECTED`; padrão `PENDING` |
 | `files`        | array  | não         | lista de arquivos com os metadados abaixo                             |

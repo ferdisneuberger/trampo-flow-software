@@ -39,6 +39,7 @@ function fillValidValues(form: FormResult): void {
   act(() => {
     form.setField('title', 'Backend Engineer');
     form.setField('link', 'https://example.com/jobs/backend');
+    form.setField('company', 'Acme');
     form.setField('currentPhase', 'Triagem');
   });
 }
@@ -47,6 +48,9 @@ const storedApplication: Application = {
   id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
   title: 'Vaga antiga',
   link: 'https://example.com/jobs/antiga',
+  company: 'Acme',
+  companyUrl: null,
+  position: 0,
   status: 'COMPLETED',
   currentPhase: 'Proposta',
   files: [],
@@ -62,6 +66,8 @@ describe('useApplicationForm', () => {
     expect(result.current.values).toEqual({
       title: '',
       link: '',
+      company: '',
+      companyUrl: '',
       currentPhase: '',
       status: 'PENDING',
     });
@@ -77,6 +83,7 @@ describe('useApplicationForm', () => {
     expect(result.current.errors).toMatchObject({
       title: 'Informe o título da candidatura.',
       link: 'Informe o link da vaga.',
+      company: 'Informe a empresa.',
       currentPhase: 'Informe a fase atual.',
     });
     expect(onCreate).not.toHaveBeenCalled();
@@ -105,6 +112,7 @@ describe('useApplicationForm', () => {
     act(() => {
       result.current.setField('title', '  Backend Engineer  ');
       result.current.setField('link', '  https://example.com/jobs/backend  ');
+      result.current.setField('company', '  Acme  ');
       result.current.setField('currentPhase', '  Triagem  ');
     });
 
@@ -113,6 +121,8 @@ describe('useApplicationForm', () => {
     expect(onCreate).toHaveBeenCalledWith({
       title: 'Backend Engineer',
       link: 'https://example.com/jobs/backend',
+      company: 'Acme',
+      companyUrl: null,
       currentPhase: 'Triagem',
       status: 'PENDING',
       files: undefined,
@@ -200,6 +210,8 @@ describe('useApplicationForm', () => {
     expect(onUpdate).toHaveBeenCalledWith(storedApplication.id, {
       title: 'Vaga antiga',
       link: 'https://example.com/jobs/antiga',
+      company: 'Acme',
+      companyUrl: null,
       currentPhase: 'Entrevista final',
       status: 'COMPLETED',
     });
@@ -280,6 +292,52 @@ describe('useApplicationForm', () => {
 
     expect(result.current.files[0]?.mimeType).toBe(
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+  });
+
+  it('exige o nome da empresa', async () => {
+    const { result, onCreate } = setup();
+
+    act(() => {
+      result.current.setField('title', 'Backend Engineer');
+      result.current.setField('link', 'https://example.com/jobs/backend');
+      result.current.setField('currentPhase', 'Triagem');
+    });
+
+    await submit(result.current);
+
+    expect(result.current.errors.company).toBe('Informe a empresa.');
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
+  it('recusa site da empresa que não é http ou https', async () => {
+    const { result, onCreate } = setup();
+
+    fillValidValues(result.current);
+    act(() => {
+      result.current.setField('companyUrl', 'acme.com');
+    });
+
+    await submit(result.current);
+
+    expect(result.current.errors.companyUrl).toBe(
+      'Informe uma URL HTTP ou HTTPS válida.',
+    );
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
+  it('envia null quando o site da empresa está vazio', async () => {
+    const { result, onCreate } = setup();
+
+    fillValidValues(result.current);
+    act(() => {
+      result.current.setField('companyUrl', '   ');
+    });
+
+    await submit(result.current);
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ companyUrl: null }),
     );
   });
 });

@@ -42,6 +42,7 @@ describe('ApplicationsController', () => {
       {
         title: 'Backend Engineer',
         link: 'https://example.com/jobs/backend',
+        company: 'Nubank',
         currentPhase: 'Triagem',
         files: [
           {
@@ -81,6 +82,7 @@ describe('ApplicationsController', () => {
       {
         title: 'Backend Engineer',
         link: 'https://example.com/jobs/backend',
+        company: 'Nubank',
         currentPhase: 'Triagem',
       },
       USER_ID,
@@ -120,6 +122,8 @@ describe('ApplicationsController', () => {
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       title: undefined,
       link: undefined,
+      company: undefined,
+      companyUrl: undefined,
       currentPhase: 'Entrevista',
       status: undefined,
     });
