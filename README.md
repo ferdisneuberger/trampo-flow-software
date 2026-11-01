@@ -1,5 +1,7 @@
 # Trampo Flow
 
+[![CI](https://github.com/ferdisneuberger/trampo-flow-software/actions/workflows/ci.yml/badge.svg)](https://github.com/ferdisneuberger/trampo-flow-software/actions/workflows/ci.yml)
+
 Aplicação full stack para acompanhar candidaturas de emprego. O backend é uma API Node.js com NestJS, Fastify, Prisma e PostgreSQL, organizada em camadas seguindo DDD e os princípios de SOLID. O frontend é uma SPA React com Vite, TypeScript e Tailwind CSS, estruturada em componentes, hooks e serviços.
 
 ## Stack
