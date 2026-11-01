@@ -1,14 +1,9 @@
-import {
-  HttpException,
-  HttpStatus,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthenticateUserUseCase } from '../../src/application/auth/use-cases/authenticate-user.use-case';
 import type { GetUserProfileUseCase } from '../../src/application/auth/use-cases/get-user-profile.use-case';
 import { UnauthorizedError } from '../../src/application/shared/errors/unauthorized.error';
 import { User } from '../../src/domain/users/entities/user.entity';
-import type { AuthenticatedRequest } from '../../src/infrastructure/auth/jwt-auth.guard';
 import type { LoginRateLimiter } from '../../src/infrastructure/auth/login-rate-limiter.service';
 import type { TokenService } from '../../src/infrastructure/auth/token.service';
 import { AuthController } from '../../src/infrastructure/http/controllers/auth.controller';
@@ -114,20 +109,9 @@ describe('AuthController', () => {
 
     getProfile.mockResolvedValue(makeUser());
 
-    const result = await controller.me({
-      user: { sub: USER_ID },
-    } as unknown as AuthenticatedRequest);
+    const result = await controller.me(USER_ID);
 
     expect(result).toEqual({ id: USER_ID, username: 'fernando' });
     expect(getProfile).toHaveBeenCalledWith(USER_ID);
-  });
-
-  it('rejeita quando o token não trouxe usuário', async () => {
-    const { controller, getProfile } = createController();
-
-    await expect(
-      controller.me({} as unknown as AuthenticatedRequest),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(getProfile).not.toHaveBeenCalled();
   });
 });
