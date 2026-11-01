@@ -252,6 +252,20 @@ npm run dev
 
 A interface fica disponível em `http://localhost:5173`. O Vite encaminha `/api/*` para o backend e remove o prefixo `/api`; assim, o cliente usa `VITE_API_URL=/api` sem problemas de CORS em desenvolvimento. O build de produção é estático, e o proxy equivalente fica em `infra/ingress/nginx.conf` quando o ambiente roda pelo Compose.
 
+### Testes
+
+O frontend usa **Vitest** com **Testing Library** e ambiente `jsdom`. Os testes cobrem os utilitários, o interceptor do Axios, o `tokenStorage`, o hook `useApplicationForm` e o badge de status.
+
+```bash
+cd frontend
+
+npm test        # executa uma vez
+npm run test:watch
+npm run test:cov
+```
+
+A cobertura é medida em `src/**` inteiro, mas o threshold é aplicado apenas onde há suíte de verdade: `src/utils/**` (95%) e `src/hooks/useApplicationForm.ts` (75%). Componentes e páginas ainda não têm teste, então uma meta global seria enganosa.
+
 ### Funcionalidades
 
 - Abas de status com contadores (Todas, Aguardando, Em andamento, Finalizada e Recusada) no topo do dashboard.
