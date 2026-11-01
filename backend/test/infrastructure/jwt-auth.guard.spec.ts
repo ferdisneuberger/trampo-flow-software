@@ -3,7 +3,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthService } from '../../src/infrastructure/auth/auth.service';
+import type { UserRepository } from '../../src/domain/users/repositories/user.repository';
 import {
   JwtAuthGuard,
   type AuthenticatedRequest,
@@ -13,8 +13,10 @@ import {
   type JwtPayload,
 } from '../../src/infrastructure/auth/token.service';
 
+const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
+
 const payload = {
-  sub: 'fernando',
+  sub: USER_ID,
   iat: 1,
   exp: 2,
   iss: 'trampo-flow-api',
@@ -49,78 +51,77 @@ function createGuard(isPublic = false) {
   const tokenService = {
     verify: vi.fn(),
   };
-  const authService = {
-    isCurrentUser: vi.fn(),
+  const userRepository = {
+    existsById: vi.fn().mockResolvedValue(true),
   };
   const guard = new JwtAuthGuard(
     reflector as unknown as Reflector,
     tokenService as unknown as TokenService,
-    authService as unknown as AuthService,
+    userRepository as unknown as UserRepository,
   );
 
-  return { guard, tokenService, authService };
+  return { guard, tokenService, userRepository };
 }
 
 describe('JwtAuthGuard', () => {
-  it('libera rotas públicas sem token', () => {
+  it('libera rotas públicas sem token', async () => {
     const { guard, tokenService } = createGuard(true);
     const request = createRequest();
 
-    expect(guard.canActivate(createContext(request))).toBe(true);
+    await expect(guard.canActivate(createContext(request))).resolves.toBe(true);
     expect(tokenService.verify).not.toHaveBeenCalled();
   });
 
-  it('libera preflight OPTIONS sem token', () => {
+  it('libera preflight OPTIONS sem token', async () => {
     const { guard } = createGuard();
     const request = createRequest({ method: 'OPTIONS' });
 
-    expect(guard.canActivate(createContext(request))).toBe(true);
+    await expect(guard.canActivate(createContext(request))).resolves.toBe(true);
   });
 
-  it('rejeita requisição sem Authorization', () => {
+  it('rejeita requisição sem Authorization', async () => {
     const { guard } = createGuard();
 
-    expect(() => guard.canActivate(createContext(createRequest()))).toThrow(
-      UnauthorizedException,
-    );
+    await expect(
+      guard.canActivate(createContext(createRequest())),
+    ).rejects.toThrow(UnauthorizedException);
   });
 
-  it('rejeita esquema diferente de Bearer', () => {
+  it('rejeita esquema diferente de Bearer', async () => {
     const { guard } = createGuard();
     const request = createRequest({
       headers: { authorization: 'Basic token' },
     });
 
-    expect(() => guard.canActivate(createContext(request))).toThrow(
+    await expect(guard.canActivate(createContext(request))).rejects.toThrow(
       UnauthorizedException,
     );
   });
 
-  it('valida o token e identifica o usuário atual', () => {
-    const { guard, tokenService, authService } = createGuard();
+  it('valida o token e confirma que o usuário existe', async () => {
+    const { guard, tokenService, userRepository } = createGuard();
     const request = createRequest({
       headers: { authorization: 'Bearer token-valido' },
     });
 
     tokenService.verify.mockReturnValue(payload);
-    authService.isCurrentUser.mockReturnValue(true);
 
-    expect(guard.canActivate(createContext(request))).toBe(true);
+    await expect(guard.canActivate(createContext(request))).resolves.toBe(true);
     expect(tokenService.verify).toHaveBeenCalledWith('token-valido');
-    expect(authService.isCurrentUser).toHaveBeenCalledWith('fernando');
+    expect(userRepository.existsById).toHaveBeenCalledWith(USER_ID);
     expect(request.user).toEqual(payload);
   });
 
-  it('rejeita token de outro usuário', () => {
-    const { guard, tokenService, authService } = createGuard();
+  it('rejeita token de usuário que não existe mais', async () => {
+    const { guard, tokenService, userRepository } = createGuard();
     const request = createRequest({
       headers: { authorization: 'Bearer token-valido' },
     });
 
     tokenService.verify.mockReturnValue(payload);
-    authService.isCurrentUser.mockReturnValue(false);
+    userRepository.existsById.mockResolvedValue(false);
 
-    expect(() => guard.canActivate(createContext(request))).toThrow(
+    await expect(guard.canActivate(createContext(request))).rejects.toThrow(
       UnauthorizedException,
     );
   });

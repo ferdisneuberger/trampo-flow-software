@@ -178,16 +178,18 @@ Os valores são os padrões do `docker-compose.yml`. Se você alterou o `.env`, 
 
 ### Autenticação
 
-A API usa JWT assinado com HS256. Não há tabela de usuários: a aplicação valida um único usuário definido no `.env` da raiz, que é lido pelo serviço `api` via Docker Compose.
+A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do PostgreSQL, com a senha derivada por **scrypt** (N=16384, r=8, p=1, sal de 16 bytes e chave de 64 bytes). O hash tem o formato `scrypt$N$r$p$sal$chave`, então subir o custo depois não invalida as senhas existentes.
 
-| Variável               | Obrigatória | Descrição                                          |
-| ---------------------- | ----------- | -------------------------------------------------- |
-| `AUTH_USERNAME`        | sim         | Usuário aceito no login                            |
-| `AUTH_PASSWORD`        | sim         | Senha em texto plano no `.env` (não versionado)    |
-| `JWT_SECRET`           | sim         | Segredo HMAC com pelo menos 32 caracteres          |
-| `JWT_EXPIRES_IN`       | não         | Validade do token (`30m`, `8h`, `7d`); padrão `8h` |
-| `LOGIN_MAX_ATTEMPTS`   | não         | Falhas consecutivas antes do bloqueio; padrão `10` |
-| `LOGIN_WINDOW_SECONDS` | não         | Janela e duração do bloqueio; padrão `900`         |
+| Variável               | Obrigatória | Descrição                                                  |
+| ---------------------- | ----------- | ---------------------------------------------------------- |
+| `JWT_SECRET`           | sim         | Segredo HMAC com pelo menos 32 caracteres                  |
+| `JWT_EXPIRES_IN`       | não         | Validade do token (`30m`, `8h`, `7d`); padrão `8h`         |
+| `LOGIN_MAX_ATTEMPTS`   | não         | Falhas consecutivas antes do bloqueio; padrão `10`         |
+| `LOGIN_WINDOW_SECONDS` | não         | Janela e duração do bloqueio; padrão `900`                 |
+| `AUTH_USERNAME`        | não         | Usuário criado no primeiro boot, se a tabela estiver vazia |
+| `AUTH_PASSWORD`        | não         | Senha do primeiro usuário (mínimo de 12 caracteres)        |
+
+`AUTH_USERNAME`/`AUTH_PASSWORD` servem apenas para provisionar o **primeiro** usuário. Se a tabela `users` já tem registros, elas são ignoradas — depois do primeiro boot você pode removê-las do `.env` e trocar a senha direto no banco (com um hash scrypt novo). A senha nunca é comparada em texto puro.
 
 Gere um segredo forte com `openssl rand -hex 32` e mantenha o `.env` fora do Git. Restrinja o arquivo ao seu usuário com `chmod 600 .env`. O login é feito em `POST /auth/login` e retorna um `accessToken`; envie-o nas demais rotas como `Authorization: Bearer <token>`.
 
@@ -197,7 +199,9 @@ curl -X POST http://localhost:5173/api/auth/login \
   -d '{"username":"admin","password":"sua-senha"}'
 ```
 
-Apenas `POST /auth/login` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend guarda o token no `localStorage`, restaura a sessão em `GET /auth/me` e remove o token em qualquer resposta `401`. O logout é local: um token já emitido continua válido até expirar. O JWT da aplicação é a única autenticação.
+O `sub` do token é o **id** do usuário (UUID), não o username. O guard valida a assinatura e confirma que o usuário ainda existe no banco a cada requisição, então apagar um usuário invalida os tokens dele imediatamente.
+
+Apenas `POST /auth/login` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend guarda o token no `localStorage`, restaura a sessão em `GET /auth/me` e remove o token em qualquer resposta `401`. O logout é local: um token já emitido continua válido até expirar. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais usernames estão cadastrados.
 
 ## Frontend
 
@@ -481,13 +485,17 @@ Estrutura dos testes:
 backend/test/
 ├── application/
 │   ├── add-application-files.use-case.spec.ts
+│   ├── authenticate-user.use-case.spec.ts
 │   ├── create-application.use-case.spec.ts
 │   ├── delete-application.use-case.spec.ts
+│   ├── get-user-profile.use-case.spec.ts
 │   ├── list-applications.use-case.spec.ts
 │   └── update-application.use-case.spec.ts
 ├── domain/
 │   ├── application-file.entity.spec.ts
-│   └── application.entity.spec.ts
+│   ├── application.entity.spec.ts
+│   ├── password-policy.spec.ts
+│   └── user.entity.spec.ts
 ├── infrastructure/
 │   ├── application.mapper.spec.ts
 │   ├── application.presenter.spec.ts
@@ -499,12 +507,17 @@ backend/test/
 │   ├── jwt-auth.guard.spec.ts
 │   ├── login-rate-limiter.service.spec.ts
 │   ├── prisma-application.repository.spec.ts
+│   ├── prisma-user.repository.spec.ts
 │   ├── prisma.service.spec.ts
-│   └── token.service.spec.ts
+│   ├── scrypt.spec.ts
+│   ├── token.service.spec.ts
+│   ├── user-bootstrap.service.spec.ts
+│   └── user.mapper.spec.ts
 ├── factories/application.factory.ts
 ├── helpers/expect-domain-error.ts
 ├── helpers/test-database.ts
-└── repositories/in-memory-application.repository.ts
+├── repositories/in-memory-application.repository.ts
+└── repositories/in-memory-user.repository.ts
 ```
 
 ## Estrutura do projeto
@@ -531,6 +544,12 @@ backend/test/
 │   │   │       │   └── application-file.entity.ts
 │   │   │       ├── enums/application-status.enum.ts
 │   │   │       └── repositories/application.repository.ts
+│   │   │   └── users/
+│   │   │       ├── entities/user.entity.ts
+│   │   │       ├── repositories/user.repository.ts
+│   │   │       └── services/
+│   │   │           ├── password-hasher.ts
+│   │   │           └── password-policy.ts
 │   │   ├── application/
 │   │   │   ├── shared/errors/
 │   │   │   └── applications/
@@ -540,8 +559,12 @@ backend/test/
 │   │   │       └── use-cases/
 │   │   ├── infrastructure/
 │   │   │   ├── database/prisma/
-│   │   │   │   ├── mappers/application.mapper.ts
-│   │   │   │   ├── repositories/prisma-application.repository.ts
+│   │   │   │   ├── mappers/
+│   │   │   │   │   ├── application.mapper.ts
+│   │   │   │   │   └── user.mapper.ts
+│   │   │   │   ├── repositories/
+│   │   │   │   │   ├── prisma-application.repository.ts
+│   │   │   │   │   └── prisma-user.repository.ts
 │   │   │   │   ├── prisma.module.ts
 │   │   │   │   └── prisma.service.ts
 │   │   │   ├── http/
@@ -551,11 +574,13 @@ backend/test/
 │   │   │   │   ├── filters/domain-exception.filter.ts
 │   │   │   │   └── presenters/application.presenter.ts
 │   │   │   ├── auth/
-│   │   │   │   ├── auth.service.ts
 │   │   │   │   ├── jwt-auth.guard.ts
 │   │   │   │   ├── login-rate-limiter.service.ts
 │   │   │   │   ├── public.decorator.ts
-│   │   │   │   └── token.service.ts
+│   │   │   │   ├── scrypt-password-hasher.ts
+│   │   │   │   ├── scrypt.ts
+│   │   │   │   ├── token.service.ts
+│   │   │   │   └── user-bootstrap.service.ts
 │   │   │   └── modules/
 │   │   ├── app.module.ts
 │   │   └── main.ts

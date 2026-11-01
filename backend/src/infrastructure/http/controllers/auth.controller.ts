@@ -16,10 +16,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { LoginDto } from '../../../application/auth/dtos/login.dto';
-import { AuthService } from '../../auth/auth.service';
+import { AuthenticateUserUseCase } from '../../../application/auth/use-cases/authenticate-user.use-case';
+import { GetUserProfileUseCase } from '../../../application/auth/use-cases/get-user-profile.use-case';
+import { UnauthorizedError } from '../../../application/shared/errors/unauthorized.error';
 import type { AuthenticatedRequest } from '../../auth/jwt-auth.guard';
 import { LoginRateLimiter } from '../../auth/login-rate-limiter.service';
 import { Public } from '../../auth/public.decorator';
+import { TokenService } from '../../auth/token.service';
 import {
   AuthenticatedUserResponse,
   LoginResponse,
@@ -29,7 +32,9 @@ import {
 @Controller('auth')
 export class AuthController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly authenticateUser: AuthenticateUserUseCase,
+    private readonly getUserProfile: GetUserProfileUseCase,
+    private readonly tokenService: TokenService,
     private readonly loginRateLimiter: LoginRateLimiter,
   ) {}
 
@@ -43,17 +48,31 @@ export class AuthController {
     status: 429,
     description: 'Muitas tentativas de login na janela atual.',
   })
-  login(@Body() dto: LoginDto) {
+  async login(@Body() dto: LoginDto) {
     this.loginRateLimiter.assertAllowed();
 
     try {
-      const result = this.authService.login(dto.username, dto.password);
+      const user = await this.authenticateUser.execute({
+        username: dto.username,
+        password: dto.password,
+      });
+
+      const { token, expiresAt } = this.tokenService.sign(user.id);
 
       this.loginRateLimiter.registerSuccess();
 
-      return result;
+      return {
+        accessToken: token,
+        tokenType: 'Bearer' as const,
+        expiresIn: this.tokenService.expiresInSeconds,
+        expiresAt,
+        user: {
+          id: user.id,
+          username: user.username,
+        },
+      };
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (error instanceof UnauthorizedError) {
         this.loginRateLimiter.registerFailure();
       }
 
@@ -66,13 +85,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Devolve o usuário autenticado' })
   @ApiOkResponse({ type: AuthenticatedUserResponse })
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
-  me(@Req() request: AuthenticatedRequest) {
-    const username = request.user?.sub;
+  async me(@Req() request: AuthenticatedRequest) {
+    const userId = request.user?.sub;
 
-    if (!username) {
+    if (!userId) {
       throw new UnauthorizedException('Token inválido ou expirado.');
     }
 
-    return this.authService.getProfile(username);
+    const user = await this.getUserProfile.execute(userId);
+
+    return {
+      id: user.id,
+      username: user.username,
+    };
   }
 }

@@ -2,6 +2,7 @@ import type { ArgumentsHost } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { ConflictError } from '../../src/application/shared/errors/conflict.error';
 import { NotFoundError } from '../../src/application/shared/errors/not-found.error';
+import { UnauthorizedError } from '../../src/application/shared/errors/unauthorized.error';
 import { DomainError } from '../../src/domain/shared/errors/domain.error';
 import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 
@@ -59,5 +60,17 @@ describe('DomainExceptionFilter', () => {
     filter.catch(new ConflictError('Já existe.', 'ALREADY_EXISTS'), host);
 
     expect(status).toHaveBeenCalledWith(409);
+  });
+
+  it('mapeia UnauthorizedError para 401', () => {
+    const { host, status, send } = createHost();
+
+    filter.catch(new UnauthorizedError('Usuário ou senha inválidos.'), host);
+
+    expect(status).toHaveBeenCalledWith(401);
+    expect(send).toHaveBeenCalledWith({
+      error: 'UNAUTHORIZED',
+      message: 'Usuário ou senha inválidos.',
+    });
   });
 });

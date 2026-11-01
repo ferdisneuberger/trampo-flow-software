@@ -12,7 +12,7 @@ import {
 import {
   createTestPrisma,
   TEST_DATABASE_URL,
-  truncateAll,
+  truncateApplicationData,
 } from '../helpers/test-database';
 
 function restoreWithFiles(
@@ -46,7 +46,7 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await truncateApplicationData(prisma);
   });
 
   it('persiste e recupera a candidatura com arquivos', async () => {

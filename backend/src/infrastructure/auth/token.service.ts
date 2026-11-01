@@ -54,12 +54,12 @@ export class TokenService {
     return this.ttlSeconds;
   }
 
-  sign(username: string): SignedToken {
+  sign(subject: string): SignedToken {
     const issuedAt = Math.floor(Date.now() / 1000);
     const expiresAt = issuedAt + this.ttlSeconds;
     const header: JwtHeader = { alg: JWT_ALGORITHM, typ: JWT_TYPE };
     const payload: JwtPayload = {
-      sub: username,
+      sub: subject,
       iat: issuedAt,
       exp: expiresAt,
       iss: JWT_ISSUER,

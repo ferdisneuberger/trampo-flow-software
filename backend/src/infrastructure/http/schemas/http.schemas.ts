@@ -1,6 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AuthenticatedUserResponse {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
   @ApiProperty({ example: 'fernando' })
   username!: string;
 }
@@ -17,6 +20,12 @@ export class LoginResponse {
     example: 28_800,
   })
   expiresIn!: number;
+
+  @ApiProperty({
+    description: 'Instante de expiração em epoch, em segundos.',
+    example: 1_800_000_000,
+  })
+  expiresAt!: number;
 
   @ApiProperty({ type: AuthenticatedUserResponse })
   user!: AuthenticatedUserResponse;

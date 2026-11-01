@@ -30,6 +30,17 @@ model Application {
   @@map("applications")
 }
 
+model User {
+  id           String    @id @db.Uuid
+  username     String    @unique @db.VarChar(120)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
 model ApplicationFile {
   id            String      @id @db.Uuid
   applicationId String      @map("application_id") @db.Uuid
