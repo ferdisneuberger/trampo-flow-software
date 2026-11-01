@@ -29,11 +29,17 @@ import {
   CreateApplicationFileDto,
 } from '../../../application/applications/dtos/create-application.dto';
 import { DeleteApplicationQueryDto } from '../../../application/applications/dtos/delete-application-query.dto';
+import { ListApplicationsQueryDto } from '../../../application/applications/dtos/list-applications-query.dto';
 import { UpdateApplicationDto } from '../../../application/applications/dtos/update-application.dto';
 import { AddApplicationFilesUseCase } from '../../../application/applications/use-cases/add-application-files.use-case';
 import { CreateApplicationUseCase } from '../../../application/applications/use-cases/create-application.use-case';
 import { DeleteApplicationUseCase } from '../../../application/applications/use-cases/delete-application.use-case';
+import { GetApplicationStatsUseCase } from '../../../application/applications/use-cases/get-application-stats.use-case';
 import { ListApplicationsUseCase } from '../../../application/applications/use-cases/list-applications.use-case';
+import {
+  decodeCursorPayload,
+  encodeCursor,
+} from '../../../application/applications/types/application-cursor';
 import { UpdateApplicationUseCase } from '../../../application/applications/use-cases/update-application.use-case';
 import { APPLICATION_DELETE_MODES } from '../../../application/applications/types/application-delete-mode';
 import { CreateApplicationFileInput } from '../../../domain/applications/entities/application-file.entity';
@@ -42,7 +48,11 @@ import {
   ApplicationHttpResponse,
   ApplicationPresenter,
 } from '../presenters/application.presenter';
-import { ErrorResponse } from '../schemas/http.schemas';
+import {
+  ApplicationStatsResponse,
+  ErrorResponse,
+  PaginatedApplicationsResponse,
+} from '../schemas/http.schemas';
 
 @ApiTags('applications')
 @ApiBearerAuth('bearer')
@@ -51,6 +61,7 @@ export class ApplicationsController {
   constructor(
     private readonly createApplicationUseCase: CreateApplicationUseCase,
     private readonly listApplicationsUseCase: ListApplicationsUseCase,
+    private readonly getApplicationStatsUseCase: GetApplicationStatsUseCase,
     private readonly updateApplicationUseCase: UpdateApplicationUseCase,
     private readonly deleteApplicationUseCase: DeleteApplicationUseCase,
     private readonly addApplicationFilesUseCase: AddApplicationFilesUseCase,
@@ -84,15 +95,46 @@ export class ApplicationsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lista as candidaturas ativas' })
-  @ApiOkResponse({ type: [ApplicationHttpResponse] })
+  @ApiOperation({ summary: 'Lista as candidaturas com busca e paginação' })
+  @ApiOkResponse({ type: PaginatedApplicationsResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Cursor inválido.',
+    type: ErrorResponse,
+  })
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
-  async list(@CurrentUserId() userId: string) {
-    const applications = await this.listApplicationsUseCase.execute(userId);
+  async list(
+    @CurrentUserId() userId: string,
+    @Query() query: ListApplicationsQueryDto,
+  ) {
+    const cursor = query.cursor
+      ? decodeCursorPayload(query.cursor, query.sort ?? 'recent')
+      : undefined;
 
-    return applications.map((application) =>
-      ApplicationPresenter.toHTTP(application),
-    );
+    const result = await this.listApplicationsUseCase.execute({
+      userId,
+      limit: query.limit,
+      sort: query.sort,
+      search: query.search,
+      status: query.status,
+      cursor,
+    });
+
+    return {
+      items: result.items.map((application) =>
+        ApplicationPresenter.toHTTP(application),
+      ),
+      nextCursor: result.nextCursor ? encodeCursor(result.nextCursor) : null,
+      hasMore: result.nextCursor !== null,
+    };
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Contadores por status do usuário autenticado' })
+  @ApiOkResponse({ type: ApplicationStatsResponse })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  stats(@CurrentUserId() userId: string) {
+    return this.getApplicationStatsUseCase.execute(userId);
   }
 
   @Patch(':id')

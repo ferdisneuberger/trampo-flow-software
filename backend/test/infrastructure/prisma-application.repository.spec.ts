@@ -113,11 +113,12 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
     await repository.create(active, USER_ID);
     await repository.create(deleted, USER_ID);
 
-    const visible = await repository.findAll(USER_ID);
-    const all = await repository.findAll(USER_ID, { includeDeleted: true });
+    const visible = await repository.findPage(USER_ID, {
+      limit: 100,
+      sort: 'recent',
+    });
 
     expect(visible.map((item) => item.title)).toEqual(['Ativa']);
-    expect(all).toHaveLength(2);
   });
 
   it('ordena a listagem da mais recente para a mais antiga', async () => {
@@ -135,7 +136,10 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
     await repository.create(older, USER_ID);
     await repository.create(newer, USER_ID);
 
-    const stored = await repository.findAll(USER_ID);
+    const stored = await repository.findPage(USER_ID, {
+      limit: 100,
+      sort: 'recent',
+    });
 
     expect(stored.map((item) => item.title)).toEqual(['Recente', 'Antiga']);
   });
@@ -232,7 +236,9 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
     await expect(
       repository.findById(application.id, OTHER_USER_ID),
     ).resolves.toBeNull();
-    await expect(repository.findAll(OTHER_USER_ID)).resolves.toEqual([]);
+    await expect(
+      repository.findPage(OTHER_USER_ID, { limit: 10, sort: 'recent' }),
+    ).resolves.toEqual([]);
     await expect(
       repository.update(restoreWithFiles(application, []), OTHER_USER_ID),
     ).rejects.toThrow();
@@ -242,5 +248,107 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
     await expect(
       repository.findById(application.id, USER_ID),
     ).resolves.not.toBeNull();
+  });
+
+  it('pagina por chave sem repetir itens', async () => {
+    for (let index = 0; index < 5; index += 1) {
+      const date = new Date(Date.UTC(2026, 0, index + 1));
+
+      await repository.create(
+        makeRestoredApplication({
+          title: `Vaga ${index}`,
+          createdAt: date,
+          updatedAt: date,
+        }),
+        USER_ID,
+      );
+    }
+
+    const first = await repository.findPage(USER_ID, {
+      limit: 2,
+      sort: 'recent',
+    });
+    const last = first.at(-1);
+    const second = await repository.findPage(USER_ID, {
+      limit: 2,
+      sort: 'recent',
+      cursor: { sort: 'recent', value: last!.createdAt, id: last!.id },
+    });
+
+    const ids = [...first, ...second].map((item) => item.id);
+
+    expect(ids).toHaveLength(4);
+    expect(new Set(ids).size).toBe(4);
+  });
+
+  it('busca por título, empresa e fase', async () => {
+    await repository.create(
+      makeRestoredApplication({ title: 'Backend', company: 'Nubank' }),
+      USER_ID,
+    );
+    await repository.create(
+      makeRestoredApplication({
+        title: 'Frontend',
+        company: 'Stone',
+        currentPhase: 'Nubank',
+      }),
+      USER_ID,
+    );
+    await repository.create(
+      makeRestoredApplication({ title: 'Dados', company: 'Itaú' }),
+      USER_ID,
+    );
+
+    const result = await repository.findPage(USER_ID, {
+      limit: 10,
+      sort: 'recent',
+      search: 'nubank',
+    });
+
+    expect(result).toHaveLength(2);
+  });
+
+  it('filtra por status', async () => {
+    await repository.create(
+      makeRestoredApplication({ status: ApplicationStatus.COMPLETED }),
+      USER_ID,
+    );
+    await repository.create(
+      makeRestoredApplication({ status: ApplicationStatus.PENDING }),
+      USER_ID,
+    );
+
+    const result = await repository.findPage(USER_ID, {
+      limit: 10,
+      sort: 'recent',
+      status: ApplicationStatus.COMPLETED,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.status).toBe(ApplicationStatus.COMPLETED);
+  });
+
+  it('conta por status apenas as candidaturas do usuário', async () => {
+    await repository.create(
+      makeRestoredApplication({ status: ApplicationStatus.PENDING }),
+      USER_ID,
+    );
+    await repository.create(
+      makeRestoredApplication({ status: ApplicationStatus.IN_PROGRESS }),
+      USER_ID,
+    );
+    await repository.create(
+      makeRestoredApplication({ status: ApplicationStatus.PENDING }),
+      OTHER_USER_ID,
+    );
+
+    const counts = await repository.countByStatus(USER_ID);
+
+    expect(counts).toEqual({
+      PENDING: 1,
+      IN_PROGRESS: 1,
+      COMPLETED: 0,
+      REJECTED: 0,
+    });
   });
 });

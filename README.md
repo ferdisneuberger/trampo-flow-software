@@ -356,11 +356,43 @@ Metadados de cada arquivo:
 ### Listar candidaturas
 
 ```bash
-curl http://localhost:5173/api/applications \
+curl 'http://localhost:5173/api/applications?search=nubank&status=IN_PROGRESS&limit=25' \
   -H 'Authorization: Bearer <token>'
 ```
 
-Retorna apenas candidaturas ativas, ordenadas por `createdAt` decrescente.
+```json
+{
+  "items": [{ "id": "…", "title": "…", "company": "…" }],
+  "nextCursor": "eyJzIjoicmVjZW50Iiwid…",
+  "hasMore": true
+}
+```
+
+| Parâmetro | Padrão   | Regra                                                               |
+| --------- | -------- | ------------------------------------------------------------------- |
+| `search`  | —        | Busca em `title`, `company` e `currentPhase`, sem diferenciar caixa |
+| `status`  | —        | `PENDING`, `IN_PROGRESS`, `COMPLETED` ou `REJECTED`                 |
+| `limit`   | `25`     | Entre 1 e 100                                                       |
+| `sort`    | `recent` | `recent` (criação mais nova) ou `stale` (atualização mais antiga)   |
+| `cursor`  | —        | Use o `nextCursor` da página anterior. Cursor inválido responde 400 |
+
+A paginação é por chave (`createdAt` + `id`, ou `updatedAt` + `id` em `stale`), então duas páginas consecutivas nunca repetem nem pulam itens. Candidaturas excluídas logicamente ficam de fora.
+
+### Contadores por status
+
+```bash
+curl http://localhost:5173/api/applications/stats \
+  -H 'Authorization: Bearer <token>'
+```
+
+```json
+{
+  "total": 12,
+  "byStatus": { "PENDING": 3, "IN_PROGRESS": 5, "COMPLETED": 4, "REJECTED": 0 }
+}
+```
+
+Os contadores consideram todas as candidaturas ativas do usuário e ignoram os filtros de busca.
 
 ### Atualizar candidatura
 

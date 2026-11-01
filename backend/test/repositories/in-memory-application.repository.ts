@@ -1,8 +1,10 @@
 import { Application } from '../../src/domain/applications/entities/application.entity';
 import { ApplicationFile } from '../../src/domain/applications/entities/application-file.entity';
+import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
 import {
   ApplicationRepository,
-  FindAllApplicationsOptions,
+  ApplicationStatusCount,
+  FindApplicationsPageOptions,
 } from '../../src/domain/applications/repositories/application.repository';
 
 type Entry = {
@@ -36,6 +38,60 @@ function cloneApplication(application: Application): Application {
   });
 }
 
+function matchesSearch(application: Application, search: string): boolean {
+  return [
+    application.title,
+    application.company,
+    application.currentPhase,
+  ].some((value) => value.toLowerCase().includes(search));
+}
+
+function isAfterCursor(
+  application: Application,
+  options: FindApplicationsPageOptions,
+): boolean {
+  const cursor = options.cursor;
+
+  if (!cursor) {
+    return true;
+  }
+
+  const createdAt = application.createdAt.getTime();
+  const cursorCreatedAt = cursor.value.getTime();
+
+  if (options.sort === 'recent') {
+    return (
+      createdAt < cursorCreatedAt ||
+      (createdAt === cursorCreatedAt && application.id < cursor.id)
+    );
+  }
+
+  const updatedAt = application.updatedAt.getTime();
+
+  return (
+    updatedAt > cursorCreatedAt ||
+    (updatedAt === cursorCreatedAt && application.id > cursor.id)
+  );
+}
+
+function compare(
+  left: Application,
+  right: Application,
+  sort: FindApplicationsPageOptions['sort'],
+): number {
+  if (sort === 'recent') {
+    return (
+      right.createdAt.getTime() - left.createdAt.getTime() ||
+      right.id.localeCompare(left.id)
+    );
+  }
+
+  return (
+    left.updatedAt.getTime() - right.updatedAt.getTime() ||
+    left.id.localeCompare(right.id)
+  );
+}
+
 export class InMemoryApplicationRepository implements ApplicationRepository {
   private readonly applications = new Map<string, Entry>();
 
@@ -60,16 +116,54 @@ export class InMemoryApplicationRepository implements ApplicationRepository {
     return cloneApplication(entry.application);
   }
 
+  async findPage(
+    userId: string,
+    options: FindApplicationsPageOptions,
+  ): Promise<Application[]> {
+    const search = options.search?.toLowerCase();
+
+    return [...this.applications.values()]
+      .filter((entry) => entry.userId === userId)
+      .map((entry) => entry.application)
+      .filter((application) => !application.isDeleted)
+      .filter(
+        (application) =>
+          !options.status || application.status === options.status,
+      )
+      .filter((application) => !search || matchesSearch(application, search))
+      .filter((application) => isAfterCursor(application, options))
+      .sort((left, right) => compare(left, right, options.sort))
+      .slice(0, options.limit)
+      .map(cloneApplication);
+  }
+
+  async countByStatus(userId: string): Promise<ApplicationStatusCount> {
+    const counts: ApplicationStatusCount = {
+      [ApplicationStatus.PENDING]: 0,
+      [ApplicationStatus.IN_PROGRESS]: 0,
+      [ApplicationStatus.COMPLETED]: 0,
+      [ApplicationStatus.REJECTED]: 0,
+    };
+
+    for (const entry of this.applications.values()) {
+      if (entry.userId === userId && !entry.application.isDeleted) {
+        counts[entry.application.status] += 1;
+      }
+    }
+
+    return counts;
+  }
+
   async findAll(
     userId: string,
-    options?: FindAllApplicationsOptions,
+    options: { includeDeleted?: boolean } = {},
   ): Promise<Application[]> {
     return [...this.applications.values()]
       .filter((entry) => entry.userId === userId)
       .map((entry) => entry.application)
       .filter(
         (application) =>
-          options?.includeDeleted === true || !application.isDeleted,
+          options.includeDeleted === true || !application.isDeleted,
       )
       .sort(
         (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),

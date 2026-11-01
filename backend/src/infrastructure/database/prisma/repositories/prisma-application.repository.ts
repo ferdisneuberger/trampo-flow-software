@@ -1,11 +1,59 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Application } from '../../../../domain/applications/entities/application.entity';
+import { ApplicationStatus } from '../../../../domain/applications/enums/application-status.enum';
 import {
   ApplicationRepository,
-  FindAllApplicationsOptions,
+  ApplicationStatusCount,
+  FindApplicationsPageOptions,
 } from '../../../../domain/applications/repositories/application.repository';
 import { ApplicationMapper } from '../mappers/application.mapper';
 import { PrismaService } from '../prisma.service';
+
+function buildWhere(
+  userId: string,
+  options: FindApplicationsPageOptions,
+): Prisma.ApplicationWhereInput {
+  const conditions: Prisma.ApplicationWhereInput[] = [
+    { userId, deletedAt: null },
+  ];
+
+  if (options.status) {
+    conditions.push({ status: options.status });
+  }
+
+  if (options.search) {
+    conditions.push({
+      OR: [
+        { title: { contains: options.search, mode: 'insensitive' } },
+        { company: { contains: options.search, mode: 'insensitive' } },
+        { currentPhase: { contains: options.search, mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  if (options.cursor) {
+    const { sort, value, id } = options.cursor;
+
+    conditions.push(
+      sort === 'recent'
+        ? {
+            OR: [
+              { createdAt: { lt: value } },
+              { createdAt: value, id: { lt: id } },
+            ],
+          }
+        : {
+            OR: [
+              { updatedAt: { gt: value } },
+              { updatedAt: value, id: { gt: id } },
+            ],
+          },
+    );
+  }
+
+  return { AND: conditions };
+}
 
 @Injectable()
 export class PrismaApplicationRepository implements ApplicationRepository {
@@ -29,20 +77,42 @@ export class PrismaApplicationRepository implements ApplicationRepository {
     return record ? ApplicationMapper.toDomain(record) : null;
   }
 
-  async findAll(
+  async findPage(
     userId: string,
-    options?: FindAllApplicationsOptions,
+    options: FindApplicationsPageOptions,
   ): Promise<Application[]> {
     const records = await this.prisma.application.findMany({
-      where: {
-        userId,
-        ...(options?.includeDeleted ? {} : { deletedAt: null }),
-      },
+      where: buildWhere(userId, options),
       include: { files: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy:
+        options.sort === 'recent'
+          ? [{ createdAt: 'desc' }, { id: 'desc' }]
+          : [{ updatedAt: 'asc' }, { id: 'asc' }],
+      take: options.limit,
     });
 
     return records.map((record) => ApplicationMapper.toDomain(record));
+  }
+
+  async countByStatus(userId: string): Promise<ApplicationStatusCount> {
+    const groups = await this.prisma.application.groupBy({
+      by: ['status'],
+      where: { userId, deletedAt: null },
+      _count: { _all: true },
+    });
+
+    const counts: ApplicationStatusCount = {
+      [ApplicationStatus.PENDING]: 0,
+      [ApplicationStatus.IN_PROGRESS]: 0,
+      [ApplicationStatus.COMPLETED]: 0,
+      [ApplicationStatus.REJECTED]: 0,
+    };
+
+    for (const group of groups) {
+      counts[group.status] = group._count._all;
+    }
+
+    return counts;
   }
 
   async update(application: Application, userId: string): Promise<void> {

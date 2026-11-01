@@ -7,11 +7,18 @@ import type {
 } from '../applications.types';
 import { apiClient } from './client';
 
+type PaginatedApplications = {
+  items: Application[];
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
 export const applicationsService = {
   async list(): Promise<Application[]> {
-    const { data } = await apiClient.get<Application[]>('/applications');
+    const { data } =
+      await apiClient.get<PaginatedApplications>('/applications');
 
-    return data;
+    return data.items;
   },
 
   async create(input: CreateApplicationInput): Promise<Application> {
