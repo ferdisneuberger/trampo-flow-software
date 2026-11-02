@@ -10,7 +10,6 @@ type FormResult = ReturnType<typeof useApplicationForm>;
 function setup(overrides: Partial<Options> = {}) {
   const onCreate = vi.fn().mockResolvedValue(undefined);
   const onUpdate = vi.fn().mockResolvedValue(undefined);
-  const onAddFiles = vi.fn().mockResolvedValue(undefined);
   const onSuccess = vi.fn();
 
   const view = renderHook(() =>
@@ -18,13 +17,12 @@ function setup(overrides: Partial<Options> = {}) {
       application: null,
       onCreate,
       onUpdate,
-      onAddFiles,
       onSuccess,
       ...overrides,
     }),
   );
 
-  return { ...view, onCreate, onUpdate, onAddFiles, onSuccess };
+  return { ...view, onCreate, onUpdate, onSuccess };
 }
 
 async function submit(form: FormResult): Promise<void> {
@@ -49,8 +47,8 @@ const storedApplication: Application = {
   title: 'Vaga antiga',
   link: 'https://example.com/jobs/antiga',
   company: 'Acme',
-  companyUrl: null,
-  position: 0,
+  companyUrl: 'https://acme.dev',
+  position: 1000,
   status: 'COMPLETED',
   currentPhase: 'Proposta',
   files: [],
@@ -71,7 +69,6 @@ describe('useApplicationForm', () => {
       currentPhase: '',
       status: 'PENDING',
     });
-    expect(result.current.files).toEqual([]);
     expect(result.current.isSubmitting).toBe(false);
   });
 
@@ -106,6 +103,22 @@ describe('useApplicationForm', () => {
     expect(onCreate).not.toHaveBeenCalled();
   });
 
+  it('recusa site da empresa que não é http ou https', async () => {
+    const { result, onCreate } = setup();
+
+    fillValidValues(result.current);
+    act(() => {
+      result.current.setField('companyUrl', 'acme.dev');
+    });
+
+    await submit(result.current);
+
+    expect(result.current.errors.companyUrl).toBe(
+      'Informe uma URL HTTP ou HTTPS válida.',
+    );
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
   it('envia o payload normalizado na criação', async () => {
     const { result, onCreate, onSuccess } = setup();
 
@@ -125,63 +138,27 @@ describe('useApplicationForm', () => {
       companyUrl: null,
       currentPhase: 'Triagem',
       status: 'PENDING',
-      files: undefined,
     });
     expect(onSuccess).toHaveBeenCalledOnce();
   });
 
-  it('exige a URL pública do arquivo antes de enviar', async () => {
+  it('envia null quando o site da empresa está vazio', async () => {
     const { result, onCreate } = setup();
 
     fillValidValues(result.current);
     act(() => {
-      result.current.addFile();
-    });
-
-    const [draft] = result.current.files;
-
-    act(() => {
-      result.current.updateFile(draft!.clientId, 'name', 'curriculo.pdf');
+      result.current.setField('companyUrl', '   ');
     });
 
     await submit(result.current);
 
-    expect(result.current.errors.files).toBe(
-      'Arquivo 1: informe a URL pública do arquivo.',
-    );
-    expect(onCreate).not.toHaveBeenCalled();
-  });
-
-  it('recusa tamanho de arquivo não numérico', async () => {
-    const { result } = setup();
-
-    fillValidValues(result.current);
-    act(() => {
-      result.current.addFile();
-    });
-
-    const [draft] = result.current.files;
-
-    act(() => {
-      result.current.updateFile(draft!.clientId, 'name', 'curriculo.pdf');
-      result.current.updateFile(
-        draft!.clientId,
-        'url',
-        'https://example.com/files/curriculo.pdf',
-      );
-      result.current.updateFile(draft!.clientId, 'mimeType', 'application/pdf');
-      result.current.updateFile(draft!.clientId, 'sizeInBytes', 'abc');
-    });
-
-    await submit(result.current);
-
-    expect(result.current.errors.files).toBe(
-      'Arquivo 1: informe um tamanho em bytes maior que zero.',
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ companyUrl: null }),
     );
   });
 
-  it('no modo edição atualiza a candidatura e anexa os arquivos novos', async () => {
-    const { result, onCreate, onUpdate, onAddFiles } = setup({
+  it('no modo edição atualiza a candidatura', async () => {
+    const { result, onCreate, onUpdate } = setup({
       application: storedApplication,
     });
 
@@ -189,20 +166,6 @@ describe('useApplicationForm', () => {
 
     act(() => {
       result.current.setField('currentPhase', 'Entrevista final');
-      result.current.addFile();
-    });
-
-    const [draft] = result.current.files;
-
-    act(() => {
-      result.current.updateFile(draft!.clientId, 'name', 'portfolio.pdf');
-      result.current.updateFile(
-        draft!.clientId,
-        'url',
-        'https://example.com/files/portfolio.pdf',
-      );
-      result.current.updateFile(draft!.clientId, 'mimeType', 'APPLICATION/PDF');
-      result.current.updateFile(draft!.clientId, 'sizeInBytes', '2048');
     });
 
     await submit(result.current);
@@ -211,18 +174,10 @@ describe('useApplicationForm', () => {
       title: 'Vaga antiga',
       link: 'https://example.com/jobs/antiga',
       company: 'Acme',
-      companyUrl: null,
+      companyUrl: 'https://acme.dev',
       currentPhase: 'Entrevista final',
       status: 'COMPLETED',
     });
-    expect(onAddFiles).toHaveBeenCalledWith(storedApplication.id, [
-      {
-        name: 'portfolio.pdf',
-        url: 'https://example.com/files/portfolio.pdf',
-        mimeType: 'application/pdf',
-        sizeInBytes: 2048,
-      },
-    ]);
     expect(onCreate).not.toHaveBeenCalled();
   });
 
@@ -246,7 +201,6 @@ describe('useApplicationForm', () => {
           application: props.application,
           onCreate: vi.fn(),
           onUpdate: vi.fn(),
-          onAddFiles: vi.fn(),
           onSuccess: vi.fn(),
         }),
       { initialProps: { application: null as Application | null } },
@@ -259,85 +213,5 @@ describe('useApplicationForm', () => {
     rerender({ application: storedApplication });
 
     expect(result.current.values.title).toBe('Vaga antiga');
-    expect(result.current.files).toEqual([]);
-  });
-
-  it('preenche metadados ao escolher arquivo do disco', () => {
-    const { result } = setup();
-    const file = new File(['conteúdo'], 'curriculo.pdf', {
-      type: 'application/pdf',
-    });
-
-    act(() => {
-      result.current.addFilesFromPicker([file] as unknown as FileList);
-    });
-
-    expect(result.current.files).toHaveLength(1);
-    expect(result.current.files[0]).toMatchObject({
-      name: 'curriculo.pdf',
-      mimeType: 'application/pdf',
-      sizeInBytes: String(file.size),
-      url: '',
-      source: 'upload',
-    });
-  });
-
-  it('infere o MIME type pela extensão quando o navegador não informa', () => {
-    const { result } = setup();
-    const file = new File(['x'], 'curriculo.docx', { type: '' });
-
-    act(() => {
-      result.current.addFilesFromPicker([file] as unknown as FileList);
-    });
-
-    expect(result.current.files[0]?.mimeType).toBe(
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    );
-  });
-
-  it('exige o nome da empresa', async () => {
-    const { result, onCreate } = setup();
-
-    act(() => {
-      result.current.setField('title', 'Backend Engineer');
-      result.current.setField('link', 'https://example.com/jobs/backend');
-      result.current.setField('currentPhase', 'Triagem');
-    });
-
-    await submit(result.current);
-
-    expect(result.current.errors.company).toBe('Informe a empresa.');
-    expect(onCreate).not.toHaveBeenCalled();
-  });
-
-  it('recusa site da empresa que não é http ou https', async () => {
-    const { result, onCreate } = setup();
-
-    fillValidValues(result.current);
-    act(() => {
-      result.current.setField('companyUrl', 'acme.com');
-    });
-
-    await submit(result.current);
-
-    expect(result.current.errors.companyUrl).toBe(
-      'Informe uma URL HTTP ou HTTPS válida.',
-    );
-    expect(onCreate).not.toHaveBeenCalled();
-  });
-
-  it('envia null quando o site da empresa está vazio', async () => {
-    const { result, onCreate } = setup();
-
-    fillValidValues(result.current);
-    act(() => {
-      result.current.setField('companyUrl', '   ');
-    });
-
-    await submit(result.current);
-
-    expect(onCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ companyUrl: null }),
-    );
   });
 });

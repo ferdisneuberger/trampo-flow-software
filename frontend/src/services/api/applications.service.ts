@@ -91,6 +91,30 @@ export const applicationsService = {
     return data;
   },
 
+  async uploadFile(id: string, file: File): Promise<Application> {
+    const form = new FormData();
+    form.append('file', file);
+
+    const { data } = await apiClient.post<Application>(
+      `/applications/${id}/files/upload`,
+      form,
+    );
+
+    return data;
+  },
+
+  async removeFile(id: string, fileId: string): Promise<void> {
+    await apiClient.delete(`/applications/${id}/files/${fileId}`);
+  },
+
+  async downloadFile(downloadUrl: string): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>(downloadUrl, {
+      responseType: 'blob',
+    });
+
+    return data;
+  },
+
   async addFiles(
     id: string,
     files: CreateApplicationFileInput[],

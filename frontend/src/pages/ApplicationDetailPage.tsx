@@ -11,6 +11,10 @@ import {
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationForm } from '../components/applications/ApplicationForm';
+import {
+  FileUploader,
+  MAX_FILES_PER_APPLICATION,
+} from '../components/applications/FileUploader';
 import { ApplicationStatusBadge } from '../components/applications/ApplicationStatusBadge';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
@@ -32,6 +36,7 @@ export function ApplicationDetailPage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleteHard, setDeleteHard] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -46,6 +51,25 @@ export function ApplicationDetailPage() {
     void queryClient.invalidateQueries({ queryKey: ['stats'] });
   };
 
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) =>
+      applicationsService.uploadFile(applicationId, file),
+    onSuccess: () => {
+      invalidate();
+      setFeedback('Arquivo enviado.');
+    },
+  });
+
+  const removeFileMutation = useMutation({
+    mutationFn: (fileId: string) =>
+      applicationsService.removeFile(applicationId, fileId),
+    onSuccess: () => {
+      invalidate();
+      setFileToDelete(null);
+      setFeedback('Arquivo removido.');
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () =>
       applicationsService.remove(applicationId, deleteHard ? 'hard' : 'soft'),
@@ -55,6 +79,17 @@ export function ApplicationDetailPage() {
     },
     onError: (error) => setDeleteError(getErrorMessage(error)),
   });
+
+  const downloadFile = async (downloadUrl: string, name: string) => {
+    const blob = await applicationsService.downloadFile(downloadUrl);
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = objectUrl;
+    anchor.download = name;
+    anchor.click();
+    URL.revokeObjectURL(objectUrl);
+  };
 
   const application = query.data;
 
@@ -211,12 +246,12 @@ export function ApplicationDetailPage() {
         <Card className="p-0">
           <div className="border-b border-line px-4 py-3">
             <h2 className="text-sm font-semibold text-ink-900">
-              Arquivos ({application.files.length})
+              Arquivos ({application.files.length}/{MAX_FILES_PER_APPLICATION})
             </h2>
           </div>
 
           {application.files.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-ink-500">
+            <p className="px-4 py-4 text-sm text-ink-500">
               Nenhum arquivo anexado.
             </p>
           ) : (
@@ -227,31 +262,58 @@ export function ApplicationDetailPage() {
                     <FileText className="size-4" aria-hidden="true" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <a
-                      href={file.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block truncate text-sm font-medium text-ink-900 underline-offset-4 hover:text-brand-700 hover:underline"
-                    >
+                    <p className="truncate text-sm font-medium text-ink-900">
                       {file.name}
-                    </a>
+                    </p>
                     <p className="text-xs text-ink-400">
                       {formatFileSize(file.sizeInBytes)} · {file.mimeType}
                     </p>
                   </div>
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`Abrir ${file.name}`}
-                    className="rounded p-2 text-ink-400 hover:bg-surface hover:text-ink-700"
+
+                  {file.downloadUrl ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void downloadFile(file.downloadUrl ?? '', file.name)
+                      }
+                      aria-label={`Baixar ${file.name}`}
+                      className="rounded p-2 text-ink-400 hover:bg-surface hover:text-ink-700"
+                    >
+                      <ExternalLink className="size-4" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <a
+                      href={file.url ?? '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Abrir ${file.name}`}
+                      className="rounded p-2 text-ink-400 hover:bg-surface hover:text-ink-700"
+                    >
+                      <ExternalLink className="size-4" aria-hidden="true" />
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setFileToDelete(file.id)}
+                    aria-label={`Remover ${file.name}`}
+                    className="rounded p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-700"
                   >
-                    <ExternalLink className="size-4" aria-hidden="true" />
-                  </a>
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </button>
                 </li>
               ))}
             </ul>
           )}
+
+          <div className="border-t border-line p-4">
+            <FileUploader
+              remaining={MAX_FILES_PER_APPLICATION - application.files.length}
+              onUpload={async (file) => {
+                await uploadMutation.mutateAsync(file);
+              }}
+            />
+          </div>
         </Card>
       </div>
 
@@ -273,6 +335,20 @@ export function ApplicationDetailPage() {
           }}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={fileToDelete !== null}
+        title="Remover arquivo"
+        description="O arquivo será removido do armazenamento e da candidatura."
+        confirmLabel="Remover arquivo"
+        isLoading={removeFileMutation.isPending}
+        onConfirm={() => {
+          if (fileToDelete) {
+            removeFileMutation.mutate(fileToDelete);
+          }
+        }}
+        onClose={() => setFileToDelete(null)}
+      />
 
       <ConfirmDialog
         isOpen={isDeleteOpen}
