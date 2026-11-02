@@ -77,7 +77,7 @@ export function ApplicationFileUpload({
             Arraste o arquivo aqui ou clique para selecionar. Aceita PDF, DOC ou
             DOCX, inclusive mais de um arquivo.
           </span>
-          <span className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 shadow-sm transition hover:bg-surface">
+          <span className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-surface">
             <Upload className="size-4" aria-hidden="true" />
             Selecionar arquivo
           </span>

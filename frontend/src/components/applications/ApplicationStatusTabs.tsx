@@ -79,7 +79,7 @@ export function ApplicationStatusTabs({
               className={cn(
                 'inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 sm:flex-none',
                 isActive
-                  ? 'bg-brand-600 text-white shadow-sm'
+                  ? 'bg-brand-600 text-white'
                   : 'text-ink-500 hover:bg-surface hover:text-ink-900',
               )}
             >

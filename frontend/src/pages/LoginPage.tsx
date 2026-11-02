@@ -57,7 +57,7 @@ export function LoginPage() {
     <div className="app-shell flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:py-14">
       <div className="w-full max-w-md">
         <div className="mb-7 text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-600/20">
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-600 text-white">
             <Briefcase className="size-7" aria-hidden="true" />
           </span>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-900">

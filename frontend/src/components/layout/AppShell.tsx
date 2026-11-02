@@ -24,7 +24,7 @@ export function AppShell() {
             to="/"
             className="inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
           >
-            <span className="grid size-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm">
+            <span className="grid size-9 place-items-center rounded-xl bg-brand-600 text-white">
               <Briefcase className="size-5" aria-hidden="true" />
             </span>
             <span>

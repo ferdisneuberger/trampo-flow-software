@@ -43,7 +43,7 @@ export function Select({
           aria-invalid={error ? true : undefined}
           aria-describedby={error || hint ? descriptionId : undefined}
           className={cn(
-            'block h-11 w-full appearance-none rounded-xl border border-line bg-white px-3.5 pr-10 text-sm text-ink-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-surface',
+            'block h-11 w-full appearance-none rounded-xl border border-line bg-white px-3.5 pr-10 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-surface',
             error &&
               'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10',
             className,
