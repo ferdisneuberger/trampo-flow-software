@@ -1,12 +1,17 @@
 import { Upload } from 'lucide-react';
 import { useId, useRef, useState, type DragEvent } from 'react';
+import {
+  MAX_FILES_PER_APPLICATION,
+  MAX_FILE_SIZE_BYTES,
+  MAX_FILE_SIZE_MB,
+} from '../../config/uploads';
 import { getErrorMessage } from '../../utils/errors';
 import { cn } from '../../utils/cn';
 
-export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-export const MAX_FILES_PER_APPLICATION = 3;
+export { MAX_FILES_PER_APPLICATION, MAX_FILE_SIZE_BYTES };
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.txt'];
+const ALLOWED_MIME_TYPES = ['application/pdf', 'text/plain'];
 
 type FileUploaderProps = {
   onUpload: (file: File) => Promise<void>;
@@ -16,7 +21,7 @@ type FileUploaderProps = {
 
 function validateFile(file: File, remaining: number): string | null {
   if (remaining <= 0) {
-    return 'Limite de 3 arquivos por candidatura atingido.';
+    return `Limite de ${MAX_FILES_PER_APPLICATION} arquivos por candidatura atingido.`;
   }
 
   const name = file.name.toLowerCase();
@@ -25,12 +30,16 @@ function validateFile(file: File, remaining: number): string | null {
     return 'Envie apenas arquivos PDF ou TXT.';
   }
 
+  if (file.type && !ALLOWED_MIME_TYPES.includes(file.type)) {
+    return 'O tipo do arquivo não corresponde a PDF ou TXT.';
+  }
+
   if (file.size === 0) {
     return 'O arquivo está vazio.';
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return 'O arquivo deve ter no máximo 5 MB.';
+    return `O arquivo deve ter no máximo ${MAX_FILE_SIZE_MB} MB.`;
   }
 
   return null;
@@ -106,15 +115,15 @@ export function FileUploader({
           isDisabled && 'opacity-60',
         )}
       >
-        <Upload className="mx-auto size-5 text-ink-400" aria-hidden="true" />
+        <Upload className="mx-auto size-5 text-ink-500" aria-hidden="true" />
         <p className="mt-2 text-sm font-medium text-ink-900">
           {isUploading
             ? 'Enviando...'
             : 'Arraste um arquivo ou escolha do disco'}
         </p>
         <p className="mt-1 text-xs text-ink-500">
-          PDF ou TXT, até 5 MB. Restam {Math.max(0, remaining)} de{' '}
-          {MAX_FILES_PER_APPLICATION}.
+          PDF ou TXT, até {MAX_FILE_SIZE_MB} MB. Restam {Math.max(0, remaining)}{' '}
+          de {MAX_FILES_PER_APPLICATION}.
         </p>
 
         <label

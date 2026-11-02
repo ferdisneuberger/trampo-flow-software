@@ -15,3 +15,10 @@ export type LoginResponse = {
   expiresAt: number;
   user: AuthUser;
 };
+
+export type RefreshResponse = {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
+  expiresAt: number;
+};

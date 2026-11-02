@@ -1,6 +1,6 @@
 # Trampo Flow — Frontend
 
-Interface web para acompanhar candidaturas de emprego. Construída com React, Vite e TypeScript, consome a API NestJS do diretório `../backend`.
+Interface web para acompanhar candidaturas de emprego em um quadro Kanban. Construída com React, Vite e TypeScript, consome a API NestJS do diretório `../backend`.
 
 ## Stack
 
@@ -8,151 +8,119 @@ Interface web para acompanhar candidaturas de emprego. Construída com React, Vi
 - **Vite 8** para desenvolvimento e build
 - **Nginx** (imagem unprivileged) para servir o build de produção
 - **Tailwind CSS 4** via `@tailwindcss/vite` (configuração CSS-first)
-- **Lucide React** para ícones
+- **React Router 7** com rotas lazy
+- **TanStack Query 5** para cache, invalidação e mutations
+- **dnd-kit** para arrastar e soltar os cards
 - **Axios** em uma camada de serviço isolada
-- **React Router 7** para navegação
+- **Lucide React** para ícones
 
 ## Arquitetura
 
-A aplicação separa apresentação, estado e acesso à API:
+A aplicação é organizada por responsabilidade, com o quadro como tela principal:
 
 ```text
-Página (pages)
-  -> Rota protegida (components/auth/ProtectedRoute)
-    -> Contexto de autenticação (contexts/AuthContext)
-  -> Componentes da feature (components/applications)
-    -> Hook de estado (hooks/useApplications)
-      -> Contexto compartilhado (contexts/ApplicationsContext)
-        -> Serviço HTTP (services/api/applications.service)
-          -> Cliente Axios (services/api/client)
-            -> API NestJS
+Página (pages/ApplicationsPage)
+  -> Quadro (components/applications/Board)
+    -> Hook de dados (hooks/useBoard)
+      -> Serviço HTTP (services/api/applications.service)
+        -> Cliente Axios (services/api/client)
+          -> API NestJS
+
+Página (pages/ApplicationDetailPage)
+  -> Hook de mutations (hooks/useApplicationMutations)
+    -> Serviço HTTP
 ```
 
-| Camada                    | Responsabilidade                                                                    |
-| ------------------------- | ----------------------------------------------------------------------------------- |
-| `components/ui`           | Design system base: botões, inputs, cards, modais, badges, alertas e estados vazios |
-| `components/auth`         | Rota protegida e tela de carregamento da sessão                                     |
-| `components/layout`       | Estrutura global da aplicação (header, navegação, conteúdo e footer)                |
-| `components/applications` | Componentes específicos do domínio de candidaturas                                  |
-| `pages`                   | Composição das telas e orquestração dos fluxos                                      |
-| `hooks`                   | Lógica de estado e comportamento reutilizável                                       |
-| `contexts`                | Estado compartilhado de candidaturas e de autenticação                              |
-| `services`                | Tipos do domínio, autenticação e chamadas HTTP isoladas                             |
-| `config`                  | Configurações derivadas de variáveis de ambiente                                    |
-| `utils`                   | Funções puras de formatação, validação e classes CSS                                |
-| `styles`                  | Tokens do tema e estilos globais do Tailwind                                        |
+| Camada                    | Responsabilidade                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------- |
+| `components/ui`           | Design system base: botões, inputs, cards, modais, menu, badges, alertas, skeleton e error boundary |
+| `components/auth`         | Rota protegida e tela de carregamento da sessão                                                     |
+| `components/layout`       | Estrutura global (navegação, conteúdo, logout e skip link)                                          |
+| `components/applications` | Quadro, colunas, cards, formulário, upload e diálogo de exclusão                                    |
+| `pages`                   | Composição das telas                                                                                |
+| `hooks`                   | Query/mutations, formulário, debounce, disclosure e logout                                          |
+| `contexts`                | Sessão autenticada e evento de unauthorized                                                         |
+| `services`                | Tipos do domínio e chamadas HTTP isoladas                                                           |
+| `lib`                     | Query client, query keys e invalidação centralizada                                                 |
+| `config`                  | Configurações derivadas de variáveis de ambiente                                                    |
+| `utils`                   | Funções puras de formatação, validação, URLs seguras e download                                     |
 
 ### Decisões de design
 
-- **Separação de lógica e apresentação:** `useApplications` concentra busca, mutações e erros; `useApplicationForm` concentra valores, validação, anexos e submit; `useDisclosure` controla modais; os componentes apenas renderizam e disparam ações.
-- **Estado compartilhado:** `ApplicationsProvider` mantém a lista de candidaturas e as operações CRUD disponíveis via `useApplicationsContext`.
-- **Serviço isolado:** nenhum componente importa Axios diretamente. `applicationsService` expõe `list`, `create`, `update`, `addFiles` e `remove`.
-- **Sessão JWT:** o login em `/login` obtém um token, guarda no `localStorage` e o cliente Axios injeta `Authorization: Bearer` em todas as chamadas. `AuthProvider` restaura a sessão via `GET /auth/me`; qualquer `401` limpa o token e devolve o usuário ao login.
-- **Erros normalizados:** o interceptor do Axios converte falhas de rede e respostas da API em `ApiError`, com mensagem amigável.
-- **Formulário validado localmente:** título (120), link HTTP/HTTPS (2048), fase (120), nome de arquivo (255), URL (2048), MIME `type/subtype` (100) e tamanho inteiro positivo.
-- **Upload como metadados:** o input file lê nome, MIME e tamanho do currículo e preenche o rascunho do anexo. Como a API não recebe binários, o formulário exige a URL pública do documento antes de salvar.
-- **Exclusão com confirmação explícita:** o diálogo usa aviso crítico em vermelho e só habilita o botão após o usuário marcar a confirmação.
-- **Tailwind CSS-first:** os tokens de marca, superfície, tinta e borda ficam em `src/styles/index.css` no bloco `@theme`.
+- **Somente quadro:** a tela inicial é `/candidaturas`; não existe visão de lista nem painel de estatísticas. A rota `/` redireciona para o quadro.
+- **Cache centralizado:** `src/lib/query-keys.ts` concentra as chaves e `src/lib/invalidate.ts` invalida o quadro e o detalhe de uma candidatura. Qualquer mutation passa por esse helper.
+- **Mutations reutilizáveis:** `useApplicationMutations` é a única porta para criar, atualizar, excluir, enviar e remover arquivos. `ApplicationForm` recebe as ações por props, sem disparar queries escondidas.
+- **Otimismo com rollback:** mover um card atualiza ordem e totais das colunas imediatamente; se a API falhar, o quadro anterior é restaurado e um alerta é exibido.
+- **Sessão JWT:** o access token fica apenas em memória; o refresh token fica em cookie `httpOnly` + `SameSite=strict`. `refreshAccessToken` deduplica refreshes concorrentes. Logout e `401` limpam o cache de queries.
+- **Erros normalizados:** o interceptor converte falhas de rede e respostas da API em `ApiError`. Um retry com erro 500 **não** derruba a sessão.
+- **Segurança de URLs:** links externos passam por `safeHttpUrl`; downloads só são feitos em caminhos relativos da própria API (`safeApiPath`). O interceptor não envia o token para outra origem.
+- **Exclusão com confirmação explícita:** o diálogo exige checkbox de confirmação e oferece exclusão lógica (padrão) ou física.
+- **Acessibilidade:** modais com focus trap e restauração de foco, menus com teclado, skip link, `aria-busy` em botões e respeito a `prefers-reduced-motion`.
 
 ## Estrutura de diretórios
 
 ```text
 frontend/
-├── public/
-│   └── favicon.svg
+├── e2e/
+│   └── critical-path.spec.ts
+├── scripts/
+│   └── check-bundle.mjs
 ├── src/
 │   ├── components/
-│   │   ├── auth/
-│   │   │   ├── AuthLoadingScreen.tsx
-│   │   │   └── ProtectedRoute.tsx
 │   │   ├── applications/
-│   │   │   ├── ApplicationCard.tsx
-│   │   │   ├── ApplicationFileUpload.tsx
 │   │   │   ├── ApplicationForm.tsx
-│   │   │   ├── ApplicationList.tsx
-│   │   │   ├── ApplicationListSkeleton.tsx
-│   │   │   ├── ApplicationStats.tsx
 │   │   │   ├── ApplicationStatusBadge.tsx
-│   │   │   └── ApplicationStatusTabs.tsx
+│   │   │   ├── Board.tsx
+│   │   │   ├── BoardCard.tsx
+│   │   │   ├── BoardColumn.tsx
+│   │   │   ├── DeleteApplicationDialog.tsx
+│   │   │   └── FileUploader.tsx
+│   │   ├── auth/
 │   │   ├── layout/
-│   │   │   └── AppShell.tsx
 │   │   └── ui/
-│   │       ├── Alert.tsx
-│   │       ├── Badge.tsx
-│   │       ├── Button.tsx
-│   │       ├── Card.tsx
-│   │       ├── ConfirmDialog.tsx
-│   │       ├── EmptyState.tsx
-│   │       ├── Input.tsx
-│   │       ├── Modal.tsx
-│   │       ├── PageHeader.tsx
-│   │       ├── Select.tsx
-│   │       ├── Skeleton.tsx
-│   │       └── StatCard.tsx
-│   ├── config/
-│   │   └── env.ts
+│   ├── config/env.ts
 │   ├── contexts/
-│   │   ├── ApplicationsContext.tsx
-│   │   └── AuthContext.tsx
+│   │   ├── AuthContext.tsx
+│   │   └── auth-context.ts
 │   ├── hooks/
+│   │   ├── useApplication.ts
 │   │   ├── useApplicationForm.ts
-│   │   ├── useApplications.ts
-│   │   └── useDisclosure.ts
+│   │   ├── useApplicationMutations.ts
+│   │   ├── useBoard.ts
+│   │   ├── useDebouncedValue.ts
+│   │   ├── useDisclosure.ts
+│   │   └── useLogout.ts
+│   ├── lib/
+│   │   ├── invalidate.ts
+│   │   ├── query-client.ts
+│   │   └── query-keys.ts
 │   ├── pages/
+│   │   ├── ApplicationDetailPage.tsx
 │   │   ├── ApplicationsPage.tsx
 │   │   ├── LoginPage.tsx
 │   │   └── NotFoundPage.tsx
 │   ├── services/
 │   │   ├── api/
+│   │   │   ├── access-token.ts
 │   │   │   ├── applications.service.ts
 │   │   │   ├── auth.service.ts
 │   │   │   ├── client.ts
 │   │   │   ├── errors.ts
-│   │   │   ├── index.ts
-│   │   │   └── token-storage.ts
+│   │   │   └── session.ts
 │   │   ├── applications.types.ts
-│   │   ├── auth.types.ts
-│   │   └── index.ts
-│   ├── styles/
-│   │   └── index.css
+│   │   └── auth.types.ts
+│   ├── test/
 │   ├── utils/
-│   │   ├── applications.ts
-│   │   ├── cn.ts
-│   │   ├── errors.ts
-│   │   ├── format.ts
-│   │   ├── url.ts
-│   │   └── validation.ts
 │   ├── App.tsx
 │   ├── main.tsx
 │   └── vite-env.d.ts
 ├── .env.example
-├── .gitignore
 ├── Dockerfile
 ├── nginx.conf
-├── .dockerignore
-├── index.html
-├── package-lock.json
-├── package.json
-├── tsconfig.app.json
-├── tsconfig.json
-├── tsconfig.node.json
-├── vite.config.ts
-└── README.md
+└── vite.config.ts
 ```
 
 ## Como executar
-
-### Pré-requisitos
-
-Para rodar com Docker:
-
-- Docker Desktop ou Docker Engine + Docker Compose v2
-- Backend em execução (o Compose sobe a API junto)
-
-Para rodar localmente:
-
-- Node.js 24+ com npm
-- Backend em execução em `http://localhost:3000` (veja o README da raiz)
 
 ### Com Docker
 
@@ -162,13 +130,7 @@ Na raiz do projeto:
 docker compose up -d --build
 ```
 
-O serviço `web` serve o build de produção com Nginx, mas não publica porta no host. O acesso fica em `http://localhost:5173` pelo serviço `ingress`, que encaminha `/` para o frontend e `/api` para `http://api:3000`. O Compose padrão não monta o código como volume: alterações exigem rebuild da imagem.
-
-Para logs do frontend:
-
-```bash
-docker compose logs -f web
-```
+O serviço `web` serve o build de produção com Nginx. O acesso fica em `http://localhost:5173` pelo serviço `ingress`, que encaminha `/` para o frontend e `/api` para `http://api:3000`.
 
 ### Instalação local
 
@@ -179,65 +141,69 @@ cp .env.example .env
 npm run dev
 ```
 
-A aplicação fica disponível em `http://localhost:5173`.
-
-O Vite encaminha requisições `/api/*` para `http://localhost:3000`, removendo o prefixo `/api`. Assim, `GET /api/applications` no navegador chega como `GET /applications` na API.
+A aplicação fica disponível em `http://localhost:5173`. O Vite encaminha `/api/*` para `http://localhost:3000`, removendo o prefixo `/api`.
 
 ### Scripts
 
-| Script              | Descrição                                     |
-| ------------------- | --------------------------------------------- |
-| `npm run dev`       | Inicia o Vite em modo desenvolvimento         |
-| `npm run build`     | Executa o typecheck e gera o build em `dist/` |
-| `npm run typecheck` | Valida os tipos sem gerar arquivos            |
-| `npm run preview`   | Serve o build de produção localmente          |
+| Script                 | Descrição                                     |
+| ---------------------- | --------------------------------------------- |
+| `npm run dev`          | Inicia o Vite em modo desenvolvimento         |
+| `npm run build`        | Executa o typecheck e gera o build em `dist/` |
+| `npm run typecheck`    | Valida os tipos sem gerar arquivos            |
+| `npm run lint`         | ESLint com regras type-aware                  |
+| `npm run test`         | Testes unitários e de componentes (Vitest)    |
+| `npm run test:cov`     | Testes com cobertura e thresholds             |
+| `npm run test:e2e`     | Playwright (requer stack e credenciais)       |
+| `npm run check:bundle` | Falha se o JS gzip passar de 250 KB           |
+| `npm run preview`      | Serve o build de produção localmente          |
 
 ## Variáveis de ambiente
 
-| Variável                | Padrão                  | Descrição                                                    |
-| ----------------------- | ----------------------- | ------------------------------------------------------------ |
-| `VITE_API_URL`          | `/api`                  | URL base usada pelo cliente Axios                            |
-| `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Destino do proxy `/api` apenas no Vite local (`npm run dev`) |
+| Variável                         | Padrão                  | Descrição                                                                                     |
+| -------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| `VITE_API_URL`                   | `/api`                  | URL base usada pelo cliente Axios. Prefira `/api` para manter o cookie de refresh same-origin |
+| `VITE_APP_NAME`                  | `Trampo Flow`           | Nome exibido na interface                                                                     |
+| `VITE_MAX_FILE_SIZE_MB`          | `5`                     | Limite de tamanho por arquivo exibido no cliente                                              |
+| `VITE_MAX_FILES_PER_APPLICATION` | `3`                     | Limite de arquivos por candidatura exibido no cliente                                         |
+| `VITE_API_PROXY_TARGET`          | `http://localhost:3000` | Destino do proxy `/api` apenas no Vite local                                                  |
 
-No Docker, o Compose define apenas `VITE_API_URL=/api`; o proxy `/api` é feito pelo ingress e aponta para `http://api:3000`. Em desenvolvimento local, mantenha `VITE_API_URL=/api` para usar o proxy do Vite e evitar CORS.
+## Rotas
 
-No build de produção, o `nginx.conf` serve apenas os arquivos estáticos e aplica CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, cache longo para `/assets/` e fallback de SPA para `index.html`. O proxy `/api` fica em `infra/ingress/nginx.conf`.
-
-## Funcionalidades
-
-- Tela de login com usuário e senha, sessão JWT restaurada ao recarregar e logout no header.
-- Rotas da aplicação protegidas: sem sessão válida, o usuário é redirecionado para `/login` e volta ao destino original após entrar.
-- Abas de status com contadores (Todas, Aguardando, Em andamento, Finalizada e Recusada) acima da listagem.
-- Painel com contadores por status e cards com título clicável, link da vaga com hostname, fase atual e arquivos sempre visíveis.
-- Busca por título ou fase atual, combinada com o filtro das abas.
-- Criação e edição de candidatura com título, link, fase, status e currículo.
-- Input file para o currículo: arraste e solte ou selecione o arquivo para preencher nome, MIME e tamanho; a URL pública do documento é exigida para persistir o anexo (a API não recebe binários).
-- Anexo manual de múltiplos arquivos e preservação dos existentes na edição.
-- Exclusão com aviso crítico e confirmação explícita via checkbox; modo lógico (padrão) ou físico.
-- Estados de carregamento (skeleton), erro com ação de retry, confirmação de sucesso e estado vazio.
-- Layout responsivo com navegação, cabeçalho e página 404.
+| Rota                | Tela                                 |
+| ------------------- | ------------------------------------ |
+| `/login`            | Login                                |
+| `/`                 | Redireciona para `/candidaturas`     |
+| `/candidaturas`     | Quadro Kanban (tela inicial)         |
+| `/candidaturas/:id` | Detalhe, edição, arquivos e exclusão |
+| `*`                 | 404                                  |
 
 ## Integração com a API
 
-| Operação        | Método   | Endpoint                            |
-| --------------- | -------- | ----------------------------------- |
-| Login           | `POST`   | `/auth/login`                       |
-| Perfil atual    | `GET`    | `/auth/me`                          |
-| Listar          | `GET`    | `/applications`                     |
-| Criar           | `POST`   | `/applications`                     |
-| Atualizar       | `PATCH`  | `/applications/:id`                 |
-| Anexar arquivos | `POST`   | `/applications/:id/files`           |
-| Excluir         | `DELETE` | `/applications/:id?mode=soft\|hard` |
+| Operação        | Método   | Endpoint                                   |
+| --------------- | -------- | ------------------------------------------ |
+| Login           | `POST`   | `/auth/login`                              |
+| Renovar sessão  | `POST`   | `/auth/refresh`                            |
+| Logout          | `POST`   | `/auth/logout`                             |
+| Perfil atual    | `GET`    | `/auth/me`                                 |
+| Quadro          | `GET`    | `/applications/board?search=`              |
+| Mover card      | `PATCH`  | `/applications/:id/placement`              |
+| Detalhe         | `GET`    | `/applications/:id`                        |
+| Criar           | `POST`   | `/applications`                            |
+| Atualizar       | `PATCH`  | `/applications/:id`                        |
+| Upload          | `POST`   | `/applications/:id/files/upload`           |
+| Remover arquivo | `DELETE` | `/applications/:id/files/:fileId`          |
+| Baixar arquivo  | `GET`    | `/applications/:id/files/:fileId/download` |
+| Excluir         | `DELETE` | `/applications/:id?mode=soft\|hard`        |
 
-Os tipos de resposta e entrada ficam em `src/services/applications.types.ts`. Os rótulos em português dos status (`PENDING`, `IN_PROGRESS`, `COMPLETED`, `REJECTED`) também são definidos nesse arquivo.
+## Qualidade
 
-Exceto `POST /auth/login` e `GET /health`, as chamadas exigem `Authorization: Bearer <token>`. O token é obtido no login e injetado pelo interceptor de requisição em `services/api/client.ts`; respostas `401` limpam a sessão e disparam o redirecionamento para `/login`.
+- `npm run lint`, `npm run typecheck` e `npm run test:cov` rodam no CI.
+- Cobertura global mínima: 80% statements/lines, 75% branches/functions.
+- Playwright cobre login, criação, busca, detalhe e exclusão; o workflow roda em PRs e sob demanda.
+- O CI falha se o bundle JS gzip ultrapassar 250 KB.
 
-## Validação
+## Deploy
 
-```bash
-npm run typecheck
-npm run build
-```
+O `Dockerfile` usa build multi-stage, instala dependências e compila como usuário `node`, e serve o `dist/` com `nginxinc/nginx-unprivileged:alpine`. O `nginx.conf` aplica CSP, headers de segurança, cache longo para `/assets/` e fallback de SPA para `index.html`. O proxy `/api` fica no ingress.
 
-O build gera os arquivos em `dist/`. Em produção, a imagem final usa Nginx (`nginxinc/nginx-unprivileged:alpine`) com o `nginx.conf` do projeto, que faz o fallback de SPA; o proxy `/api` é feito pelo ingress. Ao servir o `dist/` em outro host estático, configure o fallback de rotas desconhecidas para `index.html` e um proxy equivalente para `/api` na borda.
+> O cookie de refresh é `SameSite=strict`. Mantenha frontend e API na mesma origem (via `/api`) ou ajuste a configuração do backend antes de usar `VITE_API_URL` absoluto.

@@ -29,7 +29,13 @@ export function ConfirmDialog({
   children,
 }: ConfirmDialogProps) {
   return (
-    <Modal isOpen={isOpen} title={title} onClose={onClose}>
+    <Modal
+      isOpen={isOpen}
+      title={title}
+      onClose={onClose}
+      closeOnBackdrop={!isLoading}
+      closeOnEscape={!isLoading}
+    >
       <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm leading-6 text-rose-700">
         <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
         <p>{description}</p>

@@ -35,6 +35,22 @@ describe('FileUploader', () => {
     expect(onUpload).not.toHaveBeenCalled();
   });
 
+  it('recusa arquivo cujo MIME não corresponde à extensão', async () => {
+    const onUpload = vi.fn();
+    const file = new File(['<html></html>'], 'curriculo.pdf', {
+      type: 'text/html',
+    });
+
+    render(<FileUploader onUpload={onUpload} remaining={3} />);
+
+    await userEvent.upload(screen.getByLabelText('Escolher arquivo'), file);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'O tipo do arquivo não corresponde a PDF ou TXT.',
+    );
+    expect(onUpload).not.toHaveBeenCalled();
+  });
+
   it('recusa arquivo acima de 5 MB', async () => {
     const onUpload = vi.fn();
 

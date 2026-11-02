@@ -8,10 +8,10 @@ Aplicação full stack para acompanhar candidaturas de emprego. O backend é uma
 
 - Candidaturas por usuário, com empresa e site.
 - Quadro kanban com arrastar e soltar e reordenação manual persistida.
-- Busca, filtros e paginação no servidor, com contadores em endpoint próprio.
+- Busca no servidor e quadro kanban como tela inicial.
 - Upload de PDF e TXT em storage compatível com S3.
 - Sessão com access token curto em memória e refresh token em cookie `HttpOnly`.
-- Painel com contadores e candidaturas paradas há mais tempo.
+- Detalhe da candidatura com edição, upload de arquivos e exclusão.
 
 O histórico completo está em [CHANGELOG.md](CHANGELOG.md).
 
@@ -24,7 +24,7 @@ O histórico completo está em [CHANGELOG.md](CHANGELOG.md).
 - **class-validator** / **class-transformer** para validação dos DTOs
 - **Vitest** para testes unitários com repositórios em memória
 - **React 19**, **Vite 8**, **TypeScript 6** e **Tailwind CSS 4** no frontend
-- **Lucide React**, **Axios** e **React Router 7** na interface web
+- **Lucide React**, **Axios**, **React Router 7**, **TanStack Query** e **dnd-kit** na interface web
 - **Nginx** na borda (proxy de `/` e `/api`) e para servir o build de produção do frontend
 
 ## Arquitetura
@@ -230,7 +230,7 @@ POST /auth/logout    → revoga a família e limpa o cookie
 
 Cada refresh rotaciona o token: o anterior é revogado e aponta para o substituto. Se um token já revogado for reapresentado fora de uma janela de tolerância de 10 segundos, a **família inteira** é revogada — é a detecção de reuso. A janela existe para duas abas renovando ao mesmo tempo não derrubarem a sessão.
 
-Apenas `POST /auth/login` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend guarda o token no `localStorage`, restaura a sessão em `GET /auth/me` e remove o token em qualquer resposta `401`. O logout é local: um token já emitido continua válido até expirar. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais usernames estão cadastrados.
+Apenas `POST /auth/login` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend mantém o access token apenas em memória, restaura a sessão com `POST /auth/refresh` + `GET /auth/me` e limpa o cache de queries em qualquer resposta `401`. O logout chama `POST /auth/logout`, revoga a família do refresh token e limpa o cookie. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais usernames estão cadastrados.
 
 ## Frontend
 
@@ -239,22 +239,28 @@ A interface web fica em `frontend/` e consome a API pela camada de serviços com
 ### Arquitetura
 
 ```text
-Página (pages)
-  -> Componentes da feature (components/applications)
-    -> Hook de estado (hooks/useApplications)
-      -> Contexto compartilhado (contexts/ApplicationsContext)
-        -> Serviço HTTP (services/api/applications.service)
-          -> Cliente Axios (services/api/client)
-            -> API NestJS
+Página (pages/ApplicationsPage)
+  -> Quadro (components/applications/Board)
+    -> Hook de dados (hooks/useBoard)
+      -> Serviço HTTP (services/api/applications.service)
+        -> Cliente Axios (services/api/client)
+          -> API NestJS
+
+Página (pages/ApplicationDetailPage)
+  -> Hook de mutations (hooks/useApplicationMutations)
+    -> Serviço HTTP
 ```
 
-- `components/ui`: design system base (botões, inputs, cards, modais, badges, alertas, skeletons).
-- `components/layout`: shell global com header, navegação, conteúdo e footer.
-- `components/applications`: componentes específicos do domínio de candidaturas, incluindo abas de status (`ApplicationStatusTabs`) e upload de currículo (`ApplicationFileUpload`).
-- `hooks`: lógica de listagem/mutações (`useApplications`), formulário (`useApplicationForm`) e controle de modais (`useDisclosure`).
-- `contexts`: estado compartilhado de candidaturas.
-- `services`: tipos do domínio, cliente Axios, normalização de erros e endpoints.
+- `components/ui`: design system base (botões, inputs, cards, modais, menu, badges, alertas, skeletons e error boundary).
+- `components/layout`: shell global com navegação, skip link, logout e error boundary por rota.
+- `components/applications`: quadro, colunas, cards, formulário, upload e diálogo de exclusão.
+- `hooks`: query/mutations (`useBoard`, `useApplicationMutations`), formulário (`useApplicationForm`), debounce, disclosure e logout.
+- `contexts`: sessão autenticada e evento de `401`.
+- `lib`: query client, query keys e invalidação centralizada.
+- `services`: tipos do domínio, cliente Axios, normalização de erros, refresh deduplicado e endpoints.
 - `pages`: composição das telas e orquestração dos fluxos.
+
+A tela inicial é `/candidaturas`; não há visão de lista nem painel de estatísticas. A rota `/` redireciona para o quadro.
 
 ### Executar com Docker
 
@@ -318,18 +324,18 @@ Para rodar localmente sem tocar no seu banco, use o script de stack isolado:
 npm run test:e2e:local
 ```
 
-Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio, e derruba tudo no final. A execução é **manual**: não há hook de `pre-push` e o workflow do CI está desabilitado para pull requests, rodando apenas por `workflow_dispatch`.
+Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio, e derruba tudo no final. O workflow de E2E roda em pull requests que tocam frontend/backend/infra, sob demanda (`workflow_dispatch`) e em schedule noturno.
 
 ### Funcionalidades
 
-- Abas de status com contadores (Todas, Aguardando, Em andamento, Finalizada e Recusada) no topo do dashboard.
-- Cards com título clicável, link da vaga (hostname), status, fase atual e arquivos sempre visíveis.
-- Busca por título ou fase atual, combinada com as abas de status.
-- Criação e edição de candidaturas com título, link, fase, status e currículo.
-- Input file para currículo (arraste e solte ou selecione): preenche nome, MIME e tamanho do anexo; a URL pública do documento é obrigatória porque a API armazena metadados, não binários.
-- Anexo de novos arquivos na edição, preservando os existentes.
+- Quadro Kanban como tela inicial (`/candidaturas`), com colunas por status e arrastar e soltar.
+- Cards com título clicável, empresa, fase atual, data e contagem de arquivos.
+- Busca por título, empresa ou fase no servidor; a busca desativa temporariamente o arrastar.
+- Criação e edição de candidaturas com título, link, fase e status.
+- Upload de PDF/TXT com validação de extensão, MIME e tamanho, além de remoção e download pelo detalhe.
 - Exclusão lógica (padrão) ou física, com aviso crítico e confirmação explícita por checkbox.
-- Estados de carregamento, erro com retry, confirmação de sucesso e página 404.
+- Estados de carregamento, erro com retry, confirmação de sucesso, 404 e error boundary.
+- Sessão com access token em memória, refresh deduplicado, logout no servidor e limpeza de cache no `401`.
 
 Consulte [`frontend/README.md`](frontend/README.md) para a estrutura completa e os detalhes da arquitetura.
 
@@ -711,15 +717,15 @@ backend/test/
 │   │   │   └── ui/
 │   │   ├── config/env.ts
 │   │   ├── contexts/
-│   │   │   ├── ApplicationsContext.tsx
-│   │   │   └── AuthContext.tsx
+│   │   │   ├── AuthContext.tsx
+│   │   │   └── auth-context.ts
 │   │   ├── hooks/
 │   │   ├── pages/
+│   │   ├── lib/
 │   │   ├── services/
 │   │   │   ├── api/
 │   │   │   ├── applications.types.ts
-│   │   │   ├── auth.types.ts
-│   │   │   └── index.ts
+│   │   │   └── auth.types.ts
 │   │   ├── styles/index.css
 │   │   ├── utils/
 │   │   ├── App.tsx
@@ -918,15 +924,15 @@ docker compose up --build
 
 Esta seção deixa explícito o que o projeto **não** faz, e por quê. Nenhum item é bug: são escolhas de escopo, cada uma com a alternativa que seria necessária para mudar.
 
-- **Sessão no navegador.** O token fica no `localStorage`, legível por qualquer script da mesma origem. Mitigado por CSP estrita (`script-src 'self'`), ausência de `dangerouslySetInnerHTML`/`eval` e TTL de 8h. Para mudar: cookie `httpOnly` + `Secure` + `SameSite`, com token CSRF e CORS `credentials` — resolve XSS, mas abre CSRF.
-- **Logout.** É local: o token já emitido continua válido até expirar. Para mudar: revogação por `jti` ou `tokenVersion` no usuário.
+- **Sessão no navegador.** O access token fica apenas em memória; o refresh token fica em cookie `HttpOnly` + `SameSite=strict`. O refresh é rotacionado e deduplicado no cliente. Logout e `401` limpam o cache de queries. Para trocar para outro transporte, revise CORS/CSRF e a configuração do cookie.
+- **Logout.** O frontend chama `POST /auth/logout` antes de limpar o estado local; se a API estiver indisponível, o logout local ainda acontece e o cookie pode permanecer válido até expirar.
 - **Rate limit de login.** Em memória, global e por janela fixa; zera no restart e não é compartilhado entre réplicas. Para mudar: contador no Postgres (ou Redis) por `username` + IP, com janela deslizante.
-- **Listagem.** `GET /applications` devolve todas as candidaturas ativas, sem paginação. Para mudar: `?page`/`?cursor` com `take`/`skip` no Prisma e "carregar mais" na interface.
+- **Listagem.** A interface usa o quadro (`GET /applications/board`); a API mantém o endpoint de listagem paginada para integrações e estatísticas.
 - **Arquivos.** `ApplicationFile` guarda nome, MIME, tamanho e URL; não há upload de binário. Para mudar: storage de objetos (S3/MinIO) com URL pré-assinada e upload multipart.
 - **Usuários.** A tabela `users` existe no Postgres, mas não há registro público nem troca de senha pela interface: criar usuário é operação administrativa. Para mudar: endpoint de troca de senha com invalidação de tokens e, se fizer sentido, cadastro por convite.
 - **Papéis e permissões.** Cada usuário enxerga apenas as próprias candidaturas, mas não há papéis (administrador, leitor) nem compartilhamento entre contas. Para mudar: modelo de papéis e regras de autorização por recurso.
 - **Custo do guard.** Valida a assinatura e consulta `users` a cada requisição (um `SELECT` por chave primária). Para mudar: cache em memória com TTL curto, se o volume justificar.
-- **Testes de UI.** Componentes e páginas não têm teste automatizado; a cobertura atual está em hooks, utilitários e serviços. Para mudar: Testing Library nos fluxos principais ou Playwright no caminho crítico.
+- **Testes de UI.** Componentes e páginas têm testes com Testing Library, os hooks/serviços têm cobertura e o Playwright cobre o caminho crítico (login, criação, busca, detalhe e exclusão). O E2E roda em PRs, sob demanda e em schedule.
 - **Observabilidade.** Log padrão do Nest/Fastify, sem request-id nem métricas. Para mudar: Pino estruturado, correlação de requisição e endpoint de métricas.
 
 ## Licença

@@ -34,7 +34,7 @@ export function Input({
         aria-invalid={error ? true : undefined}
         aria-describedby={error || hint ? descriptionId : undefined}
         className={cn(
-          'block h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-surface',
+          'block h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-ink-900 outline-none transition placeholder:text-ink-500 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-surface',
           error &&
             'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10',
           className,

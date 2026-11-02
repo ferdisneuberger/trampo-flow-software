@@ -11,32 +11,27 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useState } from 'react';
-import { useBoard, usePlaceApplication } from '../../hooks/useBoard';
-import {
-  APPLICATION_STATUSES,
-  type Application,
-  type ApplicationStatus,
+import { resolvePlacement, usePlaceApplication } from '../../hooks/useBoard';
+import type {
+  Application,
+  ApplicationBoard,
 } from '../../services/applications.types';
+import { getErrorMessage } from '../../utils/errors';
 import { Alert } from '../ui/Alert';
+import { Button } from '../ui/Button';
+import { BOARD_GRID_CLASSES, BOARD_SCROLL_CLASSES } from './board-layout';
 import { BoardColumn } from './BoardColumn';
 
 type BoardProps = {
+  board: ApplicationBoard;
   search?: string;
+  onEdit: (application: Application) => void;
+  onDelete: (application: Application) => void;
 };
 
-function statusFromDroppableId(id: string): ApplicationStatus | null {
-  const match = id.startsWith('column-') ? id.slice('column-'.length) : null;
-
-  return match && APPLICATION_STATUSES.includes(match as ApplicationStatus)
-    ? (match as ApplicationStatus)
-    : null;
-}
-
-export function Board({ search }: BoardProps) {
-  const board = useBoard(search);
+export function Board({ board, search, onEdit, onDelete }: BoardProps) {
   const place = usePlaceApplication();
   const [activeId, setActiveId] = useState<string | null>(null);
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -44,23 +39,11 @@ export function Board({ search }: BoardProps) {
     }),
   );
 
-  const columns = board.data?.columns ?? [];
+  const columns = board.columns;
   const activeApplication = columns
     .flatMap((column) => column.items)
     .find((item) => item.id === activeId);
-
   const draggingEnabled = !search;
-
-  const moveToStatus = (
-    application: Application,
-    status: ApplicationStatus,
-  ) => {
-    if (application.status === status) {
-      return;
-    }
-
-    place.mutate({ id: application.id, status });
-  };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
@@ -69,96 +52,57 @@ export function Board({ search }: BoardProps) {
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null);
 
-    const { active, over } = event;
-
-    if (!over) {
+    if (!event.over || place.isPending) {
       return;
     }
 
-    const dragged = columns
-      .flatMap((column) => column.items)
-      .find((item) => item.id === active.id);
-
-    if (!dragged) {
-      return;
-    }
-
-    const overId = String(over.id);
-    const overColumnStatus = statusFromDroppableId(overId);
-    const overCard = columns
-      .flatMap((column) => column.items)
-      .find((item) => item.id === overId);
-    const destinationStatus =
-      overColumnStatus ?? overCard?.status ?? dragged.status;
-    const destination = columns.find(
-      (column) => column.status === destinationStatus,
+    const variables = resolvePlacement(
+      board,
+      String(event.active.id),
+      String(event.over.id),
     );
 
-    if (!destination) {
-      return;
+    if (variables) {
+      place.mutate(variables);
     }
-
-    const withoutDragged = destination.items.filter(
-      (item) => item.id !== dragged.id,
-    );
-
-    if (overColumnStatus) {
-      const last = withoutDragged.at(-1);
-
-      place.mutate({
-        id: dragged.id,
-        status: destinationStatus,
-        beforeId: last?.id,
-      });
-
-      return;
-    }
-
-    const targetIndex = withoutDragged.findIndex((item) => item.id === overId);
-
-    if (targetIndex < 0) {
-      place.mutate({ id: dragged.id, status: destinationStatus });
-      return;
-    }
-
-    place.mutate({
-      id: dragged.id,
-      status: destinationStatus,
-      beforeId: withoutDragged[targetIndex - 1]?.id,
-      afterId: withoutDragged[targetIndex]?.id,
-    });
   };
 
-  if (board.isPending) {
-    return (
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {APPLICATION_STATUSES.map((status) => (
-          <div
-            key={status}
-            className="h-72 animate-pulse rounded-card border border-line bg-white"
-          />
-        ))}
-      </div>
-    );
-  }
+  const moveToStatus = (
+    application: Application,
+    status: Application['status'],
+  ) => {
+    if (application.status === status || place.isPending) {
+      return;
+    }
 
-  if (board.isError) {
-    return (
-      <Alert
-        tone="error"
-        title="Não foi possível carregar o quadro"
-        description="Tente atualizar a página."
-      />
-    );
-  }
+    place.mutate({ id: application.id, status });
+  };
 
   return (
     <div className="space-y-3">
       {!draggingEnabled && (
         <p className="text-xs text-ink-500">
-          Reordenação desativada enquanto há busca ativa. Use o menu do card
-          para mudar de coluna.
+          Reordenação por arrastar desativada enquanto há busca ativa. Use o
+          menu do card para mudar de coluna.
         </p>
+      )}
+
+      {place.isError && (
+        <Alert
+          tone="error"
+          title="Não foi possível mover a candidatura"
+          description={getErrorMessage(place.error)}
+          action={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => place.reset()}
+            >
+              Fechar
+            </Button>
+          }
+        />
       )}
 
       <DndContext
@@ -168,23 +112,27 @@ export function Board({ search }: BoardProps) {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {columns.map((column) => (
-            <BoardColumn
-              key={column.status}
-              status={column.status}
-              total={column.total}
-              items={column.items}
-              hasMore={column.hasMore}
-              draggingEnabled={draggingEnabled}
-              onMove={moveToStatus}
-            />
-          ))}
+        <div className={BOARD_SCROLL_CLASSES}>
+          <div className={BOARD_GRID_CLASSES}>
+            {columns.map((column) => (
+              <BoardColumn
+                key={column.status}
+                status={column.status}
+                total={column.total}
+                items={column.items}
+                hasMore={column.hasMore}
+                draggingEnabled={draggingEnabled}
+                onMove={moveToStatus}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
         </div>
 
         <DragOverlay>
           {activeApplication ? (
-            <div className="w-64 rounded-lg border border-brand-300 bg-white p-3 shadow-none">
+            <div className="w-72 rounded-lg border border-brand-300 bg-white p-3 shadow-none">
               <p className="line-clamp-2 text-sm font-semibold text-ink-900">
                 {activeApplication.title}
               </p>

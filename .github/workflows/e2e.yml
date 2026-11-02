@@ -2,6 +2,16 @@ name: E2E
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'infra/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/e2e.yml'
+  schedule:
+    - cron: '0 3 * * *'
 
 concurrency:
   group: e2e-${{ github.ref }}

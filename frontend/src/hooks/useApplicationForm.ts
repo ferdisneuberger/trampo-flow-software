@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import type {
   Application,
   ApplicationStatus,
@@ -26,8 +32,8 @@ export type ApplicationFormErrors = Partial<
 
 type UseApplicationFormOptions = {
   application?: Application | null;
-  onCreate: (input: CreateApplicationInput) => Promise<void>;
-  onUpdate: (id: string, input: UpdateApplicationInput) => Promise<void>;
+  onCreate: (input: CreateApplicationInput) => Promise<unknown>;
+  onUpdate: (id: string, input: UpdateApplicationInput) => Promise<unknown>;
   onSuccess: () => void;
 };
 
@@ -115,11 +121,18 @@ export function useApplicationForm({
   );
   const [errors, setErrors] = useState<ApplicationFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const currentApplicationId = application?.id ?? null;
+  const lastApplicationId = useRef(currentApplicationId);
 
   useEffect(() => {
+    if (lastApplicationId.current === currentApplicationId) {
+      return;
+    }
+
+    lastApplicationId.current = currentApplicationId;
     setValues(toValues(application));
     setErrors({});
-  }, [application]);
+  }, [application, currentApplicationId]);
 
   const setField = useCallback(
     <K extends keyof ApplicationFormValues>(

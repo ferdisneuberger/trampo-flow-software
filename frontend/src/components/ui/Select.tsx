@@ -10,7 +10,6 @@ type SelectOption = {
 type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
   error?: string;
-  hint?: string;
   options: SelectOption[];
   containerClassName?: string;
 };
@@ -18,7 +17,6 @@ type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
 export function Select({
   label,
   error,
-  hint,
   options,
   id,
   className,
@@ -41,7 +39,7 @@ export function Select({
         <select
           id={selectId}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error || hint ? descriptionId : undefined}
+          aria-describedby={error ? descriptionId : undefined}
           className={cn(
             'block h-11 w-full appearance-none rounded-xl border border-line bg-white px-3.5 pr-10 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-surface',
             error &&
@@ -57,17 +55,13 @@ export function Select({
           ))}
         </select>
         <ChevronDown
-          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-400"
+          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-500"
           aria-hidden="true"
         />
       </div>
       {error ? (
         <p id={descriptionId} className="text-xs font-medium text-rose-600">
           {error}
-        </p>
-      ) : hint ? (
-        <p id={descriptionId} className="text-xs text-ink-500">
-          {hint}
         </p>
       ) : null}
     </div>

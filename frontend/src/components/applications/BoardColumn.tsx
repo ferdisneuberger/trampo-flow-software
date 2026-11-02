@@ -17,6 +17,8 @@ type BoardColumnProps = {
   hasMore: boolean;
   draggingEnabled: boolean;
   onMove: (application: Application, status: ApplicationStatus) => void;
+  onEdit: (application: Application) => void;
+  onDelete: (application: Application) => void;
 };
 
 export function BoardColumn({
@@ -26,6 +28,8 @@ export function BoardColumn({
   hasMore,
   draggingEnabled,
   onMove,
+  onEdit,
+  onDelete,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `column-${status}` });
 
@@ -59,17 +63,19 @@ export function BoardColumn({
               application={application}
               draggingEnabled={draggingEnabled}
               onMove={onMove}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
 
           {items.length === 0 && (
-            <p className="px-2 py-6 text-center text-xs text-ink-400">
+            <p className="px-2 py-6 text-center text-xs text-ink-500">
               Nenhuma candidatura
             </p>
           )}
 
           {hasMore && (
-            <p className="px-2 py-1 text-center text-[11px] text-ink-400">
+            <p className="px-2 py-1 text-center text-[11px] text-ink-500">
               Mostrando as primeiras {items.length} de {total}
             </p>
           )}

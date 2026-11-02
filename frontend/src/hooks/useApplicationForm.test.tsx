@@ -214,4 +214,30 @@ describe('useApplicationForm', () => {
 
     expect(result.current.values.title).toBe('Vaga antiga');
   });
+
+  it('preserva valores digitados quando o mesmo id é atualizado por refetch', () => {
+    const { result, rerender } = renderHook(
+      (props: { application: Application }) =>
+        useApplicationForm({
+          application: props.application,
+          onCreate: vi.fn(),
+          onUpdate: vi.fn(),
+          onSuccess: vi.fn(),
+        }),
+      { initialProps: { application: storedApplication } },
+    );
+
+    act(() => {
+      result.current.setField('currentPhase', 'Digitado mas não salvo');
+    });
+
+    rerender({
+      application: {
+        ...storedApplication,
+        currentPhase: 'Atualizada no servidor',
+      },
+    });
+
+    expect(result.current.values.currentPhase).toBe('Digitado mas não salvo');
+  });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ApplicationBoard } from '../services/applications.types';
-import { applyPlacement } from './useBoard';
+import { applyPlacement, resolvePlacement } from './useBoard';
 
 function makeBoard(): ApplicationBoard {
   const base = {
@@ -63,9 +63,10 @@ describe('applyPlacement', () => {
     const pending = board.columns.find((column) => column.status === 'PENDING');
 
     expect(pending?.items.map((item) => item.id)).toEqual(['a', 'b']);
+    expect(pending?.total).toBe(2);
   });
 
-  it('move para outra coluna na posição informada', () => {
+  it('move para outra coluna na posição informada e atualiza os totais', () => {
     const board = applyPlacement(makeBoard(), {
       id: 'a',
       status: 'IN_PROGRESS',
@@ -78,8 +79,10 @@ describe('applyPlacement', () => {
     );
 
     expect(pending?.items.map((item) => item.id)).toEqual(['b']);
+    expect(pending?.total).toBe(1);
     expect(progress?.items.map((item) => item.id)).toEqual(['c', 'a', 'd']);
     expect(progress?.items[1]?.status).toBe('IN_PROGRESS');
+    expect(progress?.total).toBe(3);
   });
 
   it('move para o fim quando não há vizinhos', () => {
@@ -93,6 +96,7 @@ describe('applyPlacement', () => {
     );
 
     expect(completed?.items.map((item) => item.id)).toEqual(['a']);
+    expect(completed?.total).toBe(1);
   });
 
   it('devolve o quadro intacto quando o card não existe', () => {
@@ -103,5 +107,32 @@ describe('applyPlacement', () => {
     });
 
     expect(board).toBe(original);
+  });
+});
+
+describe('resolvePlacement', () => {
+  it('ignora drop do card sobre ele mesmo', () => {
+    expect(resolvePlacement(makeBoard(), 'a', 'a')).toBeNull();
+  });
+
+  it('move para o fim da coluna quando o drop é na coluna', () => {
+    expect(resolvePlacement(makeBoard(), 'a', 'column-IN_PROGRESS')).toEqual({
+      id: 'a',
+      status: 'IN_PROGRESS',
+      beforeId: 'd',
+    });
+  });
+
+  it('calcula vizinhos quando o drop é sobre outro card', () => {
+    expect(resolvePlacement(makeBoard(), 'a', 'd')).toEqual({
+      id: 'a',
+      status: 'IN_PROGRESS',
+      beforeId: 'c',
+      afterId: 'd',
+    });
+  });
+
+  it('devolve null quando o card ativo não existe', () => {
+    expect(resolvePlacement(makeBoard(), 'inexistente', 'a')).toBeNull();
   });
 });

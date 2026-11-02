@@ -1,16 +1,16 @@
-import { Inbox, type LucideIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Card } from './Card';
 
 type EmptyStateProps = {
-  icon?: LucideIcon;
+  icon: LucideIcon;
   title: string;
   description: string;
   action?: ReactNode;
 };
 
 export function EmptyState({
-  icon: Icon = Inbox,
+  icon: Icon,
   title,
   description,
   action,

@@ -12,6 +12,10 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2022,
       globals: globals.browser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     plugins: {
       'react-hooks': reactHooks,
@@ -23,10 +27,18 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      // O reset de formulário e o carregamento inicial usam setState dentro de
-      // efeitos. Trocar por derivação de estado só faz sentido junto com a
-      // migração do data fetching para uma lib de cache.
-      'react-hooks/set-state-in-effect': 'off',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      // O reset de formulário depende do id da candidatura em edição e não
+      // deve reagir a refetches do mesmo registro.
+      'react-hooks/set-state-in-effect': 'error',
+    },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
     },
   },
   prettier,
