@@ -19,7 +19,7 @@ test.describe('fluxo crítico', () => {
 
     await expect(page).toHaveURL(/\/$/);
 
-    await page.getByRole('link', { name: 'Candidaturas' }).click();
+    await page.getByRole('link', { name: 'Candidaturas', exact: true }).click();
     await expect(page).toHaveURL(/\/candidaturas$/);
 
     await page.getByRole('button', { name: /nova candidatura/i }).click();
