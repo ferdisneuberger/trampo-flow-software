@@ -71,7 +71,9 @@ describe('useApplications', () => {
     expect(result.current.error).toBeNull();
     expect(listPage).toHaveBeenCalledWith({
       cursor: undefined,
-      limit: 100,
+      limit: 25,
+      search: undefined,
+      status: undefined,
     });
   });
 
@@ -134,5 +136,27 @@ describe('useApplications', () => {
     });
 
     expect(result.current.error).toBeNull();
+  });
+
+  it('repassa busca e status para o service', async () => {
+    listPage.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+      hasMore: false,
+    });
+
+    const { result } = renderHook(
+      () => useApplications({ search: 'nubank', status: 'IN_PROGRESS' }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(listPage).toHaveBeenCalledWith({
+      cursor: undefined,
+      limit: 25,
+      search: 'nubank',
+      status: 'IN_PROGRESS',
+    });
   });
 });

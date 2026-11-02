@@ -1,40 +1,75 @@
 import { Briefcase, Plus, RefreshCw, Search, X } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ApplicationForm } from '../components/applications/ApplicationForm';
-import { ApplicationList } from '../components/applications/ApplicationList';
-import { ApplicationListSkeleton } from '../components/applications/ApplicationListSkeleton';
-import { ApplicationStats } from '../components/applications/ApplicationStats';
+import { ApplicationsTable } from '../components/applications/ApplicationsTable';
 import {
   ApplicationStatusTabs,
   type ApplicationStatusFilter,
 } from '../components/applications/ApplicationStatusTabs';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useApplications } from '../hooks/useApplications';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useDisclosure } from '../hooks/useDisclosure';
+import { useStats } from '../hooks/useStats';
 import type {
   Application,
+  ApplicationStatus,
   DeleteApplicationMode,
 } from '../services/applications.types';
-import { countApplicationsByStatus } from '../utils/applications';
 import { getErrorMessage } from '../utils/errors';
 
+const emptyCounts: Record<ApplicationStatus, number> = {
+  PENDING: 0,
+  IN_PROGRESS: 0,
+  COMPLETED: 0,
+  REJECTED: 0,
+};
+
+function parseStatus(value: string | null): ApplicationStatusFilter {
+  if (
+    value === 'PENDING' ||
+    value === 'IN_PROGRESS' ||
+    value === 'COMPLETED' ||
+    value === 'REJECTED'
+  ) {
+    return value;
+  }
+
+  return 'ALL';
+}
+
 export function ApplicationsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFilter = parseStatus(searchParams.get('status'));
+  const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '');
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
   const {
     applications,
     isLoading,
+    isLoadingMore,
     isMutating,
+    hasMore,
     error,
+    loadMore,
     refresh,
     deleteApplication,
     clearError,
-  } = useApplications();
+  } = useApplications({
+    search: debouncedSearch.trim() || undefined,
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
+  });
+  const stats = useStats();
+  const statusCounts = stats.data?.byStatus ?? emptyCounts;
+  const total = stats.data?.total ?? 0;
+
   const {
     isOpen: isFormOpen,
     open: openFormModal,
@@ -50,35 +85,51 @@ export function ApplicationsPage() {
   const [deletingApplication, setDeletingApplication] =
     useState<Application | null>(null);
   const [deleteMode, setDeleteMode] = useState<DeleteApplicationMode>('soft');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] =
-    useState<ApplicationStatusFilter>('ALL');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleteConfirmed, setIsDeleteConfirmed] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const statusCounts = useMemo(
-    () => countApplicationsByStatus(applications),
-    [applications],
+  const hasFilters =
+    debouncedSearch.trim().length > 0 || statusFilter !== 'ALL';
+
+  useEffect(() => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        const term = debouncedSearch.trim();
+
+        if (term) {
+          next.set('q', term);
+        } else {
+          next.delete('q');
+        }
+
+        return next;
+      },
+      { replace: true },
+    );
+  }, [debouncedSearch, setSearchParams]);
+
+  const handleStatusChange = useCallback(
+    (value: ApplicationStatusFilter) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+
+          if (value === 'ALL') {
+            next.delete('status');
+          } else {
+            next.set('status', value);
+          }
+
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
   );
-
-  const filteredApplications = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return applications.filter((application) => {
-      const matchesStatus =
-        statusFilter === 'ALL' || application.status === statusFilter;
-      const matchesTerm =
-        term.length === 0 ||
-        application.title.toLowerCase().includes(term) ||
-        application.currentPhase.toLowerCase().includes(term);
-
-      return matchesStatus && matchesTerm;
-    });
-  }, [applications, search, statusFilter]);
-
-  const hasFilters = search.trim().length > 0 || statusFilter !== 'ALL';
 
   const openCreate = useCallback(() => {
     setEditingApplication(null);
@@ -164,16 +215,23 @@ export function ApplicationsPage() {
   ]);
 
   const clearFilters = useCallback(() => {
-    setSearch('');
-    setStatusFilter('ALL');
-  }, []);
+    setSearchInput('');
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('q');
+        next.delete('status');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Painel"
         title="Candidaturas"
-        description="Acompanhe cada processo seletivo, mantenha a fase atual em dia e centralize links e documentos."
+        description="Busque, filtre e acompanhe cada processo seletivo."
         actions={
           <>
             <Button
@@ -195,15 +253,6 @@ export function ApplicationsPage() {
           </>
         }
       />
-
-      <ApplicationStatusTabs
-        value={statusFilter}
-        counts={statusCounts}
-        total={applications.length}
-        onChange={setStatusFilter}
-      />
-
-      <ApplicationStats applications={applications} />
 
       {error && (
         <Alert
@@ -244,46 +293,44 @@ export function ApplicationsPage() {
         />
       )}
 
-      <Card className="p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Input
-            label="Buscar"
-            placeholder="Título ou fase atual..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            containerClassName="flex-1"
-          />
-          {hasFilters && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={clearFilters}
-              className="self-start sm:self-auto"
-            >
-              <X className="size-4" aria-hidden="true" />
-              Limpar filtros
-            </Button>
-          )}
-        </div>
-      </Card>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <Input
+          label="Buscar"
+          placeholder="Título, empresa ou fase..."
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          containerClassName="w-full lg:max-w-sm"
+        />
+        <ApplicationStatusTabs
+          value={statusFilter}
+          counts={statusCounts}
+          total={total}
+          onChange={handleStatusChange}
+        />
+      </div>
 
       {isLoading ? (
-        <ApplicationListSkeleton />
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((index) => (
+            <div
+              key={index}
+              className="h-14 animate-pulse rounded-card border border-line bg-white"
+            />
+          ))}
+        </div>
+      ) : total === 0 && !hasFilters ? (
+        <EmptyState
+          icon={Briefcase}
+          title="Comece sua lista de candidaturas"
+          description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
+          action={
+            <Button type="button" onClick={openCreate}>
+              <Plus className="size-4" aria-hidden="true" />
+              Criar primeira candidatura
+            </Button>
+          }
+        />
       ) : applications.length === 0 ? (
-        error ? null : (
-          <EmptyState
-            icon={Briefcase}
-            title="Comece sua lista de candidaturas"
-            description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
-            action={
-              <Button type="button" onClick={openCreate}>
-                <Plus className="size-4" aria-hidden="true" />
-                Criar primeira candidatura
-              </Button>
-            }
-          />
-        )
-      ) : filteredApplications.length === 0 ? (
         <EmptyState
           icon={Search}
           title="Nenhum resultado encontrado"
@@ -295,21 +342,33 @@ export function ApplicationsPage() {
           }
         />
       ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-ink-500">
-            Exibindo{' '}
-            <span className="font-semibold text-ink-700">
-              {filteredApplications.length}
-            </span>{' '}
-            de {applications.length}{' '}
-            {applications.length === 1 ? 'candidatura' : 'candidaturas'}
-          </p>
-          <ApplicationList
-            applications={filteredApplications}
-            onCreate={openCreate}
+        <div className="space-y-4">
+          <ApplicationsTable
+            applications={applications}
             onEdit={openEdit}
             onDelete={openDelete}
           />
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-ink-500">
+              Exibindo{' '}
+              <span className="font-semibold text-ink-700">
+                {applications.length}
+              </span>{' '}
+              de {total} {total === 1 ? 'candidatura' : 'candidaturas'}
+            </p>
+            {hasMore && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadMore()}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? 'Carregando...' : 'Carregar mais'}
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
