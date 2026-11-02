@@ -1,4 +1,5 @@
 import { ValidationPipe } from '@nestjs/common';
+import fastifyCookie from '@fastify/cookie';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import {
@@ -54,6 +55,8 @@ async function bootstrap(): Promise<void> {
       logger: true,
     }),
   );
+
+  await app.register(fastifyCookie);
 
   const configService = app.get(ConfigService);
   const port = Number(configService.get<string>('PORT') ?? 3000);

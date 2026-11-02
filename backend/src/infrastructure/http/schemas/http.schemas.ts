@@ -32,6 +32,20 @@ export class LoginResponse {
   user!: AuthenticatedUserResponse;
 }
 
+export class RefreshResponse {
+  @ApiProperty({ description: 'Novo token JWT no formato compacto.' })
+  accessToken!: string;
+
+  @ApiProperty({ example: 'Bearer' })
+  tokenType!: 'Bearer';
+
+  @ApiProperty({ description: 'Tempo de vida do token em segundos.' })
+  expiresIn!: number;
+
+  @ApiProperty({ description: 'Instante de expiração em epoch.' })
+  expiresAt!: number;
+}
+
 export class ApplicationStatusCountResponse {
   @ApiProperty({ example: 3 })
   PENDING!: number;

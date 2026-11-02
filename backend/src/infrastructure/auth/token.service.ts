@@ -138,9 +138,12 @@ export class TokenService {
 
     const now = Math.floor(Date.now() / 1000);
 
+    if (expiresAt <= now - CLOCK_TOLERANCE_SECONDS) {
+      throw expiredToken();
+    }
+
     if (
       issuedAt > now + CLOCK_TOLERANCE_SECONDS ||
-      expiresAt <= now - CLOCK_TOLERANCE_SECONDS ||
       expiresAt <= issuedAt ||
       expiresAt - issuedAt > MAX_TOKEN_TTL_SECONDS
     ) {
@@ -189,7 +192,17 @@ function decodeSegment<T>(encoded: string): T {
 }
 
 function invalidToken(): UnauthorizedException {
-  return new UnauthorizedException('Token inválido ou expirado.');
+  return new UnauthorizedException({
+    message: 'Token inválido ou expirado.',
+    code: 'INVALID_TOKEN',
+  });
+}
+
+function expiredToken(): UnauthorizedException {
+  return new UnauthorizedException({
+    message: 'Token expirado.',
+    code: 'TOKEN_EXPIRED',
+  });
 }
 
 function parseExpiresIn(value: string): number {

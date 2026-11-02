@@ -206,6 +206,17 @@ O `sub` do token é o **id** do usuário (UUID), não o username. O guard valida
 
 As rotas de `/applications` operam apenas sobre as candidaturas do usuário do token. Um id pertencente a outra conta responde `404`, e não `403`, para não revelar que o registro existe.
 
+#### Sessão e refresh token
+
+O login devolve um **access token** de curta duração e grava um **refresh token** opaco em cookie `HttpOnly` (não acessível a JavaScript), `SameSite=Strict` e `Secure` em produção. O refresh token tem validade de 7 dias e é armazenado no banco apenas como hash SHA-256.
+
+```http
+POST /auth/refresh   → novo access token + cookie rotacionado
+POST /auth/logout    → revoga a família e limpa o cookie
+```
+
+Cada refresh rotaciona o token: o anterior é revogado e aponta para o substituto. Se um token já revogado for reapresentado fora de uma janela de tolerância de 10 segundos, a **família inteira** é revogada — é a detecção de reuso. A janela existe para duas abas renovando ao mesmo tempo não derrubarem a sessão.
+
 Apenas `POST /auth/login` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend guarda o token no `localStorage`, restaura a sessão em `GET /auth/me` e remove o token em qualquer resposta `401`. O logout é local: um token já emitido continua válido até expirar. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais usernames estão cadastrados.
 
 ## Frontend

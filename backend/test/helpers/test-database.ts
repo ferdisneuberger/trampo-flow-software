@@ -57,3 +57,11 @@ export async function truncateUserData(prisma: PrismaService): Promise<void> {
     'TRUNCATE TABLE "users" RESTART IDENTITY CASCADE',
   );
 }
+
+export async function truncateRefreshTokenData(
+  prisma: PrismaService,
+): Promise<void> {
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE TABLE "refresh_tokens" RESTART IDENTITY CASCADE',
+  );
+}
