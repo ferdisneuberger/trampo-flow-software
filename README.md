@@ -288,6 +288,19 @@ npm run test:cov
 
 A cobertura é medida em `src/**` inteiro, mas o threshold é aplicado apenas onde há suíte de verdade: `src/utils/**` (95%) e `src/hooks/useApplicationForm.ts` (75%). Componentes e páginas ainda não têm teste, então uma meta global seria enganosa.
 
+### Testes de ponta a ponta
+
+O fluxo crítico (login → criar → buscar → detalhe → excluir) roda com **Playwright** contra o ambiente do Compose.
+
+```bash
+docker compose up -d
+cd frontend
+npx playwright install chromium
+E2E_USERNAME=... E2E_PASSWORD=... npm run test:e2e
+```
+
+Sem `E2E_USERNAME` e `E2E_PASSWORD`, o teste é pulado. No CI, o workflow `E2E` sobe o Compose, cria um usuário de teste pelo bootstrap e roda o fluxo em um Chromium.
+
 ### Funcionalidades
 
 - Abas de status com contadores (Todas, Aguardando, Em andamento, Finalizada e Recusada) no topo do dashboard.

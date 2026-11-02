@@ -1,0 +1,85 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create environment
+        run: |
+          cat > .env <<'ENV'
+          POSTGRES_USER=trampo
+          POSTGRES_PASSWORD=trampo_e2e
+          POSTGRES_DB=trampo_flow
+          AUTH_USERNAME=e2e
+          AUTH_PASSWORD=e2e-super-secret-123
+          JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef
+          JWT_EXPIRES_IN=5m
+          S3_ACCESS_KEY=trampo
+          S3_SECRET_KEY=trampo_e2e_secret
+          S3_BUCKET=trampo-e2e-files
+          CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+          ENV
+
+      - name: Start stack
+        run: docker compose up -d --build
+
+      - name: Wait for the API
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run end-to-end tests
+        working-directory: frontend
+        env:
+          E2E_USERNAME: e2e
+          E2E_PASSWORD: e2e-super-secret-123
+          E2E_BASE_URL: http://127.0.0.1:5173
+        run: npm run test:e2e
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          if-no-files-found: ignore
+
+      - name: Stack logs
+        if: failure()
+        run: docker compose logs
