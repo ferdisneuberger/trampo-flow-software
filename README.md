@@ -318,7 +318,7 @@ Para rodar localmente sem tocar no seu banco, use o script de stack isolado:
 npm run test:e2e:local
 ```
 
-Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio, e derruba tudo no final. O hook de `pre-push` executa esse script; para pular uma vez, use `SKIP_E2E=1 git push`.
+Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio, e derruba tudo no final. A execução é **manual**: não há hook de `pre-push` e o workflow do CI está desabilitado para pull requests, rodando apenas por `workflow_dispatch`.
 
 ### Funcionalidades
 
