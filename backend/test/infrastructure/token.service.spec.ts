@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { UnauthorizedException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TokenService } from '../../src/infrastructure/auth/token.service';
 
@@ -72,7 +73,7 @@ describe('TokenService', () => {
     ).toThrow();
   });
 
-  it('rejeita token expirado', () => {
+  it('rejeita token expirado com código TOKEN_EXPIRED', () => {
     const service = new TokenService(
       createConfig({ JWT_SECRET, JWT_EXPIRES_IN: '1s' }),
     );
@@ -80,7 +81,17 @@ describe('TokenService', () => {
 
     vi.advanceTimersByTime(7000);
 
-    expect(() => service.verify(token)).toThrow();
+    try {
+      service.verify(token);
+    } catch (error) {
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect((error as UnauthorizedException).getResponse()).toMatchObject({
+        code: 'TOKEN_EXPIRED',
+      });
+      return;
+    }
+
+    throw new Error('Token expirado deveria ter sido rejeitado.');
   });
 
   it('rejeita token com algoritmo diferente de HS256', () => {
