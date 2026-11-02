@@ -22,6 +22,11 @@ export type PaginatedApplications = {
   hasMore: boolean;
 };
 
+export type ApplicationStats = {
+  total: number;
+  byStatus: Record<ApplicationStatus, number>;
+};
+
 export const applicationsService = {
   async listPage(
     params: ListApplicationsParams = {},
@@ -29,6 +34,14 @@ export const applicationsService = {
     const { data } = await apiClient.get<PaginatedApplications>(
       '/applications',
       { params },
+    );
+
+    return data;
+  },
+
+  async stats(): Promise<ApplicationStats> {
+    const { data } = await apiClient.get<ApplicationStats>(
+      '/applications/stats',
     );
 
     return data;

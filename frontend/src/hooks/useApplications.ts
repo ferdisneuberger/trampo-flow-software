@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { applicationsService } from '../services/api/applications.service';
 import type {
   Application,
+  ApplicationStatus,
   CreateApplicationFileInput,
   CreateApplicationInput,
   DeleteApplicationMode,
@@ -14,13 +15,21 @@ import type {
 } from '../services/applications.types';
 import { getErrorMessage } from '../utils/errors';
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 25;
+
+export type ApplicationsFilters = {
+  search?: string;
+  status?: ApplicationStatus;
+};
 
 export type UseApplicationsResult = {
   applications: Application[];
   isLoading: boolean;
+  isLoadingMore: boolean;
   isMutating: boolean;
+  hasMore: boolean;
   error: string | null;
+  loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
   createApplication: (input: CreateApplicationInput) => Promise<Application>;
   updateApplication: (
@@ -38,14 +47,23 @@ export type UseApplicationsResult = {
   clearError: () => void;
 };
 
-export function useApplications(): UseApplicationsResult {
+export function useApplications(
+  filters: ApplicationsFilters = {},
+): UseApplicationsResult {
   const queryClient = useQueryClient();
   const [errorDismissed, setErrorDismissed] = useState(false);
+  const search = filters.search ?? '';
+  const status = filters.status ?? '';
 
   const query = useInfiniteQuery({
-    queryKey: ['applications'],
+    queryKey: ['applications', search, status],
     queryFn: ({ pageParam }) =>
-      applicationsService.listPage({ cursor: pageParam, limit: PAGE_SIZE }),
+      applicationsService.listPage({
+        cursor: pageParam,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        status: filters.status,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
@@ -116,6 +134,12 @@ export function useApplications(): UseApplicationsResult {
     await query.refetch();
   }, [query]);
 
+  const loadMore = useCallback(async () => {
+    if (query.hasNextPage && !query.isFetchingNextPage) {
+      await query.fetchNextPage();
+    }
+  }, [query]);
+
   const runMutation = useCallback(
     async <T>(operation: () => Promise<T>): Promise<T> => {
       setErrorDismissed(false);
@@ -153,6 +177,9 @@ export function useApplications(): UseApplicationsResult {
   return {
     applications,
     isLoading: query.isPending,
+    isLoadingMore: query.isFetchingNextPage,
+    hasMore: query.hasNextPage === true,
+    loadMore,
     isMutating:
       createMutation.isPending ||
       updateMutation.isPending ||
