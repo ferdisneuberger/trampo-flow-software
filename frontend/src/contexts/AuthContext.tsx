@@ -9,9 +9,9 @@ import {
 } from 'react';
 import { authService } from '../services/api/auth.service';
 import {
+  accessTokenStore,
   AUTH_UNAUTHORIZED_EVENT,
-  tokenStorage,
-} from '../services/api/token-storage';
+} from '../services/api/access-token';
 import type { AuthUser, LoginInput } from '../services/auth.types';
 
 type AuthContextValue = {
@@ -26,38 +26,34 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(() => tokenStorage.get() !== null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = tokenStorage.get();
-
-    if (!token) {
-      setIsLoading(false);
-
-      return;
-    }
-
     let isActive = true;
 
-    void authService
-      .me()
-      .then((profile) => {
+    const restoreSession = async () => {
+      try {
+        await authService.refresh();
+
+        const profile = await authService.me();
+
         if (isActive) {
           setUser(profile);
         }
-      })
-      .catch(() => {
-        tokenStorage.clear();
+      } catch {
+        accessTokenStore.clear();
 
         if (isActive) {
           setUser(null);
         }
-      })
-      .finally(() => {
+      } finally {
         if (isActive) {
           setIsLoading(false);
         }
-      });
+      }
+    };
+
+    void restoreSession();
 
     return () => {
       isActive = false;
@@ -66,7 +62,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const handleUnauthorized = () => {
-      tokenStorage.clear();
+      accessTokenStore.clear();
       setUser(null);
       setIsLoading(false);
     };
@@ -81,15 +77,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const login = useCallback(async (input: LoginInput) => {
     const response = await authService.login(input);
 
-    tokenStorage.set(response.accessToken);
+    accessTokenStore.set(response.accessToken);
     setUser(response.user);
     setIsLoading(false);
   }, []);
 
   const logout = useCallback(() => {
-    tokenStorage.clear();
+    accessTokenStore.clear();
     setUser(null);
     setIsLoading(false);
+
+    void authService.logout().catch(() => undefined);
   }, []);
 
   const value = useMemo(
