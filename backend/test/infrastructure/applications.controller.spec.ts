@@ -5,6 +5,7 @@ import type { DeleteApplicationUseCase } from '../../src/application/application
 import type { GetApplicationStatsUseCase } from '../../src/application/applications/use-cases/get-application-stats.use-case';
 import { encodeCursor } from '../../src/application/applications/types/application-cursor';
 import type { ListApplicationsUseCase } from '../../src/application/applications/use-cases/list-applications.use-case';
+import type { PlaceApplicationUseCase } from '../../src/application/applications/use-cases/place-application.use-case';
 import type { UpdateApplicationUseCase } from '../../src/application/applications/use-cases/update-application.use-case';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
 import { ApplicationsController } from '../../src/infrastructure/http/controllers/applications.controller';
@@ -22,17 +23,19 @@ function createController() {
   const remove = vi.fn();
   const addFiles = vi.fn();
   const stats = vi.fn();
+  const place = vi.fn();
 
   const controller = new ApplicationsController(
     { execute: create } as unknown as CreateApplicationUseCase,
     { execute: list } as unknown as ListApplicationsUseCase,
     { execute: stats } as unknown as GetApplicationStatsUseCase,
     { execute: update } as unknown as UpdateApplicationUseCase,
+    { execute: place } as unknown as PlaceApplicationUseCase,
     { execute: remove } as unknown as DeleteApplicationUseCase,
     { execute: addFiles } as unknown as AddApplicationFilesUseCase,
   );
 
-  return { controller, create, list, update, remove, addFiles, stats };
+  return { controller, create, list, update, place, remove, addFiles, stats };
 }
 
 describe('ApplicationsController', () => {
@@ -263,6 +266,29 @@ describe('ApplicationsController', () => {
       userId: USER_ID,
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       mode: 'hard',
+    });
+  });
+
+  it('repassa o posicionamento com o usuário do token', async () => {
+    const { controller, place } = createController();
+
+    place.mockResolvedValue(makeApplication());
+
+    await controller.place(
+      '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+      {
+        status: ApplicationStatus.COMPLETED,
+        beforeId: '11111111-1111-4111-8111-111111111111',
+      },
+      USER_ID,
+    );
+
+    expect(place).toHaveBeenCalledWith({
+      userId: USER_ID,
+      applicationId: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+      status: ApplicationStatus.COMPLETED,
+      beforeId: '11111111-1111-4111-8111-111111111111',
+      afterId: undefined,
     });
   });
 });

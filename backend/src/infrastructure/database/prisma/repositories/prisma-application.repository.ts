@@ -6,6 +6,7 @@ import {
   ApplicationRepository,
   ApplicationStatusCount,
   FindApplicationsPageOptions,
+  PlaceApplicationInput,
 } from '../../../../domain/applications/repositories/application.repository';
 import { ApplicationMapper } from '../mappers/application.mapper';
 import { PrismaService } from '../prisma.service';
@@ -60,9 +61,19 @@ export class PrismaApplicationRepository implements ApplicationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(application: Application, userId: string): Promise<void> {
+    const aggregate = await this.prisma.application.aggregate({
+      where: {
+        userId,
+        status: application.status,
+        deletedAt: null,
+      },
+      _max: { position: true },
+    });
+
     await this.prisma.application.create({
       data: {
         ...ApplicationMapper.toCreateData(application),
+        position: (aggregate._max.position ?? 0) + 1000,
         user: { connect: { id: userId } },
       },
     });
@@ -115,11 +126,79 @@ export class PrismaApplicationRepository implements ApplicationRepository {
     return counts;
   }
 
+  async findMaxPosition(
+    userId: string,
+    status: ApplicationStatus,
+  ): Promise<number> {
+    const aggregate = await this.prisma.application.aggregate({
+      where: { userId, status, deletedAt: null },
+      _max: { position: true },
+    });
+
+    return aggregate._max.position ?? 0;
+  }
+
+  async reindexStatus(
+    userId: string,
+    status: ApplicationStatus,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      const rows = await transaction.application.findMany({
+        where: { userId, status, deletedAt: null },
+        orderBy: [{ position: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      });
+
+      for (const [index, row] of rows.entries()) {
+        await transaction.application.update({
+          where: { id: row.id },
+          data: { position: (index + 1) * 1000 },
+        });
+      }
+    });
+  }
+
+  async place(input: PlaceApplicationInput): Promise<void> {
+    const updated = await this.prisma.application.updateMany({
+      where: { id: input.applicationId, userId: input.userId },
+      data: { status: input.status, position: input.position },
+    });
+
+    if (updated.count === 0) {
+      throw new Error(
+        `Application "${input.applicationId}" was not found for this user.`,
+      );
+    }
+  }
+
   async update(application: Application, userId: string): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
+      const current = await transaction.application.findUnique({
+        where: { id: application.id },
+        select: { status: true },
+      });
+
+      const data = ApplicationMapper.toUpdateData(application);
+
+      if (
+        current &&
+        (current.status as string) !== (application.status as string)
+      ) {
+        const aggregate = await transaction.application.aggregate({
+          where: {
+            userId,
+            status: application.status,
+            deletedAt: null,
+          },
+          _max: { position: true },
+        });
+
+        data.position = (aggregate._max.position ?? 0) + 1000;
+      }
+
       const updated = await transaction.application.updateMany({
         where: { id: application.id, userId },
-        data: ApplicationMapper.toUpdateData(application),
+        data,
       });
 
       if (updated.count === 0) {

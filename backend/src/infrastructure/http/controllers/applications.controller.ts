@@ -30,12 +30,14 @@ import {
 } from '../../../application/applications/dtos/create-application.dto';
 import { DeleteApplicationQueryDto } from '../../../application/applications/dtos/delete-application-query.dto';
 import { ListApplicationsQueryDto } from '../../../application/applications/dtos/list-applications-query.dto';
+import { PlaceApplicationDto } from '../../../application/applications/dtos/place-application.dto';
 import { UpdateApplicationDto } from '../../../application/applications/dtos/update-application.dto';
 import { AddApplicationFilesUseCase } from '../../../application/applications/use-cases/add-application-files.use-case';
 import { CreateApplicationUseCase } from '../../../application/applications/use-cases/create-application.use-case';
 import { DeleteApplicationUseCase } from '../../../application/applications/use-cases/delete-application.use-case';
 import { GetApplicationStatsUseCase } from '../../../application/applications/use-cases/get-application-stats.use-case';
 import { ListApplicationsUseCase } from '../../../application/applications/use-cases/list-applications.use-case';
+import { PlaceApplicationUseCase } from '../../../application/applications/use-cases/place-application.use-case';
 import {
   decodeCursorPayload,
   encodeCursor,
@@ -63,6 +65,7 @@ export class ApplicationsController {
     private readonly listApplicationsUseCase: ListApplicationsUseCase,
     private readonly getApplicationStatsUseCase: GetApplicationStatsUseCase,
     private readonly updateApplicationUseCase: UpdateApplicationUseCase,
+    private readonly placeApplicationUseCase: PlaceApplicationUseCase,
     private readonly deleteApplicationUseCase: DeleteApplicationUseCase,
     private readonly addApplicationFilesUseCase: AddApplicationFilesUseCase,
   ) {}
@@ -166,6 +169,37 @@ export class ApplicationsController {
       companyUrl: dto.companyUrl,
       currentPhase: dto.currentPhase,
       status: dto.status,
+    });
+
+    return ApplicationPresenter.toHTTP(application);
+  }
+
+  @Patch(':id/placement')
+  @ApiOperation({ summary: 'Move a candidatura de coluna e/ou posição' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: ApplicationHttpResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Vizinho inválido para o status de destino.',
+    type: ErrorResponse,
+  })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Candidatura não encontrada.',
+    type: ErrorResponse,
+  })
+  async place(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PlaceApplicationDto,
+    @CurrentUserId() userId: string,
+  ) {
+    const application = await this.placeApplicationUseCase.execute({
+      userId,
+      applicationId: id,
+      status: dto.status,
+      beforeId: dto.beforeId,
+      afterId: dto.afterId,
     });
 
     return ApplicationPresenter.toHTTP(application);

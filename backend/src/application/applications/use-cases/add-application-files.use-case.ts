@@ -33,6 +33,11 @@ export class AddApplicationFilesUseCase {
 
     await this.applicationRepository.update(application, input.userId);
 
-    return application;
+    const stored = await this.applicationRepository.findById(
+      application.id,
+      input.userId,
+    );
+
+    return stored ?? application;
   }
 }
