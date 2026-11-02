@@ -183,14 +183,16 @@ Os valores são os padrões do `docker-compose.yml`. Se você alterou o `.env`, 
 
 A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do PostgreSQL, com a senha derivada por **scrypt** (N=16384, r=8, p=1, sal de 16 bytes e chave de 64 bytes). O hash tem o formato `scrypt$N$r$p$sal$chave`, então subir o custo depois não invalida as senhas existentes.
 
-| Variável               | Obrigatória | Descrição                                                  |
-| ---------------------- | ----------- | ---------------------------------------------------------- |
-| `JWT_SECRET`           | sim         | Segredo HMAC com pelo menos 32 caracteres                  |
-| `JWT_EXPIRES_IN`       | não         | Validade do token (`30m`, `8h`, `7d`); padrão `8h`         |
-| `LOGIN_MAX_ATTEMPTS`   | não         | Falhas consecutivas antes do bloqueio; padrão `10`         |
-| `LOGIN_WINDOW_SECONDS` | não         | Janela e duração do bloqueio; padrão `900`                 |
-| `AUTH_USERNAME`        | não         | Usuário criado no primeiro boot, se a tabela estiver vazia |
-| `AUTH_PASSWORD`        | não         | Senha do primeiro usuário (mínimo de 12 caracteres)        |
+| Variável                      | Obrigatória | Descrição                                                  |
+| ----------------------------- | ----------- | ---------------------------------------------------------- |
+| `JWT_SECRET`                  | sim         | Segredo HMAC com pelo menos 32 caracteres                  |
+| `JWT_EXPIRES_IN`              | não         | Validade do access token (`5m`, `30m`, `8h`); padrão `5m`  |
+| `REFRESH_TOKEN_TTL_DAYS`      | não         | Validade do refresh token; padrão `7`                      |
+| `REFRESH_TOKEN_GRACE_SECONDS` | não         | Tolerância de reuso entre abas; padrão `10`                |
+| `LOGIN_MAX_ATTEMPTS`          | não         | Falhas consecutivas antes do bloqueio; padrão `10`         |
+| `LOGIN_WINDOW_SECONDS`        | não         | Janela e duração do bloqueio; padrão `900`                 |
+| `AUTH_USERNAME`               | não         | Usuário criado no primeiro boot, se a tabela estiver vazia |
+| `AUTH_PASSWORD`               | não         | Senha do primeiro usuário (mínimo de 12 caracteres)        |
 
 `AUTH_USERNAME`/`AUTH_PASSWORD` servem apenas para provisionar o **primeiro** usuário. Se a tabela `users` já tem registros, elas são ignoradas — depois do primeiro boot você pode removê-las do `.env` e trocar a senha direto no banco (com um hash scrypt novo). A senha nunca é comparada em texto puro.
 

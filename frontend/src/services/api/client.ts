@@ -1,7 +1,13 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { env } from '../../config/env';
+import { accessTokenStore, AUTH_UNAUTHORIZED_EVENT } from './access-token';
 import { normalizeApiError } from './errors';
-import { AUTH_UNAUTHORIZED_EVENT, tokenStorage } from './token-storage';
+
+type RetriableConfig = InternalAxiosRequestConfig & { retried?: boolean };
+
+type RefreshResponse = {
+  accessToken: string;
+};
 
 export const apiClient = axios.create({
   baseURL: env.apiUrl,
@@ -11,8 +17,32 @@ export const apiClient = axios.create({
   },
 });
 
+let refreshInFlight: Promise<string> | null = null;
+
+async function requestNewAccessToken(): Promise<string> {
+  refreshInFlight ??= axios
+    .post<RefreshResponse>(`${env.apiUrl}/auth/refresh`, null, {
+      headers: { 'Content-Type': 'application/json' },
+    })
+    .then((response) => {
+      accessTokenStore.set(response.data.accessToken);
+
+      return response.data.accessToken;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+
+  return refreshInFlight;
+}
+
+function endSession(): void {
+  accessTokenStore.clear();
+  window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+}
+
 apiClient.interceptors.request.use((config) => {
-  const token = tokenStorage.get();
+  const token = accessTokenStore.get();
 
   if (token) {
     config.headers.set('Authorization', `Bearer ${token}`);
@@ -23,14 +53,36 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      const isLoginRequest = error.config?.url?.includes('/auth/login');
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      return Promise.reject(normalizeApiError(error));
+    }
 
-      if (!isLoginRequest) {
-        tokenStorage.clear();
-        window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+    const config = error.config as RetriableConfig | undefined;
+    const code = (error.response.data as { code?: string } | undefined)?.code;
+    const isAuthRequest =
+      config?.url?.includes('/auth/login') ||
+      config?.url?.includes('/auth/refresh') ||
+      config?.url?.includes('/auth/logout');
+
+    if (
+      code === 'TOKEN_EXPIRED' &&
+      config &&
+      !config.retried &&
+      !isAuthRequest
+    ) {
+      config.retried = true;
+
+      try {
+        const token = await requestNewAccessToken();
+        config.headers.set('Authorization', `Bearer ${token}`);
+
+        return await apiClient.request(config);
+      } catch {
+        endSession();
       }
+    } else if (!isAuthRequest) {
+      endSession();
     }
 
     return Promise.reject(normalizeApiError(error));
