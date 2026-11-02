@@ -3,6 +3,12 @@ name: E2E
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'infra/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/e2e.yml'
   workflow_dispatch:
 
 concurrency:
@@ -59,6 +65,12 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/package-lock.json') }}
 
       - name: Install Playwright browser
         working-directory: frontend
