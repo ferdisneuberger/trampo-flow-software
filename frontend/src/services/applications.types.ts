@@ -71,3 +71,20 @@ export type UpdateApplicationInput = {
 };
 
 export type DeleteApplicationMode = 'soft' | 'hard';
+
+export type BoardColumn = {
+  status: ApplicationStatus;
+  total: number;
+  items: Application[];
+  hasMore: boolean;
+};
+
+export type ApplicationBoard = {
+  columns: BoardColumn[];
+};
+
+export type PlaceApplicationInput = {
+  status?: ApplicationStatus;
+  beforeId?: string;
+  afterId?: string;
+};

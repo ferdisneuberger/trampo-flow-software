@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApplicationForm } from '../components/applications/ApplicationForm';
 import { ApplicationsTable } from '../components/applications/ApplicationsTable';
+import { Board } from '../components/applications/Board';
 import {
   ApplicationStatusTabs,
   type ApplicationStatusFilter,
@@ -14,6 +15,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Tabs } from '../components/ui/Tabs';
 import { useApplications } from '../hooks/useApplications';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useDisclosure } from '../hooks/useDisclosure';
@@ -48,6 +50,7 @@ function parseStatus(value: string | null): ApplicationStatusFilter {
 export function ApplicationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = parseStatus(searchParams.get('status'));
+  const view = searchParams.get('view') === 'board' ? 'board' : 'list';
   const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '');
   const debouncedSearch = useDebouncedValue(searchInput, 300);
 
@@ -214,6 +217,26 @@ export function ApplicationsPage() {
     isDeleteConfirmed,
   ]);
 
+  const handleViewChange = useCallback(
+    (nextView: 'list' | 'board') => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+
+          if (nextView === 'board') {
+            next.set('view', 'board');
+          } else {
+            next.delete('view');
+          }
+
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
   const clearFilters = useCallback(() => {
     setSearchInput('');
     setSearchParams(
@@ -301,75 +324,95 @@ export function ApplicationsPage() {
           onChange={(event) => setSearchInput(event.target.value)}
           containerClassName="w-full lg:max-w-sm"
         />
-        <ApplicationStatusTabs
-          value={statusFilter}
-          counts={statusCounts}
-          total={total}
-          onChange={handleStatusChange}
+        <Tabs
+          ariaLabel="Visualização"
+          value={view}
+          onChange={handleViewChange}
+          tabs={[
+            { value: 'list', label: 'Lista' },
+            { value: 'board', label: 'Quadro' },
+          ]}
         />
       </div>
 
-      {isLoading ? (
-        <div className="space-y-2">
-          {[0, 1, 2, 3].map((index) => (
-            <div
-              key={index}
-              className="h-14 animate-pulse rounded-card border border-line bg-white"
-            />
-          ))}
-        </div>
-      ) : total === 0 && !hasFilters ? (
-        <EmptyState
-          icon={Briefcase}
-          title="Comece sua lista de candidaturas"
-          description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
-          action={
-            <Button type="button" onClick={openCreate}>
-              <Plus className="size-4" aria-hidden="true" />
-              Criar primeira candidatura
-            </Button>
-          }
-        />
-      ) : applications.length === 0 ? (
-        <EmptyState
-          icon={Search}
-          title="Nenhum resultado encontrado"
-          description="Não há candidaturas que correspondam aos filtros atuais. Ajuste a busca ou limpe os filtros."
-          action={
-            <Button type="button" variant="secondary" onClick={clearFilters}>
-              Limpar filtros
-            </Button>
-          }
-        />
+      {view === 'board' ? (
+        <Board search={debouncedSearch.trim() || undefined} />
       ) : (
-        <div className="space-y-4">
-          <ApplicationsTable
-            applications={applications}
-            onEdit={openEdit}
-            onDelete={openDelete}
+        <>
+          <ApplicationStatusTabs
+            value={statusFilter}
+            counts={statusCounts}
+            total={total}
+            onChange={handleStatusChange}
           />
 
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-ink-500">
-              Exibindo{' '}
-              <span className="font-semibold text-ink-700">
-                {applications.length}
-              </span>{' '}
-              de {total} {total === 1 ? 'candidatura' : 'candidaturas'}
-            </p>
-            {hasMore && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void loadMore()}
-                disabled={isLoadingMore}
-              >
-                {isLoadingMore ? 'Carregando...' : 'Carregar mais'}
-              </Button>
-            )}
-          </div>
-        </div>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2, 3].map((index) => (
+                <div
+                  key={index}
+                  className="h-14 animate-pulse rounded-card border border-line bg-white"
+                />
+              ))}
+            </div>
+          ) : total === 0 && !hasFilters ? (
+            <EmptyState
+              icon={Briefcase}
+              title="Comece sua lista de candidaturas"
+              description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
+              action={
+                <Button type="button" onClick={openCreate}>
+                  <Plus className="size-4" aria-hidden="true" />
+                  Criar primeira candidatura
+                </Button>
+              }
+            />
+          ) : applications.length === 0 ? (
+            <EmptyState
+              icon={Search}
+              title="Nenhum resultado encontrado"
+              description="Não há candidaturas que correspondam aos filtros atuais. Ajuste a busca ou limpe os filtros."
+              action={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={clearFilters}
+                >
+                  Limpar filtros
+                </Button>
+              }
+            />
+          ) : (
+            <div className="space-y-4">
+              <ApplicationsTable
+                applications={applications}
+                onEdit={openEdit}
+                onDelete={openDelete}
+              />
+
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-ink-500">
+                  Exibindo{' '}
+                  <span className="font-semibold text-ink-700">
+                    {applications.length}
+                  </span>{' '}
+                  de {total} {total === 1 ? 'candidatura' : 'candidaturas'}
+                </p>
+                {hasMore && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void loadMore()}
+                    disabled={isLoadingMore}
+                  >
+                    {isLoadingMore ? 'Carregando...' : 'Carregar mais'}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <Modal

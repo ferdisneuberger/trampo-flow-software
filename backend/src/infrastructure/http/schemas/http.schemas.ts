@@ -68,6 +68,25 @@ export class ApplicationStatsResponse {
   byStatus!: ApplicationStatusCountResponse;
 }
 
+export class BoardColumnResponse {
+  @ApiProperty({ enum: ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'REJECTED'] })
+  status!: string;
+
+  @ApiProperty({ example: 5 })
+  total!: number;
+
+  @ApiProperty({ type: [ApplicationHttpResponse] })
+  items!: ApplicationHttpResponse[];
+
+  @ApiProperty({ example: false })
+  hasMore!: boolean;
+}
+
+export class BoardResponse {
+  @ApiProperty({ type: [BoardColumnResponse] })
+  columns!: BoardColumnResponse[];
+}
+
 export class PaginatedApplicationsResponse {
   @ApiProperty({ type: [ApplicationHttpResponse] })
   items!: ApplicationHttpResponse[];

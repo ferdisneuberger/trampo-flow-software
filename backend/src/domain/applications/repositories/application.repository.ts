@@ -42,6 +42,12 @@ export abstract class ApplicationRepository {
 
   abstract countByStatus(userId: string): Promise<ApplicationStatusCount>;
 
+  abstract findBoardColumn(
+    userId: string,
+    status: ApplicationStatus,
+    options: { limit: number; search?: string },
+  ): Promise<Application[]>;
+
   abstract findMaxPosition(
     userId: string,
     status: ApplicationStatus,

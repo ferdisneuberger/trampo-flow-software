@@ -3,6 +3,7 @@ import type { AddApplicationFilesUseCase } from '../../src/application/applicati
 import type { CreateApplicationUseCase } from '../../src/application/applications/use-cases/create-application.use-case';
 import type { DeleteApplicationUseCase } from '../../src/application/applications/use-cases/delete-application.use-case';
 import type { GetApplicationStatsUseCase } from '../../src/application/applications/use-cases/get-application-stats.use-case';
+import type { GetBoardUseCase } from '../../src/application/applications/use-cases/get-board.use-case';
 import { encodeCursor } from '../../src/application/applications/types/application-cursor';
 import type { ListApplicationsUseCase } from '../../src/application/applications/use-cases/list-applications.use-case';
 import type { PlaceApplicationUseCase } from '../../src/application/applications/use-cases/place-application.use-case';
@@ -23,19 +24,31 @@ function createController() {
   const remove = vi.fn();
   const addFiles = vi.fn();
   const stats = vi.fn();
+  const board = vi.fn();
   const place = vi.fn();
 
   const controller = new ApplicationsController(
     { execute: create } as unknown as CreateApplicationUseCase,
     { execute: list } as unknown as ListApplicationsUseCase,
     { execute: stats } as unknown as GetApplicationStatsUseCase,
+    { execute: board } as unknown as GetBoardUseCase,
     { execute: update } as unknown as UpdateApplicationUseCase,
     { execute: place } as unknown as PlaceApplicationUseCase,
     { execute: remove } as unknown as DeleteApplicationUseCase,
     { execute: addFiles } as unknown as AddApplicationFilesUseCase,
   );
 
-  return { controller, create, list, update, place, remove, addFiles, stats };
+  return {
+    controller,
+    create,
+    list,
+    update,
+    place,
+    remove,
+    addFiles,
+    stats,
+    board,
+  };
 }
 
 describe('ApplicationsController', () => {
@@ -290,5 +303,31 @@ describe('ApplicationsController', () => {
       beforeId: '11111111-1111-4111-8111-111111111111',
       afterId: undefined,
     });
+  });
+
+  it('devolve as colunas do quadro com os itens convertidos', async () => {
+    const { controller, board } = createController();
+    const application = makeApplication();
+
+    board.mockResolvedValue({
+      columns: [
+        {
+          status: ApplicationStatus.PENDING,
+          total: 1,
+          items: [application],
+          hasMore: false,
+        },
+      ],
+    });
+
+    const response = await controller.board(USER_ID, {});
+
+    expect(board).toHaveBeenCalledWith({
+      userId: USER_ID,
+      limitPerColumn: undefined,
+      search: undefined,
+    });
+    expect(response.columns[0]?.items[0]?.id).toBe(application.id);
+    expect(response.columns[0]?.total).toBe(1);
   });
 });

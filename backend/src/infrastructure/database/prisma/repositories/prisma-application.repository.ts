@@ -126,6 +126,26 @@ export class PrismaApplicationRepository implements ApplicationRepository {
     return counts;
   }
 
+  async findBoardColumn(
+    userId: string,
+    status: ApplicationStatus,
+    options: { limit: number; search?: string },
+  ): Promise<Application[]> {
+    const records = await this.prisma.application.findMany({
+      where: buildWhere(userId, {
+        limit: options.limit,
+        sort: 'recent',
+        status,
+        search: options.search,
+      }),
+      include: { files: true },
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      take: options.limit,
+    });
+
+    return records.map((record) => ApplicationMapper.toDomain(record));
+  }
+
   async findMaxPosition(
     userId: string,
     status: ApplicationStatus,

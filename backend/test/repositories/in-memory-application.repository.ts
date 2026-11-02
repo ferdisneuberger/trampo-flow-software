@@ -196,6 +196,27 @@ export class InMemoryApplicationRepository implements ApplicationRepository {
       .map(cloneApplication);
   }
 
+  async findBoardColumn(
+    userId: string,
+    status: ApplicationStatus,
+    options: { limit: number; search?: string },
+  ): Promise<Application[]> {
+    const search = options.search?.toLowerCase();
+
+    return [...this.applications.values()]
+      .filter((entry) => entry.userId === userId)
+      .map((entry) => entry.application)
+      .filter((application) => !application.isDeleted)
+      .filter((application) => application.status === status)
+      .filter((application) => !search || matchesSearch(application, search))
+      .sort(
+        (left, right) =>
+          left.position - right.position || left.id.localeCompare(right.id),
+      )
+      .slice(0, options.limit)
+      .map(cloneApplication);
+  }
+
   async findMaxPosition(
     userId: string,
     status: ApplicationStatus,
