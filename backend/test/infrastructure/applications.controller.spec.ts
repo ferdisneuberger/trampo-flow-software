@@ -3,6 +3,7 @@ import type { AddApplicationFilesUseCase } from '../../src/application/applicati
 import type { CreateApplicationUseCase } from '../../src/application/applications/use-cases/create-application.use-case';
 import type { DeleteApplicationUseCase } from '../../src/application/applications/use-cases/delete-application.use-case';
 import type { GetApplicationStatsUseCase } from '../../src/application/applications/use-cases/get-application-stats.use-case';
+import type { GetApplicationUseCase } from '../../src/application/applications/use-cases/get-application.use-case';
 import type { GetBoardUseCase } from '../../src/application/applications/use-cases/get-board.use-case';
 import { encodeCursor } from '../../src/application/applications/types/application-cursor';
 import type { ListApplicationsUseCase } from '../../src/application/applications/use-cases/list-applications.use-case';
@@ -25,6 +26,7 @@ function createController() {
   const addFiles = vi.fn();
   const stats = vi.fn();
   const board = vi.fn();
+  const findOne = vi.fn();
   const place = vi.fn();
 
   const controller = new ApplicationsController(
@@ -32,6 +34,7 @@ function createController() {
     { execute: list } as unknown as ListApplicationsUseCase,
     { execute: stats } as unknown as GetApplicationStatsUseCase,
     { execute: board } as unknown as GetBoardUseCase,
+    { execute: findOne } as unknown as GetApplicationUseCase,
     { execute: update } as unknown as UpdateApplicationUseCase,
     { execute: place } as unknown as PlaceApplicationUseCase,
     { execute: remove } as unknown as DeleteApplicationUseCase,
@@ -48,6 +51,7 @@ function createController() {
     addFiles,
     stats,
     board,
+    findOne,
   };
 }
 
@@ -329,5 +333,20 @@ describe('ApplicationsController', () => {
     });
     expect(response.columns[0]?.items[0]?.id).toBe(application.id);
     expect(response.columns[0]?.total).toBe(1);
+  });
+
+  it('devolve a candidatura pelo id do usuário', async () => {
+    const { controller, findOne } = createController();
+    const application = makeApplication();
+
+    findOne.mockResolvedValue(application);
+
+    const response = await controller.findOne(application.id, USER_ID);
+
+    expect(findOne).toHaveBeenCalledWith({
+      id: application.id,
+      userId: USER_ID,
+    });
+    expect(response.id).toBe(application.id);
   });
 });

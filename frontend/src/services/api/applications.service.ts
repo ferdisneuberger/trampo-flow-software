@@ -59,6 +59,12 @@ export const applicationsService = {
     return data;
   },
 
+  async getById(id: string): Promise<Application> {
+    const { data } = await apiClient.get<Application>(`/applications/${id}`);
+
+    return data;
+  },
+
   async stats(): Promise<ApplicationStats> {
     const { data } = await apiClient.get<ApplicationStats>(
       '/applications/stats',
