@@ -1,10 +1,11 @@
-import { Briefcase, LogOut, UserRound } from 'lucide-react';
+import { Briefcase, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { env } from '../../config/env';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
 
 const navItems = [
+  { to: '/', label: 'Painel', icon: LayoutDashboard },
   { to: '/candidaturas', label: 'Candidaturas', icon: Briefcase },
   { to: '/conta', label: 'Conta', icon: UserRound },
 ] as const;
@@ -40,6 +41,7 @@ export function AppShell() {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === '/'}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',

@@ -36,3 +36,15 @@ export function formatFileSize(sizeInBytes: number): string {
     maximumFractionDigits: 1,
   })} ${units[unitIndex]}`;
 }
+
+export function daysSince(value: string): number {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 0;
+  }
+
+  const diff = Date.now() - date.getTime();
+
+  return Math.max(0, Math.floor(diff / 86_400_000));
+}
