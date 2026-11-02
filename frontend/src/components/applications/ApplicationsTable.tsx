@@ -1,4 +1,5 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Application } from '../../services/applications.types';
 import { formatDate } from '../../utils/format';
 import { ApplicationStatusBadge } from './ApplicationStatusBadge';
@@ -55,17 +56,24 @@ export function ApplicationsTable({
               className="border-b border-line last:border-b-0 hover:bg-surface/50"
             >
               <td className="px-4 py-3">
-                <a
-                  href={application.link}
-                  target="_blank"
-                  rel="noreferrer"
+                <Link
+                  to={`/candidaturas/${application.id}`}
                   className="line-clamp-1 font-medium text-ink-900 underline-offset-4 hover:text-brand-700 hover:underline"
                   title={application.title}
                 >
                   {application.title}
-                </a>
-                <span className="mt-0.5 block text-xs text-ink-400 md:hidden">
+                </Link>
+                <span className="mt-0.5 flex items-center gap-1 text-xs text-ink-400 md:hidden">
                   {application.company}
+                  <a
+                    href={application.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Abrir vaga de ${application.title}`}
+                    className="text-ink-400 hover:text-brand-700"
+                  >
+                    <ExternalLink className="size-3" aria-hidden="true" />
+                  </a>
                 </span>
               </td>
               <td className="hidden px-4 py-3 md:table-cell">

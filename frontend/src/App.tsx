@@ -3,6 +3,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
 import { AuthProvider } from './contexts/AuthContext';
 import { AccountPage } from './pages/AccountPage';
+import { ApplicationDetailPage } from './pages/ApplicationDetailPage';
 import { ApplicationsPage } from './pages/ApplicationsPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -18,6 +19,10 @@ export function App() {
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/candidaturas" replace />} />
               <Route path="candidaturas" element={<ApplicationsPage />} />
+              <Route
+                path="candidaturas/:id"
+                element={<ApplicationDetailPage />}
+              />
               <Route path="conta" element={<AccountPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>

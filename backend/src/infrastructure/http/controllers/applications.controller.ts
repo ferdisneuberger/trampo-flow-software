@@ -37,6 +37,7 @@ import { AddApplicationFilesUseCase } from '../../../application/applications/us
 import { CreateApplicationUseCase } from '../../../application/applications/use-cases/create-application.use-case';
 import { DeleteApplicationUseCase } from '../../../application/applications/use-cases/delete-application.use-case';
 import { GetApplicationStatsUseCase } from '../../../application/applications/use-cases/get-application-stats.use-case';
+import { GetApplicationUseCase } from '../../../application/applications/use-cases/get-application.use-case';
 import { GetBoardUseCase } from '../../../application/applications/use-cases/get-board.use-case';
 import { ListApplicationsUseCase } from '../../../application/applications/use-cases/list-applications.use-case';
 import { PlaceApplicationUseCase } from '../../../application/applications/use-cases/place-application.use-case';
@@ -68,6 +69,7 @@ export class ApplicationsController {
     private readonly listApplicationsUseCase: ListApplicationsUseCase,
     private readonly getApplicationStatsUseCase: GetApplicationStatsUseCase,
     private readonly getBoardUseCase: GetBoardUseCase,
+    private readonly getApplicationUseCase: GetApplicationUseCase,
     private readonly updateApplicationUseCase: UpdateApplicationUseCase,
     private readonly placeApplicationUseCase: PlaceApplicationUseCase,
     private readonly deleteApplicationUseCase: DeleteApplicationUseCase,
@@ -167,6 +169,28 @@ export class ApplicationsController {
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
   stats(@CurrentUserId() userId: string) {
     return this.getApplicationStatsUseCase.execute(userId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Devolve uma candidatura pelo id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: ApplicationHttpResponse })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Candidatura não encontrada.',
+    type: ErrorResponse,
+  })
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() userId: string,
+  ) {
+    const application = await this.getApplicationUseCase.execute({
+      id,
+      userId,
+    });
+
+    return ApplicationPresenter.toHTTP(application);
   }
 
   @Patch(':id')
