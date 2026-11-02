@@ -29,6 +29,7 @@ import {
   CreateApplicationFileDto,
 } from '../../../application/applications/dtos/create-application.dto';
 import { DeleteApplicationQueryDto } from '../../../application/applications/dtos/delete-application-query.dto';
+import { BoardQueryDto } from '../../../application/applications/dtos/board-query.dto';
 import { ListApplicationsQueryDto } from '../../../application/applications/dtos/list-applications-query.dto';
 import { PlaceApplicationDto } from '../../../application/applications/dtos/place-application.dto';
 import { UpdateApplicationDto } from '../../../application/applications/dtos/update-application.dto';
@@ -36,6 +37,7 @@ import { AddApplicationFilesUseCase } from '../../../application/applications/us
 import { CreateApplicationUseCase } from '../../../application/applications/use-cases/create-application.use-case';
 import { DeleteApplicationUseCase } from '../../../application/applications/use-cases/delete-application.use-case';
 import { GetApplicationStatsUseCase } from '../../../application/applications/use-cases/get-application-stats.use-case';
+import { GetBoardUseCase } from '../../../application/applications/use-cases/get-board.use-case';
 import { ListApplicationsUseCase } from '../../../application/applications/use-cases/list-applications.use-case';
 import { PlaceApplicationUseCase } from '../../../application/applications/use-cases/place-application.use-case';
 import {
@@ -52,6 +54,7 @@ import {
 } from '../presenters/application.presenter';
 import {
   ApplicationStatsResponse,
+  BoardResponse,
   ErrorResponse,
   PaginatedApplicationsResponse,
 } from '../schemas/http.schemas';
@@ -64,6 +67,7 @@ export class ApplicationsController {
     private readonly createApplicationUseCase: CreateApplicationUseCase,
     private readonly listApplicationsUseCase: ListApplicationsUseCase,
     private readonly getApplicationStatsUseCase: GetApplicationStatsUseCase,
+    private readonly getBoardUseCase: GetBoardUseCase,
     private readonly updateApplicationUseCase: UpdateApplicationUseCase,
     private readonly placeApplicationUseCase: PlaceApplicationUseCase,
     private readonly deleteApplicationUseCase: DeleteApplicationUseCase,
@@ -129,6 +133,31 @@ export class ApplicationsController {
       ),
       nextCursor: result.nextCursor ? encodeCursor(result.nextCursor) : null,
       hasMore: result.nextCursor !== null,
+    };
+  }
+
+  @Get('board')
+  @ApiOperation({
+    summary: 'Devolve as colunas do quadro, ordenadas por posição',
+  })
+  @ApiOkResponse({ type: BoardResponse })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  async board(@CurrentUserId() userId: string, @Query() query: BoardQueryDto) {
+    const board = await this.getBoardUseCase.execute({
+      userId,
+      limitPerColumn: query.limitPerColumn,
+      search: query.search,
+    });
+
+    return {
+      columns: board.columns.map((column) => ({
+        status: column.status,
+        total: column.total,
+        items: column.items.map((application) =>
+          ApplicationPresenter.toHTTP(application),
+        ),
+        hasMore: column.hasMore,
+      })),
     };
   }
 

@@ -1,9 +1,11 @@
 import type {
   Application,
+  ApplicationBoard,
   ApplicationStatus,
   CreateApplicationFileInput,
   CreateApplicationInput,
   DeleteApplicationMode,
+  PlaceApplicationInput,
   UpdateApplicationInput,
 } from '../applications.types';
 import { apiClient } from './client';
@@ -34,6 +36,24 @@ export const applicationsService = {
     const { data } = await apiClient.get<PaginatedApplications>(
       '/applications',
       { params },
+    );
+
+    return data;
+  },
+
+  async board(params: { search?: string } = {}): Promise<ApplicationBoard> {
+    const { data } = await apiClient.get<ApplicationBoard>(
+      '/applications/board',
+      { params },
+    );
+
+    return data;
+  },
+
+  async place(id: string, input: PlaceApplicationInput): Promise<Application> {
+    const { data } = await apiClient.patch<Application>(
+      `/applications/${id}/placement`,
+      input,
     );
 
     return data;

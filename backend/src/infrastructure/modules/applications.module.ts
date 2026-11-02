@@ -3,6 +3,7 @@ import { AddApplicationFilesUseCase } from '../../application/applications/use-c
 import { CreateApplicationUseCase } from '../../application/applications/use-cases/create-application.use-case';
 import { DeleteApplicationUseCase } from '../../application/applications/use-cases/delete-application.use-case';
 import { GetApplicationStatsUseCase } from '../../application/applications/use-cases/get-application-stats.use-case';
+import { GetBoardUseCase } from '../../application/applications/use-cases/get-board.use-case';
 import { ListApplicationsUseCase } from '../../application/applications/use-cases/list-applications.use-case';
 import { PlaceApplicationUseCase } from '../../application/applications/use-cases/place-application.use-case';
 import { UpdateApplicationUseCase } from '../../application/applications/use-cases/update-application.use-case';
@@ -15,6 +16,7 @@ import { ApplicationsController } from '../http/controllers/applications.control
   providers: [
     CreateApplicationUseCase,
     GetApplicationStatsUseCase,
+    GetBoardUseCase,
     ListApplicationsUseCase,
     PlaceApplicationUseCase,
     UpdateApplicationUseCase,
