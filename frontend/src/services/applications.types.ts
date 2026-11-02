@@ -22,10 +22,11 @@ export const APPLICATION_STATUS_OPTIONS = APPLICATION_STATUSES.map((value) => ({
 export type ApplicationFile = {
   id: string;
   name: string;
-  url: string;
   mimeType: string;
   sizeInBytes: number;
   uploadedAt: string;
+  url: string | null;
+  downloadUrl: string | null;
 };
 
 export type Application = {
