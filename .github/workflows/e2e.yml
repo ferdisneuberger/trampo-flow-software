@@ -37,7 +37,7 @@ jobs:
           ENV
 
       - name: Start stack
-        run: docker compose up -d --build
+        run: docker compose up -d --build postgres api web ingress
 
       - name: Wait for the API
         run: |

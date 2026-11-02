@@ -31,13 +31,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
     networks:
       - backend
 
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -79,8 +77,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
     healthcheck:
       test:
         [
