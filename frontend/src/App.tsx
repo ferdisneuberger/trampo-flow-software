@@ -1,7 +1,8 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
 import { AuthProvider } from './contexts/AuthContext';
+import { AccountPage } from './pages/AccountPage';
 import { ApplicationsPage } from './pages/ApplicationsPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -15,7 +16,9 @@ export function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
-              <Route index element={<ApplicationsPage />} />
+              <Route index element={<Navigate to="/candidaturas" replace />} />
+              <Route path="candidaturas" element={<ApplicationsPage />} />
+              <Route path="conta" element={<AccountPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Route>
