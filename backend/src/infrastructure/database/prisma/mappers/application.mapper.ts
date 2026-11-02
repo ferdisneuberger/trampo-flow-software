@@ -42,9 +42,11 @@ export class ApplicationMapper {
         ApplicationFile.restore({
           id: file.id,
           name: file.name,
-          url: file.url,
+          storageKey: file.storageKey,
+          legacyUrl: file.legacyUrl,
           mimeType: file.mimeType,
           sizeInBytes: file.sizeInBytes,
+          checksum: file.checksum,
           uploadedAt: file.uploadedAt,
         }),
       ),
@@ -99,9 +101,11 @@ export class ApplicationMapper {
     return {
       id: file.id,
       name: file.name,
-      url: file.url,
+      storageKey: file.storageKey,
+      legacyUrl: file.legacyUrl,
       mimeType: file.mimeType,
       sizeInBytes: file.sizeInBytes,
+      checksum: file.checksum,
       uploadedAt: file.uploadedAt,
     };
   }
@@ -111,9 +115,11 @@ export class ApplicationMapper {
   ): Prisma.ApplicationFileUncheckedUpdateInput {
     return {
       name: file.name,
-      url: file.url,
+      storageKey: file.storageKey,
+      legacyUrl: file.legacyUrl,
       mimeType: file.mimeType,
       sizeInBytes: file.sizeInBytes,
+      checksum: file.checksum,
       uploadedAt: file.uploadedAt,
     };
   }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,10 +11,15 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
@@ -34,6 +40,9 @@ import { ListApplicationsQueryDto } from '../../../application/applications/dtos
 import { PlaceApplicationDto } from '../../../application/applications/dtos/place-application.dto';
 import { UpdateApplicationDto } from '../../../application/applications/dtos/update-application.dto';
 import { AddApplicationFilesUseCase } from '../../../application/applications/use-cases/add-application-files.use-case';
+import { DownloadApplicationFileUseCase } from '../../../application/applications/use-cases/download-application-file.use-case';
+import { RemoveApplicationFileUseCase } from '../../../application/applications/use-cases/remove-application-file.use-case';
+import { UploadApplicationFileUseCase } from '../../../application/applications/use-cases/upload-application-file.use-case';
 import { CreateApplicationUseCase } from '../../../application/applications/use-cases/create-application.use-case';
 import { DeleteApplicationUseCase } from '../../../application/applications/use-cases/delete-application.use-case';
 import { GetApplicationStatsUseCase } from '../../../application/applications/use-cases/get-application-stats.use-case';
@@ -48,7 +57,6 @@ import {
 import { UpdateApplicationUseCase } from '../../../application/applications/use-cases/update-application.use-case';
 import { APPLICATION_DELETE_MODES } from '../../../application/applications/types/application-delete-mode';
 import { CreateApplicationFileInput } from '../../../domain/applications/entities/application-file.entity';
-import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import {
   ApplicationHttpResponse,
   ApplicationPresenter,
@@ -74,6 +82,9 @@ export class ApplicationsController {
     private readonly placeApplicationUseCase: PlaceApplicationUseCase,
     private readonly deleteApplicationUseCase: DeleteApplicationUseCase,
     private readonly addApplicationFilesUseCase: AddApplicationFilesUseCase,
+    private readonly uploadApplicationFileUseCase: UploadApplicationFileUseCase,
+    private readonly downloadApplicationFileUseCase: DownloadApplicationFileUseCase,
+    private readonly removeApplicationFileUseCase: RemoveApplicationFileUseCase,
   ) {}
 
   @Post()
@@ -286,6 +297,102 @@ export class ApplicationsController {
     });
 
     return ApplicationPresenter.toHTTP(application);
+  }
+
+  @Post(':id/files/upload')
+  @ApiOperation({ summary: 'Envia um arquivo PDF ou TXT para a candidatura' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: ApplicationHttpResponse })
+  @ApiResponse({ status: 400, description: 'Arquivo inválido.' })
+  @ApiResponse({ status: 409, description: 'Limite de arquivos atingido.' })
+  async uploadFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() request: FastifyRequest,
+    @CurrentUserId() userId: string,
+  ) {
+    const part = await request.file().catch((error: unknown) => {
+      const code = (error as { code?: string }).code;
+
+      if (code === 'FST_REQ_FILE_TOO_LARGE') {
+        throw new BadRequestException({
+          message: 'O arquivo deve ter no máximo 5 MB.',
+          code: 'FILE_TOO_LARGE',
+        });
+      }
+
+      throw error;
+    });
+
+    if (!part) {
+      throw new BadRequestException({
+        message: 'Arquivo ausente.',
+        code: 'FILE_MISSING',
+      });
+    }
+
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of part.file) {
+      chunks.push(chunk as Buffer);
+    }
+
+    const application = await this.uploadApplicationFileUseCase.execute({
+      userId,
+      applicationId: id,
+      filename: part.filename,
+      buffer: Buffer.concat(chunks),
+    });
+
+    return ApplicationPresenter.toHTTP(application);
+  }
+
+  @Get(':id/files/:fileId/download')
+  @ApiOperation({ summary: 'Baixa um arquivo enviado' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: 'fileId', format: 'uuid' })
+  async downloadFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @CurrentUserId() userId: string,
+    @Res() reply: FastifyReply,
+  ) {
+    const { file, stream } = await this.downloadApplicationFileUseCase.execute({
+      userId,
+      applicationId: id,
+      fileId,
+    });
+
+    const safeName = file.name.replace(/["\r\n]/g, '_');
+
+    reply
+      .header('Content-Type', file.mimeType)
+      .header('Content-Disposition', `attachment; filename="${safeName}"`)
+      .header('X-Content-Type-Options', 'nosniff')
+      .send(stream);
+  }
+
+  @Delete(':id/files/:fileId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove um arquivo da candidatura' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: 'fileId', format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Arquivo removido.' })
+  async removeFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @CurrentUserId() userId: string,
+  ): Promise<void> {
+    await this.removeApplicationFileUseCase.execute({
+      userId,
+      applicationId: id,
+      fileId,
+    });
   }
 
   @Delete(':id')

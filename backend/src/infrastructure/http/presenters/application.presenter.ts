@@ -10,9 +10,6 @@ export class ApplicationFileHttpResponse {
   @ApiProperty({ example: 'curriculo.pdf' })
   name!: string;
 
-  @ApiProperty({ example: 'https://example.com/files/curriculo.pdf' })
-  url!: string;
-
   @ApiProperty({ example: 'application/pdf' })
   mimeType!: string;
 
@@ -21,6 +18,18 @@ export class ApplicationFileHttpResponse {
 
   @ApiProperty({ format: 'date-time' })
   uploadedAt!: string;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'URL externa de arquivos anteriores ao upload.',
+  })
+  url!: string | null;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Rota autenticada de download para arquivos enviados.',
+  })
+  downloadUrl!: string | null;
 }
 
 export class ApplicationHttpResponse {
@@ -80,7 +89,7 @@ export class ApplicationPresenter {
       status: application.status,
       currentPhase: application.currentPhase,
       files: application.files.map((file) =>
-        ApplicationPresenter.fileToHTTP(file),
+        ApplicationPresenter.fileToHTTP(file, application.id),
       ),
       createdAt: application.createdAt.toISOString(),
       updatedAt: application.updatedAt.toISOString(),
@@ -90,14 +99,18 @@ export class ApplicationPresenter {
 
   private static fileToHTTP(
     file: ApplicationFile,
+    applicationId: string,
   ): ApplicationFileHttpResponse {
     return {
       id: file.id,
       name: file.name,
-      url: file.url,
       mimeType: file.mimeType,
       sizeInBytes: file.sizeInBytes,
       uploadedAt: file.uploadedAt.toISOString(),
+      url: file.legacyUrl,
+      downloadUrl: file.storageKey
+        ? `/applications/${applicationId}/files/${file.id}/download`
+        : null,
     };
   }
 }

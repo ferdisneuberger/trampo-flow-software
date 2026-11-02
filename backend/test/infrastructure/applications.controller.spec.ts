@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AddApplicationFilesUseCase } from '../../src/application/applications/use-cases/add-application-files.use-case';
+import type { DownloadApplicationFileUseCase } from '../../src/application/applications/use-cases/download-application-file.use-case';
+import type { RemoveApplicationFileUseCase } from '../../src/application/applications/use-cases/remove-application-file.use-case';
+import type { UploadApplicationFileUseCase } from '../../src/application/applications/use-cases/upload-application-file.use-case';
 import type { CreateApplicationUseCase } from '../../src/application/applications/use-cases/create-application.use-case';
 import type { DeleteApplicationUseCase } from '../../src/application/applications/use-cases/delete-application.use-case';
 import type { GetApplicationStatsUseCase } from '../../src/application/applications/use-cases/get-application-stats.use-case';
@@ -28,6 +31,9 @@ function createController() {
   const board = vi.fn();
   const findOne = vi.fn();
   const place = vi.fn();
+  const uploadFile = vi.fn();
+  const downloadFile = vi.fn();
+  const removeFile = vi.fn();
 
   const controller = new ApplicationsController(
     { execute: create } as unknown as CreateApplicationUseCase,
@@ -39,6 +45,9 @@ function createController() {
     { execute: place } as unknown as PlaceApplicationUseCase,
     { execute: remove } as unknown as DeleteApplicationUseCase,
     { execute: addFiles } as unknown as AddApplicationFilesUseCase,
+    { execute: uploadFile } as unknown as UploadApplicationFileUseCase,
+    { execute: downloadFile } as unknown as DownloadApplicationFileUseCase,
+    { execute: removeFile } as unknown as RemoveApplicationFileUseCase,
   );
 
   return {
@@ -52,6 +61,9 @@ function createController() {
     stats,
     board,
     findOne,
+    uploadFile,
+    downloadFile,
+    removeFile,
   };
 }
 

@@ -25,7 +25,8 @@ describe('ApplicationFile', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
     expect(file.name).toBe('resume.pdf');
-    expect(file.url).toBe('https://storage.example.com/resume.pdf');
+    expect(file.legacyUrl).toBe('https://storage.example.com/resume.pdf');
+    expect(file.storageKey).toBeNull();
     expect(file.mimeType).toBe('application/pdf');
     expect(file.sizeInBytes).toBe(2048);
     expect(file.uploadedAt).toBeInstanceOf(Date);
@@ -51,15 +52,17 @@ describe('ApplicationFile', () => {
     const file = ApplicationFile.restore({
       id: '3b2f7d0e-0f8f-4a37-9f9b-3d7f5f3f9a11',
       name: 'portfolio.pdf',
-      url: 'https://storage.example.com/portfolio.pdf',
+      storageKey: null,
+      legacyUrl: 'https://storage.example.com/portfolio.pdf',
       mimeType: 'application/pdf',
       sizeInBytes: 4096,
+      checksum: null,
       uploadedAt,
     });
 
     expect(file.id).toBe('3b2f7d0e-0f8f-4a37-9f9b-3d7f5f3f9a11');
     expect(file.name).toBe('portfolio.pdf');
-    expect(file.url).toBe('https://storage.example.com/portfolio.pdf');
+    expect(file.legacyUrl).toBe('https://storage.example.com/portfolio.pdf');
     expect(file.mimeType).toBe('application/pdf');
     expect(file.sizeInBytes).toBe(4096);
     expect(file.uploadedAt.toISOString()).toBe(uploadedAt.toISOString());
