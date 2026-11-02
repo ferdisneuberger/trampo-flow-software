@@ -33,7 +33,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     const restoreSession = async () => {
       try {
-        await authService.refresh();
+        const session = await authService.refresh();
+
+        accessTokenStore.set(session.accessToken);
 
         const profile = await authService.me();
 
