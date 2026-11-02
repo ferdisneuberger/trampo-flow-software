@@ -768,6 +768,20 @@ As variáveis de autenticação também são lidas do ambiente; veja [Autentica�
 
 No Docker, o Compose define `DATABASE_URL` apontando para o host `postgres` e sobrescreve o valor do `.env`.
 
+### Storage (`api`)
+
+Os anexos ficam em um bucket compatível com S3. No Compose, o MinIO sobe junto e o bucket é criado no boot da API.
+
+| Variável        | Padrão              | Descrição                               |
+| --------------- | ------------------- | --------------------------------------- |
+| `S3_ENDPOINT`   | `minio`             | Host do storage                         |
+| `S3_PORT`       | `9000`              | Porta                                   |
+| `S3_USE_SSL`    | `false`             | Usa TLS                                 |
+| `S3_ACCESS_KEY` | `trampo`            | Credencial de acesso                    |
+| `S3_SECRET_KEY` | `trampo_dev_secret` | Credencial secreta (troque em produção) |
+| `S3_BUCKET`     | `trampo-files`      | Bucket onde os arquivos são gravados    |
+| `S3_REGION`     | `us-east-1`         | Região informada ao cliente             |
+
 ### Frontend (`frontend/.env`)
 
 | Variável                | Padrão                  | Descrição                                                    |
