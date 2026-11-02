@@ -4,6 +4,17 @@
 
 Aplicação full stack para acompanhar candidaturas de emprego. O backend é uma API Node.js com NestJS, Fastify, Prisma e PostgreSQL, organizada em camadas seguindo DDD e os princípios de SOLID. O frontend é uma SPA React com Vite, TypeScript e Tailwind CSS, estruturada em componentes, hooks e serviços.
 
+## Principais mudanças da 2.0
+
+- Candidaturas por usuário, com empresa e site.
+- Quadro kanban com arrastar e soltar e reordenação manual persistida.
+- Busca, filtros e paginação no servidor, com contadores em endpoint próprio.
+- Upload de PDF e TXT em storage compatível com S3.
+- Sessão com access token curto em memória e refresh token em cookie `HttpOnly`.
+- Painel com contadores e candidaturas paradas há mais tempo.
+
+O histórico completo está em [CHANGELOG.md](CHANGELOG.md).
+
 ## Stack
 
 - **Node.js 24** e **TypeScript**
