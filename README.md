@@ -407,6 +407,25 @@ curl http://localhost:5173/api/applications/stats \
 
 Os contadores consideram todas as candidaturas ativas do usuário e ignoram os filtros de busca.
 
+### Mover no quadro
+
+```bash
+curl -X PATCH http://localhost:5173/api/applications/<id>/placement \
+  -H 'content-type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{ "status": "IN_PROGRESS", "beforeId": "<id-acima>", "afterId": "<id-abaixo>" }'
+```
+
+| Campo      | Obrigatório | Regra                                     |
+| ---------- | ----------- | ----------------------------------------- |
+| `status`   | não         | Destino; mantém o atual quando omitido    |
+| `beforeId` | não         | Candidatura que fica imediatamente acima  |
+| `afterId`  | não         | Candidatura que fica imediatamente abaixo |
+
+A posição é calculada em múltiplos de 1000. Quando o intervalo entre dois vizinhos chega a
+1, a coluna é reindexada na mesma transação. Vizinho de outro status responde `400`
+(`INVALID_PLACEMENT`). Candidaturas novas entram no fim da coluna.
+
 ### Atualizar candidatura
 
 ```bash

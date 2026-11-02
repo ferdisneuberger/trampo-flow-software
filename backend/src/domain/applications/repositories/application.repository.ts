@@ -19,6 +19,13 @@ export type FindApplicationsPageOptions = {
 
 export type ApplicationStatusCount = Record<ApplicationStatus, number>;
 
+export type PlaceApplicationInput = {
+  applicationId: string;
+  userId: string;
+  status: ApplicationStatus;
+  position: number;
+};
+
 export abstract class ApplicationRepository {
   abstract create(application: Application, userId: string): Promise<void>;
 
@@ -34,6 +41,18 @@ export abstract class ApplicationRepository {
   ): Promise<Application[]>;
 
   abstract countByStatus(userId: string): Promise<ApplicationStatusCount>;
+
+  abstract findMaxPosition(
+    userId: string,
+    status: ApplicationStatus,
+  ): Promise<number>;
+
+  abstract reindexStatus(
+    userId: string,
+    status: ApplicationStatus,
+  ): Promise<void>;
+
+  abstract place(input: PlaceApplicationInput): Promise<void>;
 
   abstract update(application: Application, userId: string): Promise<void>;
 

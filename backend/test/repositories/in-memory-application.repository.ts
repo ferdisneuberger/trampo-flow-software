@@ -5,6 +5,7 @@ import {
   ApplicationRepository,
   ApplicationStatusCount,
   FindApplicationsPageOptions,
+  PlaceApplicationInput,
 } from '../../src/domain/applications/repositories/application.repository';
 
 type Entry = {
@@ -32,6 +33,27 @@ function cloneApplication(application: Application): Application {
         uploadedAt: file.uploadedAt,
       }),
     ),
+    createdAt: application.createdAt,
+    updatedAt: application.updatedAt,
+    deletedAt: application.deletedAt,
+  });
+}
+
+function withPlacement(
+  application: Application,
+  status: ApplicationStatus,
+  position: number,
+): Application {
+  return Application.restore({
+    id: application.id,
+    title: application.title,
+    link: application.link,
+    company: application.company,
+    companyUrl: application.companyUrl,
+    position,
+    status,
+    currentPhase: application.currentPhase,
+    files: application.files,
     createdAt: application.createdAt,
     updatedAt: application.updatedAt,
     deletedAt: application.deletedAt,
@@ -100,9 +122,12 @@ export class InMemoryApplicationRepository implements ApplicationRepository {
       throw new Error(`Application "${application.id}" already exists.`);
     }
 
+    const position =
+      (await this.findMaxPosition(userId, application.status)) + 1000;
+
     this.applications.set(application.id, {
       userId,
-      application: cloneApplication(application),
+      application: withPlacement(application, application.status, position),
     });
   }
 
@@ -171,6 +196,60 @@ export class InMemoryApplicationRepository implements ApplicationRepository {
       .map(cloneApplication);
   }
 
+  async findMaxPosition(
+    userId: string,
+    status: ApplicationStatus,
+  ): Promise<number> {
+    return [...this.applications.values()]
+      .filter(
+        (entry) =>
+          entry.userId === userId &&
+          !entry.application.isDeleted &&
+          entry.application.status === status,
+      )
+      .reduce((max, entry) => Math.max(max, entry.application.position), 0);
+  }
+
+  async reindexStatus(
+    userId: string,
+    status: ApplicationStatus,
+  ): Promise<void> {
+    const rows = [...this.applications.values()]
+      .filter(
+        (entry) =>
+          entry.userId === userId &&
+          !entry.application.isDeleted &&
+          entry.application.status === status,
+      )
+      .sort(
+        (left, right) =>
+          left.application.position - right.application.position ||
+          left.application.id.localeCompare(right.application.id),
+      );
+
+    rows.forEach((entry, index) => {
+      entry.application = withPlacement(
+        entry.application,
+        status,
+        (index + 1) * 1000,
+      );
+    });
+  }
+
+  async place(input: PlaceApplicationInput): Promise<void> {
+    const entry = this.applications.get(input.applicationId);
+
+    if (!entry || entry.userId !== input.userId) {
+      throw new Error(`Application "${input.applicationId}" does not exist.`);
+    }
+
+    entry.application = withPlacement(
+      entry.application,
+      input.status,
+      input.position,
+    );
+  }
+
   async update(application: Application, userId: string): Promise<void> {
     const entry = this.applications.get(application.id);
 
@@ -178,9 +257,14 @@ export class InMemoryApplicationRepository implements ApplicationRepository {
       throw new Error(`Application "${application.id}" does not exist.`);
     }
 
+    const statusChanged = entry.application.status !== application.status;
+    const position = statusChanged
+      ? (await this.findMaxPosition(userId, application.status)) + 1000
+      : application.position;
+
     this.applications.set(application.id, {
       userId,
-      application: cloneApplication(application),
+      application: withPlacement(application, application.status, position),
     });
   }
 

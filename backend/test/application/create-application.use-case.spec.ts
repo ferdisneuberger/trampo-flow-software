@@ -222,4 +222,12 @@ describe('CreateApplicationUseCase', () => {
       code: 'TITLE_REQUIRED',
     });
   });
+
+  it('anexa ao fim da coluna somando mil à maior posição', async () => {
+    const first = await useCase.execute({ ...validInput });
+    const second = await useCase.execute({ ...validInput });
+
+    expect(first.position).toBe(1000);
+    expect(second.position).toBe(2000);
+  });
 });

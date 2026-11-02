@@ -98,16 +98,25 @@ async function main() {
     );
   }
 
+  const positions = new Map();
+
   await prisma.application.createMany({
-    data: samples.map((sample, index) => ({
-      id: randomUUID(),
-      userId: user.id,
-      ...sample,
-      company: sample.title.split(' - ').at(-1) ?? sample.title,
-      companyUrl: null,
-      createdAt: new Date(now - index * 86_400_000),
-      updatedAt: new Date(now - index * 86_400_000),
-    })),
+    data: samples.map((sample, index) => {
+      const position = (positions.get(sample.status) ?? 0) + 1000;
+
+      positions.set(sample.status, position);
+
+      return {
+        id: randomUUID(),
+        userId: user.id,
+        ...sample,
+        company: sample.title.split(' - ').at(-1) ?? sample.title,
+        companyUrl: null,
+        position,
+        createdAt: new Date(now - index * 86_400_000),
+        updatedAt: new Date(now - index * 86_400_000),
+      };
+    }),
   });
 
   console.log(`seed: ${samples.length} candidaturas criadas`);

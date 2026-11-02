@@ -351,4 +351,105 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       REJECTED: 0,
     });
   });
+
+  it('grava status e posição no placement', async () => {
+    const application = makeApplication();
+
+    await repository.create(application, USER_ID);
+    await repository.place({
+      applicationId: application.id,
+      userId: USER_ID,
+      status: ApplicationStatus.COMPLETED,
+      position: 4000,
+    });
+
+    const stored = await repository.findById(application.id, USER_ID);
+
+    expect(stored?.status).toBe(ApplicationStatus.COMPLETED);
+    expect(stored?.position).toBe(4000);
+  });
+
+  it('descobre a maior posição da coluna', async () => {
+    const application = makeRestoredApplication({
+      status: ApplicationStatus.PENDING,
+    });
+
+    await repository.create(application, USER_ID);
+    await repository.place({
+      applicationId: application.id,
+      userId: USER_ID,
+      status: ApplicationStatus.PENDING,
+      position: 3000,
+    });
+
+    await expect(
+      repository.findMaxPosition(USER_ID, ApplicationStatus.PENDING),
+    ).resolves.toBe(3000);
+    await expect(
+      repository.findMaxPosition(USER_ID, ApplicationStatus.COMPLETED),
+    ).resolves.toBe(0);
+  });
+
+  it('reindexa a coluna em múltiplos de mil', async () => {
+    const first = makeRestoredApplication({
+      title: 'Primeira',
+      status: ApplicationStatus.PENDING,
+    });
+    const second = makeRestoredApplication({
+      title: 'Segunda',
+      status: ApplicationStatus.PENDING,
+    });
+
+    await repository.create(first, USER_ID);
+    await repository.create(second, USER_ID);
+    await repository.place({
+      applicationId: first.id,
+      userId: USER_ID,
+      status: ApplicationStatus.PENDING,
+      position: 5,
+    });
+    await repository.place({
+      applicationId: second.id,
+      userId: USER_ID,
+      status: ApplicationStatus.PENDING,
+      position: 6,
+    });
+
+    await repository.reindexStatus(USER_ID, ApplicationStatus.PENDING);
+
+    const stored = await repository.findPage(USER_ID, {
+      limit: 10,
+      sort: 'recent',
+      status: ApplicationStatus.PENDING,
+    });
+    const positions = stored
+      .map((item) => item.position)
+      .sort((left, right) => left - right);
+
+    expect(positions).toEqual([1000, 2000]);
+  });
+
+  it('anexa ao fim da coluna quando o status muda pelo update', async () => {
+    const existing = makeRestoredApplication({
+      status: ApplicationStatus.COMPLETED,
+    });
+    const application = makeApplication();
+
+    await repository.create(existing, USER_ID);
+    await repository.create(application, USER_ID);
+    await repository.place({
+      applicationId: existing.id,
+      userId: USER_ID,
+      status: ApplicationStatus.COMPLETED,
+      position: 1000,
+    });
+
+    application.updateDetails({ status: ApplicationStatus.COMPLETED });
+    await repository.update(application, USER_ID);
+
+    const stored = await repository.findById(application.id, USER_ID);
+
+    expect(stored?.status).toBe(ApplicationStatus.COMPLETED);
+    expect(stored?.position).toBe(2000);
+  });
 });
