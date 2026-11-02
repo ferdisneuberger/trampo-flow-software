@@ -27,9 +27,11 @@ function cloneApplication(application: Application): Application {
       ApplicationFile.restore({
         id: file.id,
         name: file.name,
-        url: file.url,
+        storageKey: file.storageKey,
+        legacyUrl: file.legacyUrl,
         mimeType: file.mimeType,
         sizeInBytes: file.sizeInBytes,
+        checksum: file.checksum,
         uploadedAt: file.uploadedAt,
       }),
     ),

@@ -37,9 +37,11 @@ function makeFileRecord(): PrismaApplicationFile {
     id: 'a8f2d9c4-2f5b-4a1e-8f3d-9c7e6b5a4d21',
     applicationId: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
     name: 'curriculo.pdf',
-    url: 'https://example.com/files/curriculo.pdf',
+    storageKey: null,
+    legacyUrl: 'https://example.com/files/curriculo.pdf',
     mimeType: 'application/pdf',
     sizeInBytes: 182_331,
+    checksum: null,
     uploadedAt: new Date('2026-01-01T12:00:00.000Z'),
   };
 }

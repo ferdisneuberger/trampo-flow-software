@@ -283,6 +283,22 @@ export class Application {
     this.props.updatedAt = new Date();
   }
 
+  removeFile(fileId: string): void {
+    this.ensureNotDeleted();
+
+    const index = this.props.files.findIndex((file) => file.id === fileId);
+
+    if (index < 0) {
+      throw new DomainError(
+        `File "${fileId}" was not found in this application.`,
+        'FILE_NOT_FOUND',
+      );
+    }
+
+    this.props.files.splice(index, 1);
+    this.props.updatedAt = new Date();
+  }
+
   softDelete(): void {
     if (this.props.deletedAt) {
       throw new DomainError(

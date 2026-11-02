@@ -54,9 +54,11 @@ model ApplicationFile {
   applicationId String      @map("application_id") @db.Uuid
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   name          String      @db.VarChar(255)
-  url           String      @db.VarChar(2048)
+  storageKey    String?     @unique @map("storage_key") @db.VarChar(512)
+  legacyUrl     String?     @map("legacy_url") @db.VarChar(2048)
   mimeType      String      @map("mime_type") @db.VarChar(100)
   sizeInBytes   Int         @map("size_in_bytes")
+  checksum      String?     @db.VarChar(64)
   uploadedAt    DateTime    @default(now()) @map("uploaded_at")
 
   @@index([applicationId])

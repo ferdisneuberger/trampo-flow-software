@@ -443,23 +443,27 @@ Todos os campos são opcionais, mas pelo menos um deve ser enviado. Campos aceit
 
 ### Anexar arquivos
 
+Envio real de binário, com limite de **5 MB** por arquivo e **3 arquivos** por candidatura. Apenas **PDF** e **TXT** são aceitos; o tipo é validado pela extensão e pelos primeiros bytes, não pelo `Content-Type` enviado.
+
 ```bash
-curl -X POST http://localhost:5173/api/applications/<id>/files \
-  -H 'content-type: application/json' \
+curl -X POST http://localhost:5173/api/applications/<id>/files/upload \
   -H 'Authorization: Bearer <token>' \
-  -d '{
-    "files": [
-      {
-        "name": "portfolio.pdf",
-        "url": "https://storage.example.com/portfolio.pdf",
-        "mimeType": "application/pdf",
-        "sizeInBytes": 204800
-      }
-    ]
-  }'
+  -F 'file=@curriculo.pdf'
 ```
 
-É possível anexar um ou mais arquivos por requisição. Os arquivos existentes são preservados.
+O arquivo é gravado no storage S3/MinIO e o registro guarda apenas a chave do objeto, o tamanho e o checksum SHA-256. O nome enviado é usado só para exibição.
+
+```bash
+# download autenticado, sempre como anexo
+curl -OJ http://localhost:5173/api/applications/<id>/files/<fileId>/download \
+  -H 'Authorization: Bearer <token>'
+
+# remover um arquivo
+curl -X DELETE http://localhost:5173/api/applications/<id>/files/<fileId> \
+  -H 'Authorization: Bearer <token>'
+```
+
+Arquivos cadastrados antes deste recurso continuam aparecendo como link externo (`url` no payload, sem `downloadUrl`).
 
 ### Excluir candidatura
 

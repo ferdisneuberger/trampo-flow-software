@@ -47,6 +47,7 @@ describe('ApplicationPresenter', () => {
     expect(file).toMatchObject({
       name: 'curriculo.pdf',
       url: 'https://storage.example.com/resume.pdf',
+      downloadUrl: null,
       mimeType: 'application/pdf',
       sizeInBytes: 1024,
     });
