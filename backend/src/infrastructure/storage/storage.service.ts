@@ -1,9 +1,30 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Client } from 'minio';
+import {
+  CreateBucketCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadBucketCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import type { Readable } from 'node:stream';
 
 export const STORAGE_CLIENT = 'STORAGE_CLIENT';
+
+function isNotFound(error: unknown): boolean {
+  const candidate = error as {
+    name?: string;
+    $metadata?: { httpStatusCode?: number };
+  };
+
+  return (
+    candidate.name === 'NotFound' ||
+    candidate.name === 'NoSuchBucket' ||
+    candidate.$metadata?.httpStatusCode === 404
+  );
+}
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -11,7 +32,7 @@ export class StorageService implements OnModuleInit {
   private readonly bucket: string;
 
   constructor(
-    private readonly client: Client,
+    private readonly client: S3Client,
     configService: ConfigService,
   ) {
     this.bucket = configService.get<string>('S3_BUCKET') ?? 'trampo-files';
@@ -24,27 +45,37 @@ export class StorageService implements OnModuleInit {
   async ensureBucket(): Promise<void> {
     for (let attempt = 1; attempt <= 5; attempt += 1) {
       try {
-        const exists = await this.client.bucketExists(this.bucket);
-
-        if (!exists) {
-          await this.client.makeBucket(this.bucket);
-          this.logger.log(`Bucket "${this.bucket}" criado.`);
-        }
+        await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
 
         return;
       } catch (error) {
-        if (attempt === 5) {
+        if (isNotFound(error)) {
+          try {
+            await this.client.send(
+              new CreateBucketCommand({ Bucket: this.bucket }),
+            );
+            this.logger.log(`Bucket "${this.bucket}" criado.`);
+
+            return;
+          } catch (createError) {
+            if (attempt === 5) {
+              this.logger.warn(
+                `Não foi possível criar o bucket "${this.bucket}": ${this.describe(createError)}`,
+              );
+
+              return;
+            }
+          }
+        } else if (attempt === 5) {
           this.logger.warn(
-            `Não foi possível preparar o bucket "${this.bucket}": ${
-              error instanceof Error ? error.message : 'erro desconhecido'
-            }`,
+            `Não foi possível preparar o bucket "${this.bucket}": ${this.describe(error)}`,
           );
 
           return;
         }
-
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
       }
+
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
     }
   }
 
@@ -53,28 +84,44 @@ export class StorageService implements OnModuleInit {
     body: Buffer,
     contentType: string,
   ): Promise<void> {
-    await this.client.putObject(this.bucket, key, body, body.length, {
-      'Content-Type': contentType,
-    });
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      }),
+    );
   }
 
   async getObject(key: string): Promise<Readable> {
-    return this.client.getObject(this.bucket, key);
+    const response = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+
+    return response.Body as Readable;
   }
 
   async removeObject(key: string): Promise<void> {
-    await this.client.removeObject(this.bucket, key);
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
   }
 
   async statObject(
     key: string,
   ): Promise<{ size: number; contentType: string }> {
-    const stat = await this.client.statObject(this.bucket, key);
-    const metadata = stat.metaData as Record<string, string | undefined>;
+    const response = await this.client.send(
+      new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
 
     return {
-      size: stat.size,
-      contentType: metadata['content-type'] ?? '',
+      size: response.ContentLength ?? 0,
+      contentType: response.ContentType ?? '',
     };
+  }
+
+  private describe(error: unknown): string {
+    return error instanceof Error ? error.message : 'erro desconhecido';
   }
 }
