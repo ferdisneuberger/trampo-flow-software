@@ -1,5 +1,5 @@
 import { Compass } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ButtonLink } from '../components/ui/ButtonLink';
 import { Card } from '../components/ui/Card';
 
 export function NotFoundPage() {
@@ -15,15 +15,12 @@ export function NotFoundPage() {
         Página não encontrada
       </h1>
       <p className="mt-2 max-w-md text-sm leading-6 text-ink-500">
-        O endereço acessado não existe ou foi movido. Volte para o painel de
+        O endereço acessado não existe ou foi movido. Volte para o quadro de
         candidaturas para continuar acompanhando seus processos.
       </p>
-      <Link
-        to="/"
-        className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2"
-      >
+      <ButtonLink to="/candidaturas" className="mt-6">
         Voltar para candidaturas
-      </Link>
+      </ButtonLink>
     </Card>
   );
 }

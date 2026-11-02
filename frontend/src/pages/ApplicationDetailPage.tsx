@@ -1,8 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Building2,
   CalendarDays,
+  Download,
   ExternalLink,
   FileText,
   Pencil,
@@ -16,79 +16,70 @@ import {
   MAX_FILES_PER_APPLICATION,
 } from '../components/applications/FileUploader';
 import { ApplicationStatusBadge } from '../components/applications/ApplicationStatusBadge';
+import { DeleteApplicationDialog } from '../components/applications/DeleteApplicationDialog';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Modal } from '../components/ui/Modal';
+import { Skeleton } from '../components/ui/Skeleton';
 import { useApplication } from '../hooks/useApplication';
+import { useApplicationMutations } from '../hooks/useApplicationMutations';
 import { applicationsService } from '../services/api/applications.service';
-import { formatDate, formatFileSize } from '../utils/format';
+import { downloadBlob } from '../utils/download';
 import { getErrorMessage } from '../utils/errors';
+import { formatDate, formatFileSize } from '../utils/format';
+import { safeApiPath, safeHttpUrl } from '../utils/url';
 
 export function ApplicationDetailPage() {
   const { id } = useParams();
   const applicationId = id ?? '';
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const query = useApplication(applicationId);
+  const {
+    createApplication,
+    updateApplication,
+    uploadApplicationFile,
+    removeApplicationFile,
+  } = useApplicationMutations();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
-  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
-  const [deleteHard, setDeleteHard] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isRemovingFile, setIsRemovingFile] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const invalidate = () => {
-    void queryClient.invalidateQueries({
-      queryKey: ['application', applicationId],
-    });
-    void queryClient.invalidateQueries({ queryKey: ['applications'] });
-    void queryClient.invalidateQueries({ queryKey: ['board'] });
-    void queryClient.invalidateQueries({ queryKey: ['stats'] });
+  const handleDownload = async (downloadUrl: string, name: string) => {
+    setDownloadError(null);
+
+    try {
+      const blob = await applicationsService.downloadFile(downloadUrl);
+      downloadBlob(blob, name);
+    } catch (error) {
+      setDownloadError(getErrorMessage(error));
+    }
   };
 
-  const uploadMutation = useMutation({
-    mutationFn: (file: File) =>
-      applicationsService.uploadFile(applicationId, file),
-    onSuccess: () => {
-      invalidate();
-      setFeedback('Arquivo enviado.');
-    },
-  });
+  const handleRemoveFile = async () => {
+    if (!fileToDelete) {
+      return;
+    }
 
-  const removeFileMutation = useMutation({
-    mutationFn: (fileId: string) =>
-      applicationsService.removeFile(applicationId, fileId),
-    onSuccess: () => {
-      invalidate();
+    setIsRemovingFile(true);
+    setFileError(null);
+
+    try {
+      await removeApplicationFile(applicationId, fileToDelete);
       setFileToDelete(null);
       setFeedback('Arquivo removido.');
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: () =>
-      applicationsService.remove(applicationId, deleteHard ? 'hard' : 'soft'),
-    onSuccess: () => {
-      invalidate();
-      navigate('/candidaturas', { replace: true });
-    },
-    onError: (error) => setDeleteError(getErrorMessage(error)),
-  });
-
-  const downloadFile = async (downloadUrl: string, name: string) => {
-    const blob = await applicationsService.downloadFile(downloadUrl);
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-
-    anchor.href = objectUrl;
-    anchor.download = name;
-    anchor.click();
-    URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      setFileError(getErrorMessage(error));
+    } finally {
+      setIsRemovingFile(false);
+    }
   };
 
   const application = query.data;
@@ -96,13 +87,43 @@ export function ApplicationDetailPage() {
   if (query.isPending) {
     return (
       <div className="space-y-3">
-        <div className="h-8 w-64 animate-pulse rounded bg-white" />
-        <div className="h-64 animate-pulse rounded-card border border-line bg-white" />
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-64 rounded-card" />
       </div>
     );
   }
 
-  if (query.isError || !application) {
+  if (query.isError) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title="Não foi possível carregar a candidatura"
+        description={getErrorMessage(query.error)}
+        action={
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void query.refetch()}
+            >
+              Tentar novamente
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                void navigate('/candidaturas');
+              }}
+            >
+              Voltar para o quadro
+            </Button>
+          </div>
+        }
+      />
+    );
+  }
+
+  if (!application) {
     return (
       <EmptyState
         icon={FileText}
@@ -112,17 +133,22 @@ export function ApplicationDetailPage() {
           <Button
             type="button"
             variant="secondary"
-            onClick={() => navigate('/candidaturas')}
+            onClick={() => {
+              void navigate('/candidaturas');
+            }}
           >
-            Voltar para a lista
+            Voltar para o quadro
           </Button>
         }
       />
     );
   }
 
+  const companyUrl = safeHttpUrl(application.companyUrl);
+  const jobUrl = safeHttpUrl(application.link);
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <Link
         to="/candidaturas"
         className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition hover:text-ink-900"
@@ -139,9 +165,9 @@ export function ApplicationDetailPage() {
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-ink-700">
             <span className="inline-flex items-center gap-1.5">
               <Building2 className="size-4" aria-hidden="true" />
-              {application.companyUrl ? (
+              {companyUrl ? (
                 <a
-                  href={application.companyUrl}
+                  href={companyUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 underline-offset-4 hover:text-brand-700 hover:underline"
@@ -194,11 +220,19 @@ export function ApplicationDetailPage() {
         />
       )}
 
+      {downloadError && (
+        <Alert
+          tone="error"
+          title="Não foi possível baixar o arquivo"
+          description={downloadError}
+        />
+      )}
+
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <Card className="p-0">
           <dl className="divide-y divide-line">
             <div className="px-4 py-3">
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
                 Fase atual
               </dt>
               <dd className="mt-0.5 text-sm text-ink-900">
@@ -206,34 +240,38 @@ export function ApplicationDetailPage() {
               </dd>
             </div>
             <div className="px-4 py-3">
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
                 Link da vaga
               </dt>
               <dd className="mt-0.5 truncate text-sm">
-                <a
-                  href={application.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
-                >
-                  {application.link}
-                </a>
+                {jobUrl ? (
+                  <a
+                    href={jobUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
+                  >
+                    {application.link}
+                  </a>
+                ) : (
+                  <span className="text-ink-700">{application.link}</span>
+                )}
               </dd>
             </div>
             <div className="px-4 py-3">
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
                 Criada em
               </dt>
               <dd className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-ink-900">
                 <CalendarDays
-                  className="size-3.5 text-ink-400"
+                  className="size-3.5 text-ink-500"
                   aria-hidden="true"
                 />
                 {formatDate(application.createdAt)}
               </dd>
             </div>
             <div className="px-4 py-3">
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
                 Atualizada em
               </dt>
               <dd className="mt-0.5 text-sm text-ink-900">
@@ -256,53 +294,64 @@ export function ApplicationDetailPage() {
             </p>
           ) : (
             <ul className="divide-y divide-line">
-              {application.files.map((file) => (
-                <li key={file.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface text-ink-500">
-                    <FileText className="size-4" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink-900">
-                      {file.name}
-                    </p>
-                    <p className="text-xs text-ink-400">
-                      {formatFileSize(file.sizeInBytes)} · {file.mimeType}
-                    </p>
-                  </div>
+              {application.files.map((file) => {
+                const downloadUrl = safeApiPath(file.downloadUrl);
+                const legacyUrl = safeHttpUrl(file.url);
 
-                  {file.downloadUrl ? (
+                return (
+                  <li
+                    key={file.id}
+                    className="flex items-center gap-3 px-4 py-3"
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface text-ink-500">
+                      <FileText className="size-4" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-ink-900">
+                        {file.name}
+                      </p>
+                      <p className="text-xs text-ink-500">
+                        {formatFileSize(file.sizeInBytes)} · {file.mimeType}
+                      </p>
+                    </div>
+
+                    {downloadUrl ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleDownload(downloadUrl, file.name)
+                        }
+                        aria-label={`Baixar ${file.name}`}
+                        className="rounded p-2 text-ink-500 hover:bg-surface hover:text-ink-700"
+                      >
+                        <Download className="size-4" aria-hidden="true" />
+                      </button>
+                    ) : legacyUrl ? (
+                      <a
+                        href={legacyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Abrir ${file.name}`}
+                        className="rounded p-2 text-ink-500 hover:bg-surface hover:text-ink-700"
+                      >
+                        <ExternalLink className="size-4" aria-hidden="true" />
+                      </a>
+                    ) : null}
+
                     <button
                       type="button"
-                      onClick={() =>
-                        void downloadFile(file.downloadUrl ?? '', file.name)
-                      }
-                      aria-label={`Baixar ${file.name}`}
-                      className="rounded p-2 text-ink-400 hover:bg-surface hover:text-ink-700"
+                      onClick={() => {
+                        setFileError(null);
+                        setFileToDelete(file.id);
+                      }}
+                      aria-label={`Remover ${file.name}`}
+                      className="rounded p-2 text-ink-500 hover:bg-rose-50 hover:text-rose-700"
                     >
-                      <ExternalLink className="size-4" aria-hidden="true" />
+                      <Trash2 className="size-4" aria-hidden="true" />
                     </button>
-                  ) : (
-                    <a
-                      href={file.url ?? '#'}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={`Abrir ${file.name}`}
-                      className="rounded p-2 text-ink-400 hover:bg-surface hover:text-ink-700"
-                    >
-                      <ExternalLink className="size-4" aria-hidden="true" />
-                    </a>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setFileToDelete(file.id)}
-                    aria-label={`Remover ${file.name}`}
-                    className="rounded p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-700"
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
@@ -310,7 +359,8 @@ export function ApplicationDetailPage() {
             <FileUploader
               remaining={MAX_FILES_PER_APPLICATION - application.files.length}
               onUpload={async (file) => {
-                await uploadMutation.mutateAsync(file);
+                await uploadApplicationFile(applicationId, file);
+                setFeedback('Arquivo enviado.');
               }}
             />
           </div>
@@ -321,16 +371,17 @@ export function ApplicationDetailPage() {
         isOpen={isEditing}
         onClose={() => setIsEditing(false)}
         title="Editar candidatura"
-        description="Atualize os dados do processo e anexe novos documentos se necessário."
+        description="Atualize os dados do processo seletivo."
         size="lg"
       >
         <ApplicationForm
           key={application.id}
           application={application}
+          onCreate={createApplication}
+          onUpdate={updateApplication}
           onCancel={() => setIsEditing(false)}
           onSuccess={() => {
             setIsEditing(false);
-            invalidate();
             setFeedback('Candidatura atualizada com sucesso.');
           }}
         />
@@ -341,88 +392,37 @@ export function ApplicationDetailPage() {
         title="Remover arquivo"
         description="O arquivo será removido do armazenamento e da candidatura."
         confirmLabel="Remover arquivo"
-        isLoading={removeFileMutation.isPending}
-        onConfirm={() => {
-          if (fileToDelete) {
-            removeFileMutation.mutate(fileToDelete);
-          }
-        }}
-        onClose={() => setFileToDelete(null)}
-      />
-
-      <ConfirmDialog
-        isOpen={isDeleteOpen}
-        title="Excluir candidatura"
-        description={
-          deleteHard
-            ? `A candidatura "${application.title}" será removida permanentemente.`
-            : `A candidatura "${application.title}" será arquivada e deixará de aparecer na listagem.`
-        }
-        confirmLabel={
-          deleteHard ? 'Excluir permanentemente' : 'Arquivar candidatura'
-        }
-        isLoading={deleteMutation.isPending}
-        confirmDisabled={!deleteConfirmed}
-        onConfirm={() => {
-          setDeleteError(null);
-          void deleteMutation.mutateAsync();
-        }}
+        isLoading={isRemovingFile}
+        onConfirm={() => void handleRemoveFile()}
         onClose={() => {
-          if (deleteMutation.isPending) {
+          if (isRemovingFile) {
             return;
           }
-          setIsDeleteOpen(false);
-          setDeleteConfirmed(false);
-          setDeleteHard(false);
-          setDeleteError(null);
+
+          setFileToDelete(null);
+          setFileError(null);
         }}
       >
-        {deleteError && (
+        {fileError && (
           <div className="mt-4">
             <Alert
               tone="error"
-              title="Não foi possível excluir"
-              description={deleteError}
+              title="Não foi possível remover o arquivo"
+              description={fileError}
             />
           </div>
         )}
-        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-rose-200 bg-white p-4 text-sm">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 rounded border-line accent-rose-600"
-            checked={deleteConfirmed}
-            onChange={(event) => setDeleteConfirmed(event.target.checked)}
-          />
-          <span>
-            <span className="block font-semibold text-rose-700">
-              Confirmo a exclusão
-            </span>
-            <span className="mt-0.5 block text-xs leading-5 text-ink-500">
-              Entendo que a candidatura será removida da listagem.
-            </span>
-          </span>
-        </label>
-        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 rounded border-line accent-rose-600"
-            checked={deleteHard}
-            onChange={(event) => {
-              setDeleteHard(event.target.checked);
-              setDeleteConfirmed(false);
-            }}
-          />
-          <span>
-            <span className="block font-medium text-ink-900">
-              Excluir permanentemente
-            </span>
-            <span className="mt-0.5 block text-xs leading-5 text-ink-500">
-              Remove o registro do banco. Sem esta opção, a candidatura é apenas
-              arquivada.
-            </span>
-          </span>
-        </label>
       </ConfirmDialog>
+
+      <DeleteApplicationDialog
+        key={`${application.id}-${isDeleteOpen}`}
+        application={application}
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onDeleted={() => {
+          void navigate('/candidaturas', { replace: true });
+        }}
+      />
     </div>
   );
 }

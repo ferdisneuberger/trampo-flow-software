@@ -139,4 +139,63 @@ describe('apiClient', () => {
 
     window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, listener);
   });
+
+  it('não encerra a sessão quando o retry falha com erro não autenticado', async () => {
+    const listener = vi.fn();
+    let calls = 0;
+
+    apiClient.defaults.adapter = (async (
+      config: InternalAxiosRequestConfig,
+    ) => {
+      calls += 1;
+
+      if (calls === 1) {
+        throw {
+          isAxiosError: true,
+          config,
+          response: { status: 401, data: { code: 'TOKEN_EXPIRED' } },
+        };
+      }
+
+      throw {
+        isAxiosError: true,
+        config,
+        response: { status: 500, data: { message: 'Falha interna.' } },
+      };
+    }) as unknown as AxiosAdapter;
+
+    vi.spyOn(axios, 'post').mockResolvedValue({
+      data: { accessToken: 'novo-token' },
+    });
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, listener);
+
+    accessTokenStore.set('antigo');
+
+    await expect(apiClient.get('/applications')).rejects.toMatchObject({
+      status: 500,
+      message: 'Falha interna.',
+    });
+
+    expect(listener).not.toHaveBeenCalled();
+    expect(accessTokenStore.get()).toBe('novo-token');
+
+    window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, listener);
+  });
+
+  it('não envia o token para uma URL de outra origem', async () => {
+    let captured: Record<string, unknown> | undefined;
+
+    apiClient.defaults.adapter = (async (
+      config: InternalAxiosRequestConfig,
+    ) => {
+      captured = config.headers as unknown as Record<string, unknown>;
+
+      return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
+    }) as unknown as AxiosAdapter;
+
+    accessTokenStore.set('segredo');
+    await apiClient.get('https://evil.example.com/arquivo');
+
+    expect(captured?.Authorization).toBeUndefined();
+  });
 });

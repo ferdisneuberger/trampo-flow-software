@@ -7,8 +7,9 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { env } from '../config/env';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/auth-context';
 import { getErrorMessage } from '../utils/errors';
+import { safeRedirectPath } from '../utils/url';
 
 export function LoginPage() {
   const { isAuthenticated, isLoading, login } = useAuth();
@@ -19,12 +20,7 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const requestedPath = (location.state as { from?: unknown } | null)?.from;
-  const redirectTo =
-    typeof requestedPath === 'string' &&
-    requestedPath.startsWith('/') &&
-    !requestedPath.startsWith('//')
-      ? requestedPath
-      : '/';
+  const redirectTo = safeRedirectPath(requestedPath) ?? '/candidaturas';
 
   if (isLoading) {
     return <AuthLoadingScreen />;
@@ -45,7 +41,7 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login({ username, password });
+      await login({ username: username.trim(), password });
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -85,7 +81,6 @@ export function LoginPage() {
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              autoFocus
               required
               value={username}
               onChange={(event) => {
@@ -131,7 +126,7 @@ export function LoginPage() {
           </div>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-ink-400">
+        <p className="mt-6 text-center text-xs text-ink-500">
           {env.appName} · ambiente privado
         </p>
       </div>

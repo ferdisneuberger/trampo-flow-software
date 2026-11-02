@@ -1,10 +1,22 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 const username = process.env.E2E_USERNAME ?? '';
 const password = process.env.E2E_PASSWORD ?? '';
 const title = `E2E ${Date.now()}`;
 
-test.describe('fluxo crítico', () => {
+test('login não tem violações WCAG A/AA', async ({ page }) => {
+  await page.goto('/login');
+  await page.waitForLoadState('networkidle');
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+
+  expect(results.violations).toEqual([]);
+});
+
+test.describe('fluxo crítico do quadro', () => {
   test.skip(
     username.length === 0 || password.length === 0,
     'E2E_USERNAME e E2E_PASSWORD não definidos.',
@@ -17,14 +29,12 @@ test.describe('fluxo crítico', () => {
     await page.getByLabel('Senha').fill(password);
     await page.getByRole('button', { name: /entrar/i }).click();
 
-    await expect(page).toHaveURL(/\/$/);
-
-    await page.reload();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/candidaturas$/);
     await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
 
-    await page.getByRole('link', { name: 'Candidaturas', exact: true }).click();
+    await page.reload();
     await expect(page).toHaveURL(/\/candidaturas$/);
+    await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
 
     await page.getByRole('button', { name: /nova candidatura/i }).click();
 
@@ -40,16 +50,16 @@ test.describe('fluxo crítico', () => {
 
     await page.getByLabel('Buscar').fill(title);
 
-    const row = page.getByRole('link', { name: title });
-    await expect(row).toBeVisible();
+    const card = page.getByRole('link', { name: title });
+    await expect(card).toBeVisible();
 
-    await row.click();
+    await card.click();
 
     await expect(page).toHaveURL(/\/candidaturas\/[0-9a-f-]+$/);
     await expect(page.getByText('Acme E2E')).toBeVisible();
     await expect(page.getByText('Triagem automatizada')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Excluir' }).click();
+    await page.getByRole('button', { name: 'Excluir', exact: true }).click();
     await page
       .getByRole('checkbox', { name: /excluir permanentemente/i })
       .check();
@@ -62,5 +72,18 @@ test.describe('fluxo crítico', () => {
 
     await page.getByLabel('Buscar').fill(title);
     await expect(page.getByRole('link', { name: title })).toHaveCount(0);
+  });
+
+  test('a rota inicial redireciona para o quadro', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.getByLabel('Usuário').fill(username);
+    await page.getByLabel('Senha').fill(password);
+    await page.getByRole('button', { name: /entrar/i }).click();
+
+    await expect(page).toHaveURL(/\/candidaturas$/);
+
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/candidaturas$/);
   });
 });

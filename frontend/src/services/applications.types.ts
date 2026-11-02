@@ -44,14 +44,6 @@ export type Application = {
   deletedAt: string | null;
 };
 
-export type CreateApplicationFileInput = {
-  name: string;
-  url: string;
-  mimeType: string;
-  sizeInBytes: number;
-  uploadedAt?: string;
-};
-
 export type CreateApplicationInput = {
   title: string;
   link: string;
@@ -59,7 +51,6 @@ export type CreateApplicationInput = {
   companyUrl?: string | null;
   currentPhase: string;
   status?: ApplicationStatus;
-  files?: CreateApplicationFileInput[];
 };
 
 export type UpdateApplicationInput = {

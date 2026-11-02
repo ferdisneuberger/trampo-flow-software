@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Paperclip } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   APPLICATION_STATUSES,
   APPLICATION_STATUS_LABELS,
@@ -8,18 +9,22 @@ import {
   type ApplicationStatus,
 } from '../../services/applications.types';
 import { formatDate } from '../../utils/format';
-import { ApplicationStatusBadge } from './ApplicationStatusBadge';
+import { Menu, type MenuItem } from '../ui/Menu';
 
 type BoardCardProps = {
   application: Application;
   draggingEnabled: boolean;
   onMove: (application: Application, status: ApplicationStatus) => void;
+  onEdit: (application: Application) => void;
+  onDelete: (application: Application) => void;
 };
 
 export function BoardCard({
   application,
   draggingEnabled,
   onMove,
+  onEdit,
+  onDelete,
 }: BoardCardProps) {
   const {
     attributes,
@@ -29,6 +34,28 @@ export function BoardCard({
     transition,
     isDragging,
   } = useSortable({ id: application.id, disabled: !draggingEnabled });
+
+  const menuItems: MenuItem[] = [
+    {
+      id: 'edit',
+      label: 'Editar candidatura',
+      onSelect: () => onEdit(application),
+    },
+    {
+      id: 'delete',
+      label: 'Excluir candidatura',
+      tone: 'danger',
+      onSelect: () => onDelete(application),
+    },
+    ...APPLICATION_STATUSES.filter(
+      (status) => status !== application.status,
+    ).map((status, index) => ({
+      id: `move-${status}`,
+      label: `Mover para: ${APPLICATION_STATUS_LABELS[status]}`,
+      separatorBefore: index === 0,
+      onSelect: () => onMove(application, status),
+    })),
+  ];
 
   return (
     <div
@@ -47,16 +74,19 @@ export function BoardCard({
             {...attributes}
             {...listeners}
             aria-label={`Mover ${application.title}`}
-            className="mt-0.5 cursor-grab touch-none rounded p-0.5 text-ink-400 opacity-0 transition hover:text-ink-700 focus-visible:opacity-100 group-hover:opacity-100"
+            className="mt-0.5 cursor-grab touch-none rounded p-0.5 text-ink-500 opacity-0 transition hover:text-ink-700 focus-visible:opacity-100 group-hover:opacity-100"
           >
             <GripVertical className="size-4" aria-hidden="true" />
           </button>
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-sm font-semibold text-ink-900">
+          <Link
+            to={`/candidaturas/${application.id}`}
+            className="line-clamp-2 text-sm font-semibold text-ink-900 underline-offset-4 hover:text-brand-700 hover:underline"
+          >
             {application.title}
-          </p>
+          </Link>
           <p className="mt-0.5 truncate text-xs text-ink-500">
             {application.company}
           </p>
@@ -65,12 +95,11 @@ export function BoardCard({
           </p>
 
           <div className="mt-2 flex items-center gap-2">
-            <ApplicationStatusBadge status={application.status} />
-            <span className="text-[11px] text-ink-400">
+            <span className="text-[11px] text-ink-500">
               {formatDate(application.updatedAt)}
             </span>
             {application.files.length > 0 && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-ink-400">
+              <span className="inline-flex items-center gap-1 text-[11px] text-ink-500">
                 <Paperclip className="size-3" aria-hidden="true" />
                 {application.files.length}
               </span>
@@ -78,28 +107,11 @@ export function BoardCard({
           </div>
         </div>
 
-        <details className="relative shrink-0">
-          <summary
-            aria-label={`Mover ${application.title} para outra coluna`}
-            className="grid size-7 cursor-pointer list-none place-items-center rounded text-ink-400 hover:bg-surface hover:text-ink-700"
-          >
-            ⋯
-          </summary>
-          <div className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-line bg-white p-1">
-            {APPLICATION_STATUSES.filter(
-              (status) => status !== application.status,
-            ).map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => onMove(application, status)}
-                className="block w-full rounded px-2 py-1.5 text-left text-xs text-ink-700 hover:bg-surface"
-              >
-                {APPLICATION_STATUS_LABELS[status]}
-              </button>
-            ))}
-          </div>
-        </details>
+        <Menu
+          label={`Ações de ${application.title}`}
+          items={menuItems}
+          className="shrink-0"
+        />
       </div>
     </div>
   );

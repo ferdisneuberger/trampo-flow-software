@@ -2,38 +2,47 @@ import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { env } from '../../config/env';
 import { accessTokenStore, AUTH_UNAUTHORIZED_EVENT } from './access-token';
 import { normalizeApiError } from './errors';
+import { refreshAccessToken } from './session';
 
 type RetriableConfig = InternalAxiosRequestConfig & { retried?: boolean };
-
-type RefreshResponse = {
-  accessToken: string;
-};
 
 export const apiClient = axios.create({
   baseURL: env.apiUrl,
   timeout: 15_000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-let refreshInFlight: Promise<string> | null = null;
+function isApiOrigin(url: string | undefined): boolean {
+  if (!url) {
+    return true;
+  }
 
-async function requestNewAccessToken(): Promise<string> {
-  refreshInFlight ??= axios
-    .post<RefreshResponse>(`${env.apiUrl}/auth/refresh`, null, {
-      headers: { 'Content-Type': 'application/json' },
-    })
-    .then((response) => {
-      accessTokenStore.set(response.data.accessToken);
+  try {
+    const base = new URL(env.apiUrl, window.location.origin);
 
-      return response.data.accessToken;
-    })
-    .finally(() => {
-      refreshInFlight = null;
-    });
+    return new URL(url, base).origin === base.origin;
+  } catch {
+    return false;
+  }
+}
 
-  return refreshInFlight;
+function isAuthPath(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const path = new URL(url, 'http://localhost').pathname;
+
+    return ['/auth/login', '/auth/refresh', '/auth/logout'].some(
+      (authPath) => path === authPath || path.endsWith(authPath),
+    );
+  } catch {
+    return false;
+  }
 }
 
 function endSession(): void {
@@ -44,7 +53,7 @@ function endSession(): void {
 apiClient.interceptors.request.use((config) => {
   const token = accessTokenStore.get();
 
-  if (token) {
+  if (token && isApiOrigin(config.url)) {
     config.headers.set('Authorization', `Bearer ${token}`);
   }
 
@@ -60,28 +69,29 @@ apiClient.interceptors.response.use(
 
     const config = error.config as RetriableConfig | undefined;
     const code = (error.response.data as { code?: string } | undefined)?.code;
-    const isAuthRequest =
-      config?.url?.includes('/auth/login') ||
-      config?.url?.includes('/auth/refresh') ||
-      config?.url?.includes('/auth/logout');
+    const authRequest = isAuthPath(config?.url);
 
-    if (
-      code === 'TOKEN_EXPIRED' &&
-      config &&
-      !config.retried &&
-      !isAuthRequest
-    ) {
+    if (code === 'TOKEN_EXPIRED' && config && !config.retried && !authRequest) {
       config.retried = true;
 
-      try {
-        const token = await requestNewAccessToken();
-        config.headers.set('Authorization', `Bearer ${token}`);
+      let accessToken: string;
 
-        return await apiClient.request(config);
+      try {
+        accessToken = (await refreshAccessToken()).accessToken;
       } catch {
         endSession();
+
+        return Promise.reject(normalizeApiError(error));
       }
-    } else if (!isAuthRequest) {
+
+      config.headers.set('Authorization', `Bearer ${accessToken}`);
+
+      // Erros do retry seguem o fluxo normal (inclusive 500/rede) e não
+      // devem encerrar a sessão: o refresh já foi concluído com sucesso.
+      return apiClient.request(config);
+    }
+
+    if (!authRequest) {
       endSession();
     }
 

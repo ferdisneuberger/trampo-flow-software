@@ -1,41 +1,45 @@
 import { Save, X } from 'lucide-react';
-import { useApplications } from '../../hooks/useApplications';
 import { useApplicationForm } from '../../hooks/useApplicationForm';
 import {
   APPLICATION_STATUS_OPTIONS,
   type Application,
   type ApplicationStatus,
+  type CreateApplicationInput,
+  type UpdateApplicationInput,
 } from '../../services/applications.types';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 
-type ApplicationFormProps = {
+export type ApplicationFormProps = {
   application?: Application | null;
+  onCreate: (input: CreateApplicationInput) => Promise<unknown>;
+  onUpdate: (id: string, input: UpdateApplicationInput) => Promise<unknown>;
   onCancel: () => void;
   onSuccess: () => void;
 };
 
 export function ApplicationForm({
   application = null,
+  onCreate,
+  onUpdate,
   onCancel,
   onSuccess,
 }: ApplicationFormProps) {
-  const { createApplication, updateApplication } = useApplications();
   const form = useApplicationForm({
     application,
-    onCreate: async (input) => {
-      await createApplication(input);
-    },
-    onUpdate: async (id, input) => {
-      await updateApplication(id, input);
-    },
+    onCreate,
+    onUpdate,
     onSuccess,
   });
 
   return (
-    <form className="space-y-6" onSubmit={form.handleSubmit} noValidate>
+    <form
+      className="space-y-6"
+      onSubmit={(event) => void form.handleSubmit(event)}
+      noValidate
+    >
       {form.errors.form && (
         <Alert
           tone="error"
@@ -51,9 +55,9 @@ export function ApplicationForm({
           value={form.values.title}
           onChange={(event) => form.setField('title', event.target.value)}
           error={form.errors.title}
+          required
           maxLength={120}
           containerClassName="sm:col-span-2"
-          autoFocus
         />
         <Input
           label="Empresa"
@@ -61,6 +65,7 @@ export function ApplicationForm({
           value={form.values.company}
           onChange={(event) => form.setField('company', event.target.value)}
           error={form.errors.company}
+          required
           maxLength={120}
         />
         <Input
@@ -81,6 +86,7 @@ export function ApplicationForm({
           onChange={(event) => form.setField('link', event.target.value)}
           error={form.errors.link}
           hint="Informe uma URL HTTP ou HTTPS."
+          required
           maxLength={2048}
           containerClassName="sm:col-span-2"
         />
@@ -92,6 +98,7 @@ export function ApplicationForm({
             form.setField('currentPhase', event.target.value)
           }
           error={form.errors.currentPhase}
+          required
           maxLength={120}
         />
         <Select

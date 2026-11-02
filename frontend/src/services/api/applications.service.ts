@@ -1,8 +1,6 @@
 import type {
   Application,
   ApplicationBoard,
-  ApplicationStatus,
-  CreateApplicationFileInput,
   CreateApplicationInput,
   DeleteApplicationMode,
   PlaceApplicationInput,
@@ -10,37 +8,7 @@ import type {
 } from '../applications.types';
 import { apiClient } from './client';
 
-export type ListApplicationsParams = {
-  search?: string;
-  status?: ApplicationStatus;
-  cursor?: string;
-  limit?: number;
-  sort?: 'recent' | 'stale';
-};
-
-export type PaginatedApplications = {
-  items: Application[];
-  nextCursor: string | null;
-  hasMore: boolean;
-};
-
-export type ApplicationStats = {
-  total: number;
-  byStatus: Record<ApplicationStatus, number>;
-};
-
 export const applicationsService = {
-  async listPage(
-    params: ListApplicationsParams = {},
-  ): Promise<PaginatedApplications> {
-    const { data } = await apiClient.get<PaginatedApplications>(
-      '/applications',
-      { params },
-    );
-
-    return data;
-  },
-
   async board(params: { search?: string } = {}): Promise<ApplicationBoard> {
     const { data } = await apiClient.get<ApplicationBoard>(
       '/applications/board',
@@ -61,14 +29,6 @@ export const applicationsService = {
 
   async getById(id: string): Promise<Application> {
     const { data } = await apiClient.get<Application>(`/applications/${id}`);
-
-    return data;
-  },
-
-  async stats(): Promise<ApplicationStats> {
-    const { data } = await apiClient.get<ApplicationStats>(
-      '/applications/stats',
-    );
 
     return data;
   },
@@ -111,18 +71,6 @@ export const applicationsService = {
     const { data } = await apiClient.get<Blob>(downloadUrl, {
       responseType: 'blob',
     });
-
-    return data;
-  },
-
-  async addFiles(
-    id: string,
-    files: CreateApplicationFileInput[],
-  ): Promise<Application> {
-    const { data } = await apiClient.post<Application>(
-      `/applications/${id}/files`,
-      { files },
-    );
 
     return data;
   },

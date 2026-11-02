@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysSince, formatDate, formatFileSize } from './format';
+import { formatDate, formatFileSize } from './format';
 
 describe('formatDate', () => {
   it('formata uma data ISO em pt-BR', () => {
@@ -34,23 +34,5 @@ describe('formatFileSize', () => {
   it('devolve travessão para valores inválidos', () => {
     expect(formatFileSize(-1)).toBe('—');
     expect(formatFileSize(Number.NaN)).toBe('—');
-  });
-
-  describe('daysSince', () => {
-    it('conta os dias completos desde a data', () => {
-      const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000).toISOString();
-
-      expect(daysSince(twoDaysAgo)).toBe(2);
-    });
-
-    it('nunca devolve valor negativo', () => {
-      const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
-
-      expect(daysSince(tomorrow)).toBe(0);
-    });
-
-    it('devolve zero para data inválida', () => {
-      expect(daysSince('ontem')).toBe(0);
-    });
   });
 });

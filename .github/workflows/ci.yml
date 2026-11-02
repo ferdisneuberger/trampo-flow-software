@@ -109,6 +109,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check bundle budget
+        run: npm run check:bundle
+
   tooling:
     name: tooling
     runs-on: ubuntu-latest

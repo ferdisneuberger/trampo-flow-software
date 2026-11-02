@@ -19,7 +19,7 @@ export function Alert({
 
   return (
     <div
-      role="alert"
+      role={tone === 'error' ? 'alert' : 'status'}
       className={cn(
         'flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-start',
         tone === 'error'

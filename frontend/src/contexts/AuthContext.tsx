@@ -1,7 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -12,19 +11,12 @@ import {
   accessTokenStore,
   AUTH_UNAUTHORIZED_EVENT,
 } from '../services/api/access-token';
+import { refreshAccessToken } from '../services/api/session';
 import type { AuthUser, LoginInput } from '../services/auth.types';
-
-type AuthContextValue = {
-  user: AuthUser | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (input: LoginInput) => Promise<void>;
-  logout: () => void;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue } from './auth-context';
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,9 +25,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     const restoreSession = async () => {
       try {
-        const session = await authService.refresh();
-
-        accessTokenStore.set(session.accessToken);
+        await refreshAccessToken();
 
         const profile = await authService.me();
 
@@ -65,6 +55,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     const handleUnauthorized = () => {
       accessTokenStore.clear();
+      queryClient.clear();
       setUser(null);
       setIsLoading(false);
     };
@@ -74,25 +65,34 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     };
-  }, []);
+  }, [queryClient]);
 
-  const login = useCallback(async (input: LoginInput) => {
-    const response = await authService.login(input);
+  const login = useCallback(
+    async (input: LoginInput) => {
+      const response = await authService.login(input);
 
-    accessTokenStore.set(response.accessToken);
-    setUser(response.user);
-    setIsLoading(false);
-  }, []);
+      queryClient.clear();
+      accessTokenStore.set(response.accessToken);
+      setUser(response.user);
+      setIsLoading(false);
+    },
+    [queryClient],
+  );
 
-  const logout = useCallback(() => {
-    accessTokenStore.clear();
-    setUser(null);
-    setIsLoading(false);
+  const logout = useCallback(async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // O logout local deve acontecer mesmo se a API estiver indisponível.
+    } finally {
+      accessTokenStore.clear();
+      queryClient.clear();
+      setUser(null);
+      setIsLoading(false);
+    }
+  }, [queryClient]);
 
-    void authService.logout().catch(() => undefined);
-  }, []);
-
-  const value = useMemo(
+  const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: user !== null,
@@ -104,14 +104,4 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider.');
-  }
-
-  return context;
 }
