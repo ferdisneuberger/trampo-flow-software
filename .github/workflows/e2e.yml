@@ -1,14 +1,6 @@
 name: E2E
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'infra/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/e2e.yml'
   workflow_dispatch:
 
 concurrency:
