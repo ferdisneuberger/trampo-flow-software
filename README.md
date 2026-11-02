@@ -312,6 +312,14 @@ E2E_USERNAME=... E2E_PASSWORD=... npm run test:e2e
 
 Sem `E2E_USERNAME` e `E2E_PASSWORD`, o teste é pulado. No CI, o workflow `E2E` sobe o Compose, cria um usuário de teste pelo bootstrap e roda o fluxo em um Chromium.
 
+Para rodar localmente sem tocar no seu banco, use o script de stack isolado:
+
+```bash
+npm run test:e2e:local
+```
+
+Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio, e derruba tudo no final. O hook de `pre-push` executa esse script; para pular uma vez, use `SKIP_E2E=1 git push`.
+
 ### Funcionalidades
 
 - Abas de status com contadores (Todas, Aguardando, Em andamento, Finalizada e Recusada) no topo do dashboard.

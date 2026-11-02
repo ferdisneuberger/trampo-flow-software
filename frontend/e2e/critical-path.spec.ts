@@ -19,6 +19,10 @@ test.describe('fluxo crítico', () => {
 
     await expect(page).toHaveURL(/\/$/);
 
+    await page.reload();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
+
     await page.getByRole('link', { name: 'Candidaturas', exact: true }).click();
     await expect(page).toHaveURL(/\/candidaturas$/);
 
