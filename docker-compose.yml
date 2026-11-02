@@ -31,6 +31,22 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - backend
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-trampo}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-trampo_dev_secret}
+    ports:
+      - '127.0.0.1:${S3_PORT:-9000}:9000'
+    volumes:
+      - minio_data:/data
     networks:
       - backend
 
@@ -51,11 +67,20 @@ services:
       JWT_EXPIRES_IN: '${JWT_EXPIRES_IN:-5m}'
       REFRESH_TOKEN_TTL_DAYS: '${REFRESH_TOKEN_TTL_DAYS:-7}'
       REFRESH_TOKEN_GRACE_SECONDS: '${REFRESH_TOKEN_GRACE_SECONDS:-10}'
+      S3_ENDPOINT: minio
+      S3_PORT: 9000
+      S3_USE_SSL: 'false'
+      S3_ACCESS_KEY: '${S3_ACCESS_KEY:-trampo}'
+      S3_SECRET_KEY: '${S3_SECRET_KEY:-trampo_dev_secret}'
+      S3_BUCKET: '${S3_BUCKET:-trampo-files}'
+      S3_REGION: '${S3_REGION:-us-east-1}'
       LOGIN_MAX_ATTEMPTS: '${LOGIN_MAX_ATTEMPTS:-10}'
       LOGIN_WINDOW_SECONDS: '${LOGIN_WINDOW_SECONDS:-900}'
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -110,6 +135,7 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   backend:
