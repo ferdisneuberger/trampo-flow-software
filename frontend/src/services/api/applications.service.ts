@@ -1,5 +1,6 @@
 import type {
   Application,
+  ApplicationStatus,
   CreateApplicationFileInput,
   CreateApplicationInput,
   DeleteApplicationMode,
@@ -7,18 +8,30 @@ import type {
 } from '../applications.types';
 import { apiClient } from './client';
 
-type PaginatedApplications = {
+export type ListApplicationsParams = {
+  search?: string;
+  status?: ApplicationStatus;
+  cursor?: string;
+  limit?: number;
+  sort?: 'recent' | 'stale';
+};
+
+export type PaginatedApplications = {
   items: Application[];
   nextCursor: string | null;
   hasMore: boolean;
 };
 
 export const applicationsService = {
-  async list(): Promise<Application[]> {
-    const { data } =
-      await apiClient.get<PaginatedApplications>('/applications');
+  async listPage(
+    params: ListApplicationsParams = {},
+  ): Promise<PaginatedApplications> {
+    const { data } = await apiClient.get<PaginatedApplications>(
+      '/applications',
+      { params },
+    );
 
-    return data.items;
+    return data;
   },
 
   async create(input: CreateApplicationInput): Promise<Application> {

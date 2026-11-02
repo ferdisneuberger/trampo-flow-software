@@ -16,7 +16,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { PageHeader } from '../components/ui/PageHeader';
-import { useApplicationsContext } from '../contexts/ApplicationsContext';
+import { useApplications } from '../hooks/useApplications';
 import { useDisclosure } from '../hooks/useDisclosure';
 import type {
   Application,
@@ -34,7 +34,7 @@ export function ApplicationsPage() {
     refresh,
     deleteApplication,
     clearError,
-  } = useApplicationsContext();
+  } = useApplications();
   const {
     isOpen: isFormOpen,
     open: openFormModal,

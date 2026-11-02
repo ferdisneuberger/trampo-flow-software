@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { applicationsService } from '../services/api/applications.service';
 import type {
   Application,
@@ -8,6 +13,8 @@ import type {
   UpdateApplicationInput,
 } from '../services/applications.types';
 import { getErrorMessage } from '../utils/errors';
+
+const PAGE_SIZE = 100;
 
 export type UseApplicationsResult = {
   applications: Application[];
@@ -32,111 +39,126 @@ export type UseApplicationsResult = {
 };
 
 export function useApplications(): UseApplicationsResult {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [errorDismissed, setErrorDismissed] = useState(false);
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const query = useInfiniteQuery({
+    queryKey: ['applications'],
+    queryFn: ({ pageParam }) =>
+      applicationsService.listPage({ cursor: pageParam, limit: PAGE_SIZE }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
 
-    try {
-      setApplications(await applicationsService.list());
-    } catch (requestError) {
-      setError(getErrorMessage(requestError));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['applications'] });
+    void queryClient.invalidateQueries({ queryKey: ['stats'] });
+  }, [queryClient]);
+
+  const createMutation = useMutation({
+    mutationFn: (input: CreateApplicationInput) =>
+      applicationsService.create(input),
+    onSuccess: invalidate,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: UpdateApplicationInput;
+    }) => applicationsService.update(id, input),
+    onSuccess: invalidate,
+  });
+
+  const addFilesMutation = useMutation({
+    mutationFn: ({
+      id,
+      files,
+    }: {
+      id: string;
+      files: CreateApplicationFileInput[];
+    }) => applicationsService.addFiles(id, files),
+    onSuccess: invalidate,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ id, mode }: { id: string; mode: DeleteApplicationMode }) =>
+      applicationsService.remove(id, mode),
+    onSuccess: invalidate,
+  });
+
+  const applications = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items) ?? [],
+    [query.data],
+  );
+
+  const rawError =
+    query.error ??
+    createMutation.error ??
+    updateMutation.error ??
+    addFilesMutation.error ??
+    deleteMutation.error;
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!rawError) {
+      setErrorDismissed(false);
+    }
+  }, [rawError]);
+
+  const clearError = useCallback(() => {
+    setErrorDismissed(true);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    setErrorDismissed(false);
+    await query.refetch();
+  }, [query]);
 
   const runMutation = useCallback(
     async <T>(operation: () => Promise<T>): Promise<T> => {
-      setIsMutating(true);
-      setError(null);
+      setErrorDismissed(false);
 
-      try {
-        return await operation();
-      } catch (requestError) {
-        setError(getErrorMessage(requestError));
-        throw requestError;
-      } finally {
-        setIsMutating(false);
-      }
+      return operation();
     },
     [],
   );
 
   const createApplication = useCallback(
-    async (input: CreateApplicationInput): Promise<Application> => {
-      const application = await runMutation(() =>
-        applicationsService.create(input),
-      );
-
-      setApplications((current) => [application, ...current]);
-
-      return application;
-    },
-    [runMutation],
+    (input: CreateApplicationInput) =>
+      runMutation(() => createMutation.mutateAsync(input)),
+    [createMutation, runMutation],
   );
 
   const updateApplication = useCallback(
-    async (id: string, input: UpdateApplicationInput): Promise<Application> => {
-      const application = await runMutation(() =>
-        applicationsService.update(id, input),
-      );
-
-      setApplications((current) =>
-        current.map((item) => (item.id === id ? application : item)),
-      );
-
-      return application;
-    },
-    [runMutation],
+    (id: string, input: UpdateApplicationInput) =>
+      runMutation(() => updateMutation.mutateAsync({ id, input })),
+    [runMutation, updateMutation],
   );
 
   const addFiles = useCallback(
-    async (
-      id: string,
-      files: CreateApplicationFileInput[],
-    ): Promise<Application> => {
-      const application = await runMutation(() =>
-        applicationsService.addFiles(id, files),
-      );
-
-      setApplications((current) =>
-        current.map((item) => (item.id === id ? application : item)),
-      );
-
-      return application;
-    },
-    [runMutation],
+    (id: string, files: CreateApplicationFileInput[]) =>
+      runMutation(() => addFilesMutation.mutateAsync({ id, files })),
+    [addFilesMutation, runMutation],
   );
 
   const deleteApplication = useCallback(
-    async (id: string, mode: DeleteApplicationMode = 'soft'): Promise<void> => {
-      await runMutation(() => applicationsService.remove(id, mode));
-
-      setApplications((current) =>
-        current.filter((application) => application.id !== id),
-      );
+    async (id: string, mode: DeleteApplicationMode = 'soft') => {
+      await runMutation(() => deleteMutation.mutateAsync({ id, mode }));
     },
-    [runMutation],
+    [deleteMutation, runMutation],
   );
-
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
 
   return {
     applications,
-    isLoading,
-    isMutating,
-    error,
+    isLoading: query.isPending,
+    isMutating:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      addFilesMutation.isPending ||
+      deleteMutation.isPending,
+    error: errorDismissed || !rawError ? null : getErrorMessage(rawError),
     refresh,
     createApplication,
     updateApplication,

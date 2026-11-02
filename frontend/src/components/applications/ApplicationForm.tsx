@@ -6,7 +6,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react';
-import { useApplicationsContext } from '../../contexts/ApplicationsContext';
+import { useApplications } from '../../hooks/useApplications';
 import { useApplicationForm } from '../../hooks/useApplicationForm';
 import {
   APPLICATION_STATUS_OPTIONS,
@@ -31,8 +31,7 @@ export function ApplicationForm({
   onCancel,
   onSuccess,
 }: ApplicationFormProps) {
-  const { createApplication, updateApplication, addFiles } =
-    useApplicationsContext();
+  const { createApplication, updateApplication, addFiles } = useApplications();
   const form = useApplicationForm({
     application,
     onCreate: async (input) => {
