@@ -62,7 +62,7 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          'relative max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-line bg-white shadow-2xl',
+          'relative max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-line bg-white',
           size === 'lg' ? 'max-w-3xl' : 'max-w-lg',
         )}
       >

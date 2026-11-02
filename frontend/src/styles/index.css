@@ -17,10 +17,11 @@
   --color-ink-500: #667085;
   --color-ink-400: #98a2b3;
 
+  --color-bg: #fafaf9;
   --color-surface: #f8fafc;
   --color-line: #e4e7ec;
 
-  --radius-card: 1rem;
+  --radius-card: 0.75rem;
 }
 
 @layer base {
@@ -37,7 +38,7 @@
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
-    background-color: var(--color-surface);
+    background-color: var(--color-bg);
     color: var(--color-ink-900);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
