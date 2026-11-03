@@ -2,6 +2,7 @@ import { Briefcase, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApplicationForm } from '../components/applications/ApplicationForm';
+import { UnverifiedEmailBanner } from '../components/auth/UnverifiedEmailBanner';
 import { Board } from '../components/applications/Board';
 import {
   BOARD_GRID_CLASSES,
@@ -15,6 +16,7 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Skeleton } from '../components/ui/Skeleton';
+import { useAuth } from '../contexts/auth-context';
 import { useApplicationMutations } from '../hooks/useApplicationMutations';
 import { useBoard } from '../hooks/useBoard';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -46,6 +48,8 @@ export function ApplicationsPage() {
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const search = debouncedSearch.trim();
   const board = useBoard(search || undefined);
+  const { user } = useAuth();
+  const canCreate = user?.emailVerified ?? false;
   const { createApplication, updateApplication } = useApplicationMutations();
 
   const {
@@ -154,6 +158,8 @@ export function ApplicationsPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
+      <UnverifiedEmailBanner />
+
       <PageHeader
         title="Candidaturas"
         description="Arraste os cards para acompanhar cada processo seletivo pelo funil."
@@ -171,7 +177,16 @@ export function ApplicationsPage() {
               />
               Atualizar
             </Button>
-            <Button type="button" onClick={openCreate}>
+            <Button
+              type="button"
+              onClick={openCreate}
+              disabled={!canCreate}
+              title={
+                canCreate
+                  ? undefined
+                  : 'Confirme seu e-mail para criar candidaturas.'
+              }
+            >
               <Plus className="size-4" aria-hidden="true" />
               Nova candidatura
             </Button>
@@ -232,7 +247,7 @@ export function ApplicationsPage() {
             title="Comece seu quadro de candidaturas"
             description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
             action={
-              <Button type="button" onClick={openCreate}>
+              <Button type="button" onClick={openCreate} disabled={!canCreate}>
                 <Plus className="size-4" aria-hidden="true" />
                 Criar primeira candidatura
               </Button>

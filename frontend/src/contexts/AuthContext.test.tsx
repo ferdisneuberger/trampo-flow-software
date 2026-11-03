@@ -86,6 +86,7 @@ describe('AuthProvider', () => {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      verificationResendAvailableAt: null,
     });
 
     renderProvider();
@@ -136,6 +137,7 @@ describe('AuthProvider', () => {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      verificationResendAvailableAt: null,
     });
     const { client } = renderProvider();
     await screen.findByText('user:fernando@example.com');

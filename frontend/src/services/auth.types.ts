@@ -4,11 +4,31 @@ export type AuthUser = {
   emailVerified: boolean;
   hasPassword: boolean;
   termsAccepted: boolean;
+  verificationResendAvailableAt: string | null;
 };
 
 export type LoginInput = {
   email: string;
   password: string;
+};
+
+export type RegisterInput = {
+  email: string;
+  password: string;
+  termsAccepted: boolean;
+};
+
+export type VerifyEmailInput = {
+  token: string;
+};
+
+export type ResendVerificationResponse = {
+  sent: boolean;
+  retryAfterSeconds: number;
+};
+
+export type RegisterResponse = {
+  message: string;
 };
 
 export type LoginResponse = {

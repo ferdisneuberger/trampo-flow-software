@@ -158,6 +158,32 @@ describe('User', () => {
     );
   });
 
+  it('marca o e-mail como verificado', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      passwordHash: PASSWORD_HASH,
+    });
+    const verifiedAt = new Date('2026-05-01T12:00:00.000Z');
+
+    user.markEmailVerified(verifiedAt);
+
+    expect(user.isEmailVerified).toBe(true);
+    expect(user.emailVerifiedAt).toEqual(verifiedAt);
+    expect(user.updatedAt).toEqual(verifiedAt);
+  });
+
+  it('registra o envio da verificação', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      passwordHash: PASSWORD_HASH,
+    });
+    const sentAt = new Date('2026-05-01T12:00:00.000Z');
+
+    user.markVerificationSent(sentAt);
+
+    expect(user.verificationSentAt).toEqual(sentAt);
+  });
+
   it('restore preserva dados legados e de autenticação', () => {
     const createdAt = new Date('2026-01-01T00:00:00.000Z');
     const user = User.restore({

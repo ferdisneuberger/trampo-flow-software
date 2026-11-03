@@ -1,12 +1,12 @@
-import { Briefcase, Lock, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
+import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import { env } from '../config/env';
 import { useAuth } from '../contexts/auth-context';
 import { getErrorMessage } from '../utils/errors';
 import { safeRedirectPath } from '../utils/url';
@@ -50,88 +50,78 @@ export function LoginPage() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:py-14">
-      <div className="w-full max-w-md">
-        <div className="mb-7 text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-600 text-white">
-            <Briefcase className="size-7" aria-hidden="true" />
-          </span>
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-900">
-            {env.appName}
-          </h1>
-          <p className="mt-1 text-sm text-ink-500">Gestão de candidaturas</p>
+    <AuthPageLayout>
+      <Card className="p-6 sm:p-8">
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold tracking-tight text-ink-900">
+            Entrar na sua conta
+          </h2>
+          <p className="mt-1 text-sm text-ink-500">
+            Entre com seu e-mail e senha.
+          </p>
         </div>
 
-        <Card className="p-6 sm:p-8">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold tracking-tight text-ink-900">
-              Entrar na sua conta
-            </h2>
-            <p className="mt-1 text-sm text-ink-500">
-              Entre com seu e-mail e senha.
-            </p>
-          </div>
+        <form
+          className="space-y-5"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
+          <Input
+            label="E-mail"
+            type="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={254}
+            required
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              setError(null);
+            }}
+          />
 
-          <form
-            className="space-y-5"
-            onSubmit={(event) => void handleSubmit(event)}
+          <Input
+            label="Senha"
+            type="password"
+            autoComplete="current-password"
+            maxLength={256}
+            required
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setError(null);
+            }}
+          />
+
+          {error && (
+            <Alert
+              tone="error"
+              title="Não foi possível entrar"
+              description={error}
+            />
+          )}
+
+          <Button
+            type="submit"
+            className="w-full"
+            isLoading={isSubmitting}
+            disabled={email.trim().length === 0 || password.length === 0}
           >
-            <Input
-              label="E-mail"
-              type="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={254}
-              required
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                setError(null);
-              }}
-            />
+            <LogIn className="size-4" aria-hidden="true" />
+            Entrar
+          </Button>
+        </form>
 
-            <Input
-              label="Senha"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                setError(null);
-              }}
-            />
-
-            {error && (
-              <Alert
-                tone="error"
-                title="Não foi possível entrar"
-                description={error}
-              />
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              isLoading={isSubmitting}
-              disabled={email.trim().length === 0 || password.length === 0}
-            >
-              <LogIn className="size-4" aria-hidden="true" />
-              Entrar
-            </Button>
-          </form>
-
-          <div className="mt-6 flex items-start gap-2 rounded-xl border border-line bg-surface p-3 text-xs leading-5 text-ink-500">
-            <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-            <p>Acesso restrito.</p>
-          </div>
-        </Card>
-
-        <p className="mt-6 text-center text-xs text-ink-500">
-          {env.appName} · ambiente privado
+        <p className="mt-6 text-center text-sm text-ink-500">
+          Ainda não tem conta?{' '}
+          <Link
+            to="/cadastro"
+            className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+          >
+            Criar conta
+          </Link>
         </p>
-      </div>
-    </div>
+      </Card>
+    </AuthPageLayout>
   );
 }

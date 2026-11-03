@@ -21,11 +21,13 @@ function renderShell() {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      verificationResendAvailableAt: null,
     },
     isAuthenticated: true,
     isLoading: false,
     login: vi.fn(),
     logout,
+    refreshProfile: vi.fn(),
   });
 
   return renderWithProviders(

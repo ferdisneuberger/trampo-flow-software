@@ -73,11 +73,26 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       queryClient.clear();
       accessTokenStore.set(response.accessToken);
-      setUser(response.user);
+
+      let profile = response.user;
+
+      try {
+        profile = await authService.me();
+      } catch {
+        profile = response.user;
+      }
+
+      setUser(profile);
       setIsLoading(false);
     },
     [queryClient],
   );
+
+  const refreshProfile = useCallback(async () => {
+    const profile = await authService.me();
+
+    setUser(profile);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -99,8 +114,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isLoading,
       login,
       logout,
+      refreshProfile,
     }),
-    [user, isLoading, login, logout],
+    [user, isLoading, login, logout, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

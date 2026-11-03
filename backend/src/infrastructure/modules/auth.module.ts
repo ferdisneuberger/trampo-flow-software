@@ -6,20 +6,33 @@ import { CreateSessionUseCase } from '../../application/auth/use-cases/create-se
 import { GetUserProfileUseCase } from '../../application/auth/use-cases/get-user-profile.use-case';
 import { LogoutUseCase } from '../../application/auth/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from '../../application/auth/use-cases/refresh-session.use-case';
+import { RegisterUserUseCase } from '../../application/auth/use-cases/register-user.use-case';
+import { ResendVerificationUseCase } from '../../application/auth/use-cases/resend-verification.use-case';
+import { VerifyEmailUseCase } from '../../application/auth/use-cases/verify-email.use-case';
+import { AuthSettings } from '../../application/auth/services/auth-settings';
+import { AuthTokenRepository } from '../../domain/auth/repositories/auth-token.repository';
+import { Mailer } from '../../domain/auth/services/mailer';
+import { TokenHasher } from '../../domain/auth/services/token-hasher';
+import { VerificationCodeGenerator } from '../../domain/auth/services/verification-code-generator';
 import { RefreshTokenRepository } from '../../domain/auth/repositories/refresh-token.repository';
 import { RefreshTokenGenerator } from '../../domain/auth/services/refresh-token-generator';
 import { RefreshTokenPolicy } from '../../domain/auth/services/refresh-token-policy';
 import { UserRepository } from '../../domain/users/repositories/user.repository';
 import { PasswordHasher } from '../../domain/users/services/password-hasher';
 import { CryptoRefreshTokenGenerator } from '../auth/crypto-refresh-token-generator';
+import { CryptoVerificationCodeGenerator } from '../auth/crypto-verification-code-generator';
+import { HmacTokenHasher } from '../auth/hmac-token-hasher';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LoginRateLimiter } from '../auth/login-rate-limiter.service';
+import { RateLimiterService } from '../auth/rate-limiter.service';
 import { ScryptPasswordHasher } from '../auth/scrypt-password-hasher';
 import { TokenService } from '../auth/token.service';
 import { UserBootstrapService } from '../auth/user-bootstrap.service';
+import { PrismaAuthTokenRepository } from '../database/prisma/repositories/prisma-auth-token.repository';
 import { PrismaRefreshTokenRepository } from '../database/prisma/repositories/prisma-refresh-token.repository';
 import { PrismaUserRepository } from '../database/prisma/repositories/prisma-user.repository';
 import { AuthController } from '../http/controllers/auth.controller';
+import { SmtpMailer } from '../mail/smtp-mailer';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -37,11 +50,18 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     GetUserProfileUseCase,
     LogoutUseCase,
     RefreshSessionUseCase,
+    RegisterUserUseCase,
+    VerifyEmailUseCase,
+    ResendVerificationUseCase,
     LoginRateLimiter,
+    RateLimiterService,
     ScryptPasswordHasher,
     TokenService,
     UserBootstrapService,
     CryptoRefreshTokenGenerator,
+    CryptoVerificationCodeGenerator,
+    HmacTokenHasher,
+    SmtpMailer,
     {
       provide: PasswordHasher,
       useExisting: ScryptPasswordHasher,
@@ -51,8 +71,48 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
       useExisting: CryptoRefreshTokenGenerator,
     },
     {
+      provide: VerificationCodeGenerator,
+      useExisting: CryptoVerificationCodeGenerator,
+    },
+    {
+      provide: TokenHasher,
+      useExisting: HmacTokenHasher,
+    },
+    {
+      provide: Mailer,
+      useExisting: SmtpMailer,
+    },
+    {
+      provide: AuthSettings,
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) =>
+        new AuthSettings(
+          configService.get<string>('REGISTRATION_ENABLED') === 'true',
+          readPositiveInt(
+            configService.get<string>('EMAIL_VERIFICATION_TTL_HOURS'),
+            24,
+          ) *
+            60 *
+            60 *
+            1000,
+          readPositiveInt(
+            configService.get<string>('VERIFICATION_RESEND_SECONDS'),
+            120,
+          ) * 1000,
+          configService.get<string>('TERMS_VERSION')?.trim() || '2026-11',
+          (
+            configService.get<string>('APP_BASE_URL')?.trim() ||
+            'http://localhost:5173'
+          ).replace(/\/+$/, ''),
+        ),
+    },
+    {
       provide: UserRepository,
       useClass: PrismaUserRepository,
+    },
+    {
+      provide: AuthTokenRepository,
+      useClass: PrismaAuthTokenRepository,
     },
     {
       provide: RefreshTokenRepository,

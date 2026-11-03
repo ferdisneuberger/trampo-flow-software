@@ -20,6 +20,21 @@ const LoginPage = lazy(() =>
     default: module.LoginPage,
   })),
 );
+const RegisterPage = lazy(() =>
+  import('./pages/RegisterPage').then((module) => ({
+    default: module.RegisterPage,
+  })),
+);
+const VerifyEmailPage = lazy(() =>
+  import('./pages/VerifyEmailPage').then((module) => ({
+    default: module.VerifyEmailPage,
+  })),
+);
+const TermsPage = lazy(() =>
+  import('./pages/TermsPage').then((module) => ({
+    default: module.TermsPage,
+  })),
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((module) => ({
     default: module.NotFoundPage,
@@ -33,6 +48,9 @@ export function App() {
         <Suspense fallback={<AuthLoadingScreen />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/cadastro" element={<RegisterPage />} />
+            <Route path="/verificar-email" element={<VerifyEmailPage />} />
+            <Route path="/termos" element={<TermsPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>

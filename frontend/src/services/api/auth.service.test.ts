@@ -31,6 +31,7 @@ describe('authService', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        verificationResendAvailableAt: null,
       },
     };
     client.post.mockResolvedValue({ data: response });
@@ -41,6 +42,33 @@ describe('authService', () => {
     expect(client.post).toHaveBeenCalledWith('/auth/login', {
       email: 'fernando@example.com',
       password: 'segredo',
+    });
+  });
+
+  it('cadastra uma conta', async () => {
+    client.post.mockResolvedValue({ data: { message: 'ok' } });
+
+    await expect(
+      authService.register({
+        email: 'pessoa@exemplo.com',
+        password: 'senha-super-secreta',
+        termsAccepted: true,
+      }),
+    ).resolves.toEqual({ message: 'ok' });
+    expect(client.post).toHaveBeenCalledWith('/auth/register', {
+      email: 'pessoa@exemplo.com',
+      password: 'senha-super-secreta',
+      termsAccepted: true,
+    });
+  });
+
+  it('confirma o código de verificação', async () => {
+    client.post.mockResolvedValue({});
+
+    await authService.verifyEmail({ token: 'ADK-7YP' });
+
+    expect(client.post).toHaveBeenCalledWith('/auth/verification/confirm', {
+      token: 'ADK-7YP',
     });
   });
 
@@ -60,6 +88,7 @@ describe('authService', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        verificationResendAvailableAt: null,
       },
     });
 
@@ -69,6 +98,7 @@ describe('authService', () => {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      verificationResendAvailableAt: null,
     });
     expect(client.get).toHaveBeenCalledWith('/auth/me');
   });

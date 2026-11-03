@@ -4,7 +4,9 @@ import {
   CreateApplicationUseCase,
 } from '../../src/application/applications/use-cases/create-application.use-case';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
+import { User } from '../../src/domain/users/entities/user.entity';
 import { InMemoryApplicationRepository } from '../repositories/in-memory-application.repository';
+import { InMemoryUserRepository } from '../repositories/in-memory-user.repository';
 import {
   makeApplicationFile,
   makeApplicationFileInput,
@@ -19,14 +21,45 @@ const validInput: CreateApplicationInput = {
 };
 
 const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
+const UNVERIFIED_USER_ID = 'b1e2d3c4-5f60-4a7b-8c9d-0e1f2a3b4c5d';
+const PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdA==$a2V5';
+const CREATED_AT = new Date('2026-01-01T00:00:00.000Z');
+
+function makeUser(id: string, verified: boolean): User {
+  return User.restore({
+    id,
+    email: `${id}@example.com`,
+    emailVerifiedAt: verified ? CREATED_AT : null,
+    verificationSentAt: null,
+    termsAcceptedAt: null,
+    termsVersion: null,
+    username: null,
+    passwordHash: PASSWORD_HASH,
+    lastLoginAt: null,
+    createdAt: CREATED_AT,
+    updatedAt: CREATED_AT,
+  });
+}
 
 describe('CreateApplicationUseCase', () => {
   let repository: InMemoryApplicationRepository;
+  let userRepository: InMemoryUserRepository;
   let useCase: CreateApplicationUseCase;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     repository = new InMemoryApplicationRepository();
-    useCase = new CreateApplicationUseCase(repository);
+    userRepository = new InMemoryUserRepository();
+    await userRepository.create(makeUser(USER_ID, true));
+    await userRepository.create(makeUser(UNVERIFIED_USER_ID, false));
+    useCase = new CreateApplicationUseCase(repository, userRepository);
+  });
+
+  it('bloqueia a criação quando o e-mail não foi verificado', async () => {
+    await expect(
+      useCase.execute({ ...validInput, userId: UNVERIFIED_USER_ID }),
+    ).rejects.toMatchObject({ code: 'EMAIL_NOT_VERIFIED' });
+
+    expect(repository.count).toBe(0);
   });
 
   it('creates an application with the default status and persists it', async () => {

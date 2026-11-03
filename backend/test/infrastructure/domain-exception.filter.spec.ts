@@ -1,6 +1,7 @@
 import type { ArgumentsHost } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { ConflictError } from '../../src/application/shared/errors/conflict.error';
+import { ForbiddenError } from '../../src/application/shared/errors/forbidden.error';
 import { NotFoundError } from '../../src/application/shared/errors/not-found.error';
 import { UnauthorizedError } from '../../src/application/shared/errors/unauthorized.error';
 import { DomainError } from '../../src/domain/shared/errors/domain.error';
@@ -60,6 +61,17 @@ describe('DomainExceptionFilter', () => {
     filter.catch(new ConflictError('Já existe.', 'ALREADY_EXISTS'), host);
 
     expect(status).toHaveBeenCalledWith(409);
+  });
+
+  it('mapeia ForbiddenError para 403', () => {
+    const { host, status } = createHost();
+
+    filter.catch(
+      new ForbiddenError('Cadastro desabilitado.', 'REGISTRATION_DISABLED'),
+      host,
+    );
+
+    expect(status).toHaveBeenCalledWith(403);
   });
 
   it('mapeia UnauthorizedError para 401', () => {

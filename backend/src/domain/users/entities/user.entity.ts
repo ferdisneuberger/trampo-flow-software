@@ -232,4 +232,28 @@ export class User {
     this.props.lastLoginAt = new Date(at);
     this.props.updatedAt = new Date(at);
   }
+
+  markEmailVerified(at: Date): void {
+    if (!(at instanceof Date) || Number.isNaN(at.getTime())) {
+      throw new DomainError(
+        'A data de verificação precisa ser válida.',
+        'INVALID_VERIFICATION_DATE',
+      );
+    }
+
+    this.props.emailVerifiedAt = new Date(at);
+    this.props.updatedAt = new Date(at);
+  }
+
+  markVerificationSent(at: Date): void {
+    if (!(at instanceof Date) || Number.isNaN(at.getTime())) {
+      throw new DomainError(
+        'A data de envio precisa ser válida.',
+        'INVALID_VERIFICATION_SENT_DATE',
+      );
+    }
+
+    this.props.verificationSentAt = new Date(at);
+    this.props.updatedAt = new Date(at);
+  }
 }

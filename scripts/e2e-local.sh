@@ -8,10 +8,12 @@ PROJECT="trampo-e2e"
 WEB_PORT="6173"
 POSTGRES_PORT="55433"
 ADMINER_PORT="8081"
+MAILPIT_PORT="8026"
 BASE_URL="http://127.0.0.1:${WEB_PORT}"
 E2E_EMAIL="e2e@example.com"
 E2E_PASSWORD="e2e-super-secret-123"
 JWT_SECRET="0123456789abcdef0123456789abcdef0123456789abcdef"
+AUTH_TOKEN_SECRET="0123456789abcdef0123456789abcdef0123456789abcdef"
 
 if ! command -v docker > /dev/null 2>&1; then
   echo "e2e-local: docker não encontrado." >&2
@@ -29,14 +31,25 @@ COMPOSE_PROJECT_NAME="$PROJECT" \
 WEB_PORT="$WEB_PORT" \
 POSTGRES_PORT="$POSTGRES_PORT" \
 ADMINER_PORT="$ADMINER_PORT" \
+MAILPIT_PORT="$MAILPIT_PORT" \
 POSTGRES_DB="trampo_e2e" \
 POSTGRES_USER="trampo" \
 POSTGRES_PASSWORD="trampo_e2e" \
 AUTH_EMAIL="$E2E_EMAIL" \
 AUTH_PASSWORD="$E2E_PASSWORD" \
+AUTH_TOKEN_SECRET="$AUTH_TOKEN_SECRET" \
+APP_BASE_URL="$BASE_URL" \
+REGISTRATION_ENABLED="true" \
+SMTP_HOST="mailpit" \
+SMTP_PORT="1025" \
+SMTP_SECURE="false" \
+SMTP_USER="" \
+SMTP_PASS="" \
+MAIL_FROM="e2e@example.com" \
+MAIL_FROM_NAME="Trampo Flow" \
 JWT_SECRET="$JWT_SECRET" \
 CORS_ORIGINS="$BASE_URL" \
-docker compose up -d --build postgres api web ingress
+docker compose up -d --build postgres mailpit api web ingress
 
 echo "e2e-local: aguardando a API"
 
@@ -61,6 +74,7 @@ if [ ! -d "$HOME/.cache/ms-playwright" ]; then
 fi
 
 E2E_EMAIL="$E2E_EMAIL" \
+E2E_MAILPIT_URL="http://127.0.0.1:${MAILPIT_PORT}" \
 E2E_PASSWORD="$E2E_PASSWORD" \
 E2E_BASE_URL="$BASE_URL" \
 npx playwright test "$@"
