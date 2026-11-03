@@ -4,6 +4,11 @@ import { UserRepository } from '../../src/domain/users/repositories/user.reposit
 function clone(user: User): User {
   return User.restore({
     id: user.id,
+    email: user.email,
+    emailVerifiedAt: user.emailVerifiedAt,
+    verificationSentAt: user.verificationSentAt,
+    termsAcceptedAt: user.termsAcceptedAt,
+    termsVersion: user.termsVersion,
     username: user.username,
     passwordHash: user.passwordHash,
     lastLoginAt: user.lastLoginAt,
@@ -21,10 +26,10 @@ export class InMemoryUserRepository implements UserRepository {
     return user ? clone(user) : null;
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-    const normalized = username.trim().toLowerCase();
+  async findByEmail(email: string): Promise<User | null> {
+    const normalized = email.trim().toLowerCase();
     const user = [...this.users.values()].find(
-      (candidate) => candidate.username === normalized,
+      (candidate) => candidate.email === normalized,
     );
 
     return user ? clone(user) : null;

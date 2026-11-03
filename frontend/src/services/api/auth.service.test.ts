@@ -25,15 +25,21 @@ describe('authService', () => {
       tokenType: 'Bearer',
       expiresIn: 300,
       expiresAt: 1,
-      user: { id: 'u1', username: 'fernando' },
+      user: {
+        id: 'u1',
+        email: 'fernando@example.com',
+        emailVerified: true,
+        hasPassword: true,
+        termsAccepted: true,
+      },
     };
     client.post.mockResolvedValue({ data: response });
 
     await expect(
-      authService.login({ username: 'fernando', password: 'segredo' }),
+      authService.login({ email: 'fernando@example.com', password: 'segredo' }),
     ).resolves.toEqual(response);
     expect(client.post).toHaveBeenCalledWith('/auth/login', {
-      username: 'fernando',
+      email: 'fernando@example.com',
       password: 'segredo',
     });
   });
@@ -47,11 +53,22 @@ describe('authService', () => {
   });
 
   it('busca o perfil', async () => {
-    client.get.mockResolvedValue({ data: { id: 'u1', username: 'fernando' } });
+    client.get.mockResolvedValue({
+      data: {
+        id: 'u1',
+        email: 'fernando@example.com',
+        emailVerified: true,
+        hasPassword: true,
+        termsAccepted: true,
+      },
+    });
 
     await expect(authService.me()).resolves.toEqual({
       id: 'u1',
-      username: 'fernando',
+      email: 'fernando@example.com',
+      emailVerified: true,
+      hasPassword: true,
+      termsAccepted: true,
     });
     expect(client.get).toHaveBeenCalledWith('/auth/me');
   });

@@ -151,7 +151,7 @@ docker compose version
 Na raiz do projeto:
 
 ```bash
-# Obrigatório: defina AUTH_USERNAME, AUTH_PASSWORD e JWT_SECRET
+# Obrigatório: defina AUTH_EMAIL, AUTH_PASSWORD e JWT_SECRET
 cp .env.example .env
 
 # Sobe PostgreSQL, Adminer, API, frontend e ingress
@@ -194,25 +194,25 @@ Os valores são os padrões do `docker-compose.yml`. Se você alterou o `.env`, 
 
 A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do PostgreSQL, com a senha derivada por **scrypt** (N=16384, r=8, p=1, sal de 16 bytes e chave de 64 bytes). O hash tem o formato `scrypt$N$r$p$sal$chave`, então subir o custo depois não invalida as senhas existentes.
 
-| Variável                      | Obrigatória | Descrição                                                  |
-| ----------------------------- | ----------- | ---------------------------------------------------------- |
-| `JWT_SECRET`                  | sim         | Segredo HMAC com pelo menos 32 caracteres                  |
-| `JWT_EXPIRES_IN`              | não         | Validade do access token (`5m`, `30m`, `8h`); padrão `5m`  |
-| `REFRESH_TOKEN_TTL_DAYS`      | não         | Validade do refresh token; padrão `7`                      |
-| `REFRESH_TOKEN_GRACE_SECONDS` | não         | Tolerância de reuso entre abas; padrão `10`                |
-| `LOGIN_MAX_ATTEMPTS`          | não         | Falhas consecutivas antes do bloqueio; padrão `10`         |
-| `LOGIN_WINDOW_SECONDS`        | não         | Janela e duração do bloqueio; padrão `900`                 |
-| `AUTH_USERNAME`               | não         | Usuário criado no primeiro boot, se a tabela estiver vazia |
-| `AUTH_PASSWORD`               | não         | Senha do primeiro usuário (mínimo de 12 caracteres)        |
+| Variável                      | Obrigatória | Descrição                                                 |
+| ----------------------------- | ----------- | --------------------------------------------------------- |
+| `JWT_SECRET`                  | sim         | Segredo HMAC com pelo menos 32 caracteres                 |
+| `JWT_EXPIRES_IN`              | não         | Validade do access token (`5m`, `30m`, `8h`); padrão `5m` |
+| `REFRESH_TOKEN_TTL_DAYS`      | não         | Validade do refresh token; padrão `7`                     |
+| `REFRESH_TOKEN_GRACE_SECONDS` | não         | Tolerância de reuso entre abas; padrão `10`               |
+| `LOGIN_MAX_ATTEMPTS`          | não         | Falhas consecutivas antes do bloqueio; padrão `10`        |
+| `LOGIN_WINDOW_SECONDS`        | não         | Janela e duração do bloqueio; padrão `900`                |
+| `AUTH_EMAIL`                  | não         | E-mail criado no primeiro boot, se a tabela estiver vazia |
+| `AUTH_PASSWORD`               | não         | Senha do primeiro usuário (mínimo de 12 caracteres)       |
 
-`AUTH_USERNAME`/`AUTH_PASSWORD` servem apenas para provisionar o **primeiro** usuário. Se a tabela `users` já tem registros, elas são ignoradas — depois do primeiro boot você pode removê-las do `.env` e trocar a senha direto no banco (com um hash scrypt novo). A senha nunca é comparada em texto puro.
+`AUTH_EMAIL`/`AUTH_PASSWORD` servem apenas para provisionar o **primeiro** usuário. Se a tabela `users` já tem registros, elas são ignoradas — depois do primeiro boot você pode removê-las do `.env` e trocar a senha direto no banco (com um hash scrypt novo). A senha nunca é comparada em texto puro.
 
 Gere um segredo forte com `openssl rand -hex 32` e mantenha o `.env` fora do Git. Restrinja o arquivo ao seu usuário com `chmod 600 .env`. O login é feito em `POST /auth/login` e retorna um `accessToken`; envie-o nas demais rotas como `Authorization: Bearer <token>`.
 
 ```bash
 curl -X POST http://localhost:5173/api/auth/login \
   -H 'content-type: application/json' \
-  -d '{"username":"admin","password":"sua-senha"}'
+  -d '{"email":"pessoa@exemplo.com","password":"sua-senha"}'
 ```
 
 O `sub` do token é o **id** do usuário (UUID), não o username. O guard valida a assinatura e confirma que o usuário ainda existe no banco a cada requisição, então apagar um usuário invalida os tokens dele imediatamente.
@@ -794,7 +794,7 @@ Scripts disponíveis em `backend/package.json`:
 | `WEB_PORT`          | `5173`         | Porta local do ingress em `127.0.0.1`                     |
 | `CORS_ORIGINS`      | origens locais | Origens permitidas no CORS da API (separadas por vírgula) |
 
-As variáveis `AUTH_USERNAME`, `AUTH_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `LOGIN_MAX_ATTEMPTS` e `LOGIN_WINDOW_SECONDS` também ficam no `.env` da raiz e são repassadas ao serviço `api`; veja [Autenticação](#autenticação).
+As variáveis `AUTH_EMAIL`, `AUTH_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `LOGIN_MAX_ATTEMPTS` e `LOGIN_WINDOW_SECONDS` também ficam no `.env` da raiz e são repassadas ao serviço `api`; veja [Autenticação](#autenticação).
 
 ### Backend (`backend/.env`)
 

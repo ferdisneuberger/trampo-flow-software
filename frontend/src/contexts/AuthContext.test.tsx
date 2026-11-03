@@ -37,7 +37,7 @@ function Consumer() {
 
   return (
     <div>
-      <p>{auth.isAuthenticated ? `user:${auth.user?.username}` : 'anonimo'}</p>
+      <p>{auth.isAuthenticated ? `user:${auth.user?.email}` : 'anonimo'}</p>
       <button type="button" onClick={() => void auth.logout()}>
         sair
       </button>
@@ -80,11 +80,19 @@ describe('AuthProvider', () => {
         expiresAt: 1_800_000_000,
       };
     });
-    me.mockResolvedValue({ id: 'user-1', username: 'fernando' });
+    me.mockResolvedValue({
+      id: 'user-1',
+      email: 'fernando@example.com',
+      emailVerified: true,
+      hasPassword: true,
+      termsAccepted: true,
+    });
 
     renderProvider();
 
-    expect(await screen.findByText('user:fernando')).toBeInTheDocument();
+    expect(
+      await screen.findByText('user:fernando@example.com'),
+    ).toBeInTheDocument();
     expect(refresh).toHaveBeenCalledOnce();
     expect(accessTokenStore.get()).toBe('novo-token');
   });
@@ -122,9 +130,15 @@ describe('AuthProvider', () => {
         expiresAt: 1_800_000_000,
       };
     });
-    me.mockResolvedValue({ id: 'user-1', username: 'fernando' });
+    me.mockResolvedValue({
+      id: 'user-1',
+      email: 'fernando@example.com',
+      emailVerified: true,
+      hasPassword: true,
+      termsAccepted: true,
+    });
     const { client } = renderProvider();
-    await screen.findByText('user:fernando');
+    await screen.findByText('user:fernando@example.com');
 
     client.setQueryData(['board', ''], { columns: [] });
     act(() => {

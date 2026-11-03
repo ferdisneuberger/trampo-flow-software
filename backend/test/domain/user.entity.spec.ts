@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  normalizeEmail,
   normalizeUsername,
   User,
 } from '../../src/domain/users/entities/user.entity';
@@ -18,6 +19,28 @@ function expectDomainError(callback: () => unknown, code: string): void {
 
   throw new Error(`Expected DomainError "${code}", but nothing was thrown.`);
 }
+
+describe('normalizeEmail', () => {
+  it('remove espaços e converte para minúsculo', () => {
+    expect(normalizeEmail('  Pessoa@Exemplo.com  ')).toBe('pessoa@exemplo.com');
+  });
+
+  it('recusa e-mail vazio', () => {
+    expectDomainError(() => normalizeEmail('   '), 'EMAIL_REQUIRED');
+  });
+
+  it('recusa e-mail longo demais', () => {
+    expectDomainError(
+      () => normalizeEmail(`${'a'.repeat(250)}@example.com`),
+      'EMAIL_TOO_LONG',
+    );
+  });
+
+  it('recusa formato inválido', () => {
+    expectDomainError(() => normalizeEmail('nao-e-email'), 'EMAIL_INVALID');
+    expectDomainError(() => normalizeEmail('a@b'), 'EMAIL_INVALID');
+  });
+});
 
 describe('normalizeUsername', () => {
   it('remove espaços e converte para minúsculo', () => {
@@ -56,21 +79,45 @@ describe('normalizeUsername', () => {
 describe('User', () => {
   it('cria com id próprio, sem login e com timestamps', () => {
     const user = User.create({
-      username: 'Fernando',
+      email: 'Pessoa@Exemplo.com',
       passwordHash: PASSWORD_HASH,
     });
 
     expect(user.id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(user.username).toBe('fernando');
+    expect(user.email).toBe('pessoa@exemplo.com');
+    expect(user.username).toBeNull();
+    expect(user.emailVerifiedAt).toBeNull();
+    expect(user.isEmailVerified).toBe(false);
+    expect(user.termsAcceptedAt).toBeNull();
+    expect(user.termsVersion).toBeNull();
     expect(user.lastLoginAt).toBeNull();
     expect(user.createdAt).toBeInstanceOf(Date);
     expect(user.updatedAt).toEqual(user.createdAt);
   });
 
+  it('cria já verificado quando solicitado', () => {
+    const verifiedAt = new Date('2026-01-01T00:00:00.000Z');
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      passwordHash: PASSWORD_HASH,
+      emailVerifiedAt: verifiedAt,
+      termsAcceptedAt: verifiedAt,
+      termsVersion: '2026-11',
+    });
+
+    expect(user.isEmailVerified).toBe(true);
+    expect(user.emailVerifiedAt).toEqual(verifiedAt);
+    expect(user.termsAcceptedAt).toEqual(verifiedAt);
+    expect(user.termsVersion).toBe('2026-11');
+  });
+
   it('recusa hash fora do formato scrypt', () => {
     expectDomainError(
       () =>
-        User.create({ username: 'fernando', passwordHash: 'senha-em-texto' }),
+        User.create({
+          email: 'pessoa@exemplo.com',
+          passwordHash: 'senha-em-texto',
+        }),
       'INVALID_PASSWORD_HASH',
     );
   });
@@ -79,7 +126,7 @@ describe('User', () => {
     expectDomainError(
       () =>
         User.create({
-          username: 'fernando',
+          email: 'pessoa@exemplo.com',
           passwordHash: `scrypt$${'a'.repeat(250)}`,
         }),
       'PASSWORD_HASH_TOO_LONG',
@@ -88,7 +135,7 @@ describe('User', () => {
 
   it('registra o último login e atualiza updatedAt', () => {
     const user = User.create({
-      username: 'fernando',
+      email: 'pessoa@exemplo.com',
       passwordHash: PASSWORD_HASH,
     });
     const loginAt = new Date('2026-05-01T12:00:00.000Z');
@@ -101,7 +148,7 @@ describe('User', () => {
 
   it('recusa data de login inválida', () => {
     const user = User.create({
-      username: 'fernando',
+      email: 'pessoa@exemplo.com',
       passwordHash: PASSWORD_HASH,
     });
 
@@ -111,10 +158,15 @@ describe('User', () => {
     );
   });
 
-  it('restore preserva id, hash e datas', () => {
+  it('restore preserva dados legados e de autenticação', () => {
     const createdAt = new Date('2026-01-01T00:00:00.000Z');
     const user = User.restore({
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+      email: 'pessoa@exemplo.com',
+      emailVerifiedAt: createdAt,
+      verificationSentAt: null,
+      termsAcceptedAt: createdAt,
+      termsVersion: '2026-11',
       username: 'fernando',
       passwordHash: PASSWORD_HASH,
       lastLoginAt: createdAt,
@@ -123,7 +175,30 @@ describe('User', () => {
     });
 
     expect(user.id).toBe('6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10');
+    expect(user.email).toBe('pessoa@exemplo.com');
+    expect(user.username).toBe('fernando');
     expect(user.lastLoginAt).toEqual(createdAt);
     expect(user.passwordHash).toBe(PASSWORD_HASH);
+  });
+
+  it('restore aceita usuário somente Google sem username', () => {
+    const createdAt = new Date('2026-01-01T00:00:00.000Z');
+    const user = User.restore({
+      id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
+      email: 'pessoa@exemplo.com',
+      emailVerifiedAt: createdAt,
+      verificationSentAt: null,
+      termsAcceptedAt: null,
+      termsVersion: null,
+      username: null,
+      passwordHash: null,
+      lastLoginAt: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    expect(user.username).toBeNull();
+    expect(user.passwordHash).toBeNull();
+    expect(user.isEmailVerified).toBe(true);
   });
 });

@@ -66,7 +66,7 @@ export function AppShell() {
 
         <div className="mt-6 border-t border-line pt-4">
           <p className="truncate px-3 text-xs font-medium text-ink-700">
-            {user?.username}
+            {user?.email}
           </p>
           <button
             type="button"

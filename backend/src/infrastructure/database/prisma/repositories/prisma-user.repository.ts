@@ -14,11 +14,9 @@ export class PrismaUserRepository implements UserRepository {
     return record ? UserMapper.toDomain(record) : null;
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-    // Sem validação de formato aqui: o login precisa responder "não encontrado"
-    // para qualquer entrada, e não um 400 que revele a regra de username.
+  async findByEmail(email: string): Promise<User | null> {
     const record = await this.prisma.user.findUnique({
-      where: { username: username.trim().toLowerCase() },
+      where: { email },
     });
 
     return record ? UserMapper.toDomain(record) : null;

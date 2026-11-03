@@ -9,9 +9,10 @@ import {
 } from '../helpers/test-database';
 
 const PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdA==$a2V5';
+const EMAIL = 'fernando@example.com';
 
-function makeUser(username = 'fernando'): User {
-  return User.create({ username, passwordHash: PASSWORD_HASH });
+function makeUser(email = EMAIL): User {
+  return User.create({ email, passwordHash: PASSWORD_HASH });
 }
 
 describe.skipIf(!TEST_DATABASE_URL)('PrismaUserRepository', () => {
@@ -31,30 +32,25 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaUserRepository', () => {
     await truncateUserData(prisma);
   });
 
-  it('persiste e recupera por id e por username', async () => {
+  it('persiste e recupera por id e por e-mail', async () => {
     const user = makeUser();
 
     await repository.create(user);
 
     const byId = await repository.findById(user.id);
-    const byUsername = await repository.findByUsername('fernando');
+    const byEmail = await repository.findByEmail(EMAIL);
 
     expect(byId?.id).toBe(user.id);
-    expect(byUsername?.id).toBe(user.id);
-    expect(byUsername?.passwordHash).toBe(PASSWORD_HASH);
-    expect(byUsername?.lastLoginAt).toBeNull();
+    expect(byEmail?.id).toBe(user.id);
+    expect(byEmail?.passwordHash).toBe(PASSWORD_HASH);
+    expect(byEmail?.lastLoginAt).toBeNull();
+    expect(byEmail?.username).toBeNull();
   });
 
-  it('busca sem diferenciar maiúsculas e espaços', async () => {
-    await repository.create(makeUser('fernando'));
-
+  it('devolve null para e-mail inexistente', async () => {
     await expect(
-      repository.findByUsername('  FERNANDO  '),
-    ).resolves.not.toBeNull();
-  });
-
-  it('devolve null para username inexistente', async () => {
-    await expect(repository.findByUsername('ninguem')).resolves.toBeNull();
+      repository.findByEmail('ninguem@example.com'),
+    ).resolves.toBeNull();
   });
 
   it('responde existsById e existsAny', async () => {
@@ -85,10 +81,10 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaUserRepository', () => {
     expect(stored?.updatedAt).toEqual(loginAt);
   });
 
-  it('recusa username duplicado ignorando maiúsculas', async () => {
-    await repository.create(makeUser('fernando'));
+  it('recusa e-mail duplicado', async () => {
+    await repository.create(makeUser());
 
-    await expect(repository.create(makeUser('FERNANDO'))).rejects.toThrow();
+    await expect(repository.create(makeUser())).rejects.toThrow();
   });
 
   it('propaga erro ao atualizar usuário inexistente', async () => {

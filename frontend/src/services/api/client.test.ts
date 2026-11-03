@@ -132,7 +132,7 @@ describe('apiClient', () => {
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, listener);
 
     await expect(
-      apiClient.post('/auth/login', { username: 'a', password: 'b' }),
+      apiClient.post('/auth/login', { email: 'a@example.com', password: 'b' }),
     ).rejects.toBeInstanceOf(ApiError);
 
     expect(listener).not.toHaveBeenCalled();

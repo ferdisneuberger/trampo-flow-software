@@ -14,7 +14,7 @@ import { safeRedirectPath } from '../utils/url';
 export function LoginPage() {
   const { isAuthenticated, isLoading, login } = useAuth();
   const location = useLocation();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +33,7 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (username.trim().length === 0 || password.length === 0) {
+    if (email.trim().length === 0 || password.length === 0) {
       return;
     }
 
@@ -41,7 +41,7 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login({ username: username.trim(), password });
+      await login({ email: email.trim(), password });
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -68,7 +68,7 @@ export function LoginPage() {
               Entrar na sua conta
             </h2>
             <p className="mt-1 text-sm text-ink-500">
-              Use as credenciais configuradas no servidor.
+              Entre com seu e-mail e senha.
             </p>
           </div>
 
@@ -77,14 +77,16 @@ export function LoginPage() {
             onSubmit={(event) => void handleSubmit(event)}
           >
             <Input
-              label="Usuário"
-              autoComplete="username"
+              label="E-mail"
+              type="email"
+              autoComplete="email"
               autoCapitalize="none"
               spellCheck={false}
+              maxLength={254}
               required
-              value={username}
+              value={email}
               onChange={(event) => {
-                setUsername(event.target.value);
+                setEmail(event.target.value);
                 setError(null);
               }}
             />
@@ -113,7 +115,7 @@ export function LoginPage() {
               type="submit"
               className="w-full"
               isLoading={isSubmitting}
-              disabled={username.trim().length === 0 || password.length === 0}
+              disabled={email.trim().length === 0 || password.length === 0}
             >
               <LogIn className="size-4" aria-hidden="true" />
               Entrar

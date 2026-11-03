@@ -1,16 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Transform, type TransformFnParams } from 'class-transformer';
+import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({
-    description: 'Nome de usuário.',
-    example: 'fernando',
-    maxLength: 120,
+    description: 'E-mail cadastrado.',
+    example: 'pessoa@exemplo.com',
+    maxLength: 254,
   })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(120)
-  username!: string;
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : undefined,
+  )
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
 
   @ApiProperty({
     description: 'Senha em texto puro, enviada apenas no login.',

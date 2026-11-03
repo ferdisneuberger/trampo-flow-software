@@ -1,10 +1,13 @@
 export type AuthUser = {
   id: string;
-  username: string;
+  email: string;
+  emailVerified: boolean;
+  hasPassword: boolean;
+  termsAccepted: boolean;
 };
 
 export type LoginInput = {
-  username: string;
+  email: string;
   password: string;
 };
 

@@ -43,12 +43,15 @@ describe('LoginPage', () => {
   it('envia credenciais e não mostra erro no sucesso', async () => {
     const { login } = renderLogin();
 
-    await userEvent.type(screen.getByLabelText('Usuário'), 'fernando');
+    await userEvent.type(
+      screen.getByLabelText('E-mail'),
+      'fernando@example.com',
+    );
     await userEvent.type(screen.getByLabelText('Senha'), 'segredo');
     await userEvent.click(screen.getByRole('button', { name: /Entrar/ }));
 
     expect(login).toHaveBeenCalledWith({
-      username: 'fernando',
+      email: 'fernando@example.com',
       password: 'segredo',
     });
   });
@@ -58,7 +61,10 @@ describe('LoginPage', () => {
 
     login.mockRejectedValue(new Error('Credenciais inválidas.'));
 
-    await userEvent.type(screen.getByLabelText('Usuário'), 'fernando');
+    await userEvent.type(
+      screen.getByLabelText('E-mail'),
+      'fernando@example.com',
+    );
     await userEvent.type(screen.getByLabelText('Senha'), 'errada');
     await userEvent.click(screen.getByRole('button', { name: /Entrar/ }));
 
@@ -69,7 +75,13 @@ describe('LoginPage', () => {
 
   it('usa /candidaturas como destino padrão e rejeita open redirect', () => {
     mockedUseAuth.mockReturnValue({
-      user: { id: 'user-1', username: 'fernando' },
+      user: {
+        id: 'user-1',
+        email: 'fernando@example.com',
+        emailVerified: true,
+        hasPassword: true,
+        termsAccepted: true,
+      },
       isAuthenticated: true,
       isLoading: false,
       login: vi.fn(),
