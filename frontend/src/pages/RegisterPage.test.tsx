@@ -65,7 +65,7 @@ describe('RegisterPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Criar conta/ }));
 
     expect(
-      screen.getByText('A senha deve ter pelo menos 12 caracteres.'),
+      screen.getByText('A senha deve ter pelo menos 8 caracteres.'),
     ).toBeInTheDocument();
     expect(screen.getByText('As senhas não coincidem.')).toBeInTheDocument();
     expect(

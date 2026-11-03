@@ -45,8 +45,8 @@ export function ResetPasswordPage() {
 
     const nextErrors: FormErrors = {};
 
-    if (password.length < 12) {
-      nextErrors.password = 'A senha deve ter pelo menos 12 caracteres.';
+    if (password.length < 8) {
+      nextErrors.password = 'A senha deve ter pelo menos 8 caracteres.';
     }
 
     if (confirmPassword !== password) {
@@ -130,7 +130,7 @@ export function ResetPasswordPage() {
             Nova senha
           </h2>
           <p className="mt-1 text-sm text-ink-500">
-            Escolha uma senha com pelo menos 12 caracteres.
+            Escolha uma senha com pelo menos 8 caracteres.
           </p>
         </div>
 
@@ -143,7 +143,7 @@ export function ResetPasswordPage() {
             label="Nova senha"
             type="password"
             autoComplete="new-password"
-            minLength={12}
+            minLength={8}
             maxLength={256}
             required
             value={password}

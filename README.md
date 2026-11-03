@@ -203,13 +203,13 @@ A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do Postgr
 | `LOGIN_MAX_ATTEMPTS`           | não         | Falhas consecutivas antes do bloqueio; padrão `10`        |
 | `LOGIN_WINDOW_SECONDS`         | não         | Janela e duração do bloqueio; padrão `900`                |
 | `AUTH_EMAIL`                   | não         | E-mail criado no primeiro boot, se a tabela estiver vazia |
-| `AUTH_PASSWORD`                | não         | Senha do primeiro usuário (mínimo de 12 caracteres)       |
+| `AUTH_PASSWORD`                | não         | Senha do primeiro usuário (mínimo de 8 caracteres)        |
 | `AUTH_TOKEN_SECRET`            | sim         | Segredo HMAC dos tokens de verificação (32+ caracteres)   |
 | `APP_BASE_URL`                 | não         | URL pública usada nos links dos e-mails                   |
 | `REGISTRATION_ENABLED`         | não         | Liga/desliga o cadastro público; padrão `false`           |
 | `EMAIL_VERIFICATION_TTL_HOURS` | não         | Validade do código de verificação; padrão `24`            |
 | `VERIFICATION_RESEND_SECONDS`  | não         | Cooldown de reenvio; padrão `120`                         |
-| `PASSWORD_RESET_TTL_MINUTES`   | não         | Validade do link de recuperação; padrão `60`              |
+| `PASSWORD_RESET_TTL_MINUTES`   | não         | Validade do link de recuperação; padrão `15`              |
 | `GOOGLE_CLIENT_ID`             | não         | Client ID público do Google para validar o ID token       |
 | `API_KEY_DELETE`               | não         | Chave da rota administrativa de exclusão (somente testes) |
 | `TERMS_VERSION`                | não         | Versão dos termos aceita no cadastro; padrão `2026-11`    |
@@ -287,7 +287,7 @@ curl -X POST http://localhost:5173/api/auth/google \
 
 #### Recuperação de senha
 
-`POST /auth/password/forgot` sempre responde de forma genérica. Se existir uma conta com senha, um link de alta entropia é enviado e expira em 60 minutos. O link abre `/redefinir-senha`, onde o usuário escolhe a nova senha. Ao concluir, o token é consumido e **todas as sessões** da conta são revogadas.
+`POST /auth/password/forgot` sempre responde de forma genérica. Se existir uma conta com senha, um link de alta entropia é enviado e expira em 15 minutos. O link abre `/redefinir-senha`, onde o usuário escolhe a nova senha. Ao concluir, o token é consumido e **todas as sessões** da conta são revogadas.
 
 ```bash
 curl -X POST http://localhost:5173/api/auth/password/forgot \

@@ -32,8 +32,8 @@ export function RegisterPage() {
       next.email = 'Informe um e-mail válido.';
     }
 
-    if (password.length < 12) {
-      next.password = 'A senha deve ter pelo menos 12 caracteres.';
+    if (password.length < 8) {
+      next.password = 'A senha deve ter pelo menos 8 caracteres.';
     }
 
     if (confirmPassword !== password) {
@@ -149,7 +149,7 @@ export function RegisterPage() {
             label="Senha"
             type="password"
             autoComplete="new-password"
-            minLength={12}
+            minLength={8}
             maxLength={256}
             required
             hint="Mínimo de 12 caracteres."
