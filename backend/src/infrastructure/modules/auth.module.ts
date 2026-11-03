@@ -3,16 +3,19 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthenticateUserUseCase } from '../../application/auth/use-cases/authenticate-user.use-case';
 import { CreateSessionUseCase } from '../../application/auth/use-cases/create-session.use-case';
+import { ForgotPasswordUseCase } from '../../application/auth/use-cases/forgot-password.use-case';
 import { GetUserProfileUseCase } from '../../application/auth/use-cases/get-user-profile.use-case';
 import { LogoutUseCase } from '../../application/auth/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from '../../application/auth/use-cases/refresh-session.use-case';
 import { RegisterUserUseCase } from '../../application/auth/use-cases/register-user.use-case';
 import { ResendVerificationUseCase } from '../../application/auth/use-cases/resend-verification.use-case';
+import { ResetPasswordUseCase } from '../../application/auth/use-cases/reset-password.use-case';
 import { VerifyEmailUseCase } from '../../application/auth/use-cases/verify-email.use-case';
 import { AuthSettings } from '../../application/auth/services/auth-settings';
 import { AuthTokenRepository } from '../../domain/auth/repositories/auth-token.repository';
 import { Mailer } from '../../domain/auth/services/mailer';
 import { TokenHasher } from '../../domain/auth/services/token-hasher';
+import { PasswordResetTokenGenerator } from '../../domain/auth/services/password-reset-token-generator';
 import { VerificationCodeGenerator } from '../../domain/auth/services/verification-code-generator';
 import { RefreshTokenRepository } from '../../domain/auth/repositories/refresh-token.repository';
 import { RefreshTokenGenerator } from '../../domain/auth/services/refresh-token-generator';
@@ -20,6 +23,7 @@ import { RefreshTokenPolicy } from '../../domain/auth/services/refresh-token-pol
 import { UserRepository } from '../../domain/users/repositories/user.repository';
 import { PasswordHasher } from '../../domain/users/services/password-hasher';
 import { CryptoRefreshTokenGenerator } from '../auth/crypto-refresh-token-generator';
+import { CryptoPasswordResetTokenGenerator } from '../auth/crypto-password-reset-token-generator';
 import { CryptoVerificationCodeGenerator } from '../auth/crypto-verification-code-generator';
 import { HmacTokenHasher } from '../auth/hmac-token-hasher';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -53,6 +57,8 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     RegisterUserUseCase,
     VerifyEmailUseCase,
     ResendVerificationUseCase,
+    ForgotPasswordUseCase,
+    ResetPasswordUseCase,
     LoginRateLimiter,
     RateLimiterService,
     ScryptPasswordHasher,
@@ -60,6 +66,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     UserBootstrapService,
     CryptoRefreshTokenGenerator,
     CryptoVerificationCodeGenerator,
+    CryptoPasswordResetTokenGenerator,
     HmacTokenHasher,
     SmtpMailer,
     {
@@ -77,6 +84,10 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     {
       provide: TokenHasher,
       useExisting: HmacTokenHasher,
+    },
+    {
+      provide: PasswordResetTokenGenerator,
+      useExisting: CryptoPasswordResetTokenGenerator,
     },
     {
       provide: Mailer,
@@ -99,6 +110,12 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
             configService.get<string>('VERIFICATION_RESEND_SECONDS'),
             120,
           ) * 1000,
+          readPositiveInt(
+            configService.get<string>('PASSWORD_RESET_TTL_MINUTES'),
+            60,
+          ) *
+            60 *
+            1000,
           configService.get<string>('TERMS_VERSION')?.trim() || '2026-11',
           (
             configService.get<string>('APP_BASE_URL')?.trim() ||

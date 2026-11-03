@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildVerificationEmail } from '../../src/application/auth/emails/verification-email';
+import { buildPasswordResetEmail } from '../../src/application/auth/emails/password-reset-email';
 import { buildVerifiedEmail } from '../../src/application/auth/emails/verified-email';
 
 describe('verification email', () => {
@@ -36,5 +37,22 @@ describe('verified email', () => {
     expect(email.text).toContain('verificado com sucesso');
     expect(email.text).toContain('https://app.exemplo.com/candidaturas');
     expect(email.html).toContain('Ir para o quadro');
+  });
+});
+
+describe('password reset email', () => {
+  const email = buildPasswordResetEmail({
+    token: 'reset-token',
+    appBaseUrl: 'https://app.exemplo.com/',
+    expiresInMinutes: 60,
+  });
+
+  it('destaca o link de redefinição e a validade', () => {
+    expect(email.subject).toContain('Redefinir');
+    expect(email.text).toContain(
+      'https://app.exemplo.com/redefinir-senha#token=reset-token',
+    );
+    expect(email.html).toContain('Criar nova senha');
+    expect(email.text).toContain('60 minutos');
   });
 });

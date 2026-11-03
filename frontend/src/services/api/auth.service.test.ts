@@ -72,6 +72,30 @@ describe('authService', () => {
     });
   });
 
+  it('solicita recuperação de senha', async () => {
+    client.post.mockResolvedValue({});
+
+    await authService.forgotPassword({ email: 'pessoa@exemplo.com' });
+
+    expect(client.post).toHaveBeenCalledWith('/auth/password/forgot', {
+      email: 'pessoa@exemplo.com',
+    });
+  });
+
+  it('redefine a senha', async () => {
+    client.post.mockResolvedValue({});
+
+    await authService.resetPassword({
+      token: 'reset-token',
+      password: 'senha-nova-segura',
+    });
+
+    expect(client.post).toHaveBeenCalledWith('/auth/password/reset', {
+      token: 'reset-token',
+      password: 'senha-nova-segura',
+    });
+  });
+
   it('faz logout', async () => {
     client.post.mockResolvedValue({});
 

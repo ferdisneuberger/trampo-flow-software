@@ -35,6 +35,16 @@ const TermsPage = lazy(() =>
     default: module.TermsPage,
   })),
 );
+const ForgotPasswordPage = lazy(() =>
+  import('./pages/ForgotPasswordPage').then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import('./pages/ResetPasswordPage').then((module) => ({
+    default: module.ResetPasswordPage,
+  })),
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((module) => ({
     default: module.NotFoundPage,
@@ -51,6 +61,8 @@ export function App() {
             <Route path="/cadastro" element={<RegisterPage />} />
             <Route path="/verificar-email" element={<VerifyEmailPage />} />
             <Route path="/termos" element={<TermsPage />} />
+            <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+            <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>

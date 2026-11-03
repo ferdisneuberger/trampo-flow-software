@@ -93,6 +93,15 @@ export function LoginPage() {
             }}
           />
 
+          <div className="flex justify-end">
+            <Link
+              to="/esqueci-senha"
+              className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline"
+            >
+              Esqueci minha senha
+            </Link>
+          </div>
+
           {error && (
             <Alert
               tone="error"

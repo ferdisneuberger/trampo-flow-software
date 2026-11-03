@@ -1,10 +1,12 @@
 import type {
   AuthUser,
+  ForgotPasswordInput,
   LoginInput,
   LoginResponse,
   RegisterInput,
   RegisterResponse,
   ResendVerificationResponse,
+  ResetPasswordInput,
   VerifyEmailInput,
 } from '../auth.types';
 import { apiClient } from './client';
@@ -27,6 +29,14 @@ export const authService = {
 
   async verifyEmail(input: VerifyEmailInput): Promise<void> {
     await apiClient.post('/auth/verification/confirm', input);
+  },
+
+  async forgotPassword(input: ForgotPasswordInput): Promise<void> {
+    await apiClient.post('/auth/password/forgot', input);
+  },
+
+  async resetPassword(input: ResetPasswordInput): Promise<void> {
+    await apiClient.post('/auth/password/reset', input);
   },
 
   async resendVerification(): Promise<ResendVerificationResponse> {

@@ -10,7 +10,9 @@ import type { AuthenticateUserUseCase } from '../../src/application/auth/use-cas
 import type { CreateSessionUseCase } from '../../src/application/auth/use-cases/create-session.use-case';
 import type { GetUserProfileUseCase } from '../../src/application/auth/use-cases/get-user-profile.use-case';
 import type { RegisterUserUseCase } from '../../src/application/auth/use-cases/register-user.use-case';
+import type { ForgotPasswordUseCase } from '../../src/application/auth/use-cases/forgot-password.use-case';
 import type { ResendVerificationUseCase } from '../../src/application/auth/use-cases/resend-verification.use-case';
+import type { ResetPasswordUseCase } from '../../src/application/auth/use-cases/reset-password.use-case';
 import type { VerifyEmailUseCase } from '../../src/application/auth/use-cases/verify-email.use-case';
 import type { LogoutUseCase } from '../../src/application/auth/use-cases/logout.use-case';
 import type { RefreshSessionUseCase } from '../../src/application/auth/use-cases/refresh-session.use-case';
@@ -75,6 +77,8 @@ function createController() {
   const registerUser = vi.fn();
   const verifyEmail = vi.fn();
   const resendVerification = vi.fn();
+  const forgotPassword = vi.fn();
+  const resetPassword = vi.fn();
   const consume = vi.fn();
   const sign = vi.fn().mockReturnValue({ token: 'jwt', expiresAt: 123 });
   const assertAllowed = vi.fn();
@@ -94,6 +98,8 @@ function createController() {
     { execute: registerUser } as unknown as RegisterUserUseCase,
     { execute: verifyEmail } as unknown as VerifyEmailUseCase,
     { execute: resendVerification } as unknown as ResendVerificationUseCase,
+    { execute: forgotPassword } as unknown as ForgotPasswordUseCase,
+    { execute: resetPassword } as unknown as ResetPasswordUseCase,
     { consume } as unknown as RateLimiterService,
     { sign, expiresInSeconds: 3600 } as unknown as TokenService,
     {
@@ -114,6 +120,8 @@ function createController() {
     registerUser,
     verifyEmail,
     resendVerification,
+    forgotPassword,
+    resetPassword,
     consume,
     sign,
     assertAllowed,
@@ -273,6 +281,49 @@ describe('AuthController', () => {
     );
     expect(resendVerification).toHaveBeenCalledWith(USER_ID);
     expect(result).toEqual({ sent: true, retryAfterSeconds: 120 });
+  });
+
+  it('solicita recuperação com limites por IP e e-mail', async () => {
+    const { controller, forgotPassword, consume } = createController();
+
+    const result = await controller.forgotPasswordRequest(
+      { email: 'pessoa@exemplo.com' },
+      makeRequest(),
+    );
+
+    expect(consume).toHaveBeenCalledWith(
+      'password:forgot:ip:127.0.0.1',
+      10,
+      60 * 60 * 1000,
+    );
+    expect(consume).toHaveBeenCalledWith(
+      'password:forgot:email:pessoa@exemplo.com',
+      3,
+      60 * 60 * 1000,
+    );
+    expect(forgotPassword).toHaveBeenCalledWith({
+      email: 'pessoa@exemplo.com',
+    });
+    expect(result.message).toContain('link de recuperação');
+  });
+
+  it('redefine a senha com limite por IP', async () => {
+    const { controller, resetPassword, consume } = createController();
+
+    await controller.resetPasswordRequest(
+      { token: 'token-longo', password: 'senha-nova-segura' },
+      makeRequest(),
+    );
+
+    expect(consume).toHaveBeenCalledWith(
+      'password:reset:ip:127.0.0.1',
+      5,
+      60 * 60 * 1000,
+    );
+    expect(resetPassword).toHaveBeenCalledWith({
+      token: 'token-longo',
+      password: 'senha-nova-segura',
+    });
   });
 
   it('renova a sessão e rotaciona o cookie', async () => {

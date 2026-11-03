@@ -28,5 +28,7 @@ export abstract class RefreshTokenRepository {
 
   abstract revokeFamily(familyId: string): Promise<void>;
 
+  abstract revokeAllForUser(userId: string): Promise<void>;
+
   abstract deleteExpired(before: Date): Promise<void>;
 }
