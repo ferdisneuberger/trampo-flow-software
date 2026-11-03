@@ -26,6 +26,59 @@ type BoardCardProps = {
   onDelete: (application: Application) => void;
 };
 
+function BoardCardSummary({ application }: { application: Application }) {
+  return (
+    <>
+      <p className="line-clamp-2 text-sm font-semibold text-ink-900">
+        {application.title}
+      </p>
+      <p className="mt-0.5 truncate text-xs text-ink-500">
+        {application.company}
+      </p>
+      <p className="mt-1 line-clamp-1 text-xs text-ink-700">
+        {application.currentPhase}
+      </p>
+
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-[11px] text-ink-500">
+          {formatDate(application.updatedAt)}
+        </span>
+      </div>
+    </>
+  );
+}
+
+/**
+ * Prévia usada no `DragOverlay`. O dnd-kit dimensiona o wrapper com o retângulo
+ * exato do card original; por isso o conteúdo precisa preencher 100% e repetir
+ * a mesma estrutura do card (alça, textos e menu) para não "encolher" durante
+ * o arraste.
+ */
+export function BoardCardOverlay({
+  application,
+}: {
+  application: Application;
+}) {
+  return (
+    <div className="flex h-full w-full items-start gap-2 rounded-lg border border-brand-300 bg-white p-3 shadow-lg">
+      <span className="mt-0.5 rounded p-0.5 text-ink-500">
+        <GripVertical className="size-4" aria-hidden="true" />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <BoardCardSummary application={application} />
+      </div>
+
+      <span
+        className="grid size-7 shrink-0 place-items-center rounded text-ink-500"
+        aria-hidden="true"
+      >
+        <span className="text-base leading-none">⋯</span>
+      </span>
+    </div>
+  );
+}
+
 export function BoardCard({
   application,
   draggingEnabled,
@@ -176,21 +229,7 @@ export function BoardCard({
           }}
           className="min-w-0 flex-1 touch-manipulation rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
         >
-          <p className="line-clamp-2 text-sm font-semibold text-ink-900">
-            {application.title}
-          </p>
-          <p className="mt-0.5 truncate text-xs text-ink-500">
-            {application.company}
-          </p>
-          <p className="mt-1 line-clamp-1 text-xs text-ink-700">
-            {application.currentPhase}
-          </p>
-
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-[11px] text-ink-500">
-              {formatDate(application.updatedAt)}
-            </span>
-          </div>
+          <BoardCardSummary application={application} />
         </Link>
 
         <Menu

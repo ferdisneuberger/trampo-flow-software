@@ -153,7 +153,7 @@ export function ApplicationsPage() {
     board.data?.columns.some((column) => column.items.length > 0) ?? false;
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         title="Candidaturas"
         description="Arraste os cards para acompanhar cada processo seletivo pelo funil."
@@ -223,39 +223,41 @@ export function ApplicationsPage() {
         containerClassName="w-full lg:max-w-sm"
       />
 
-      {board.isPending && !board.data ? (
-        <BoardSkeleton />
-      ) : board.isError && !board.data ? null : total === 0 && !search ? (
-        <EmptyState
-          icon={Briefcase}
-          title="Comece seu quadro de candidaturas"
-          description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
-          action={
-            <Button type="button" onClick={openCreate}>
-              <Plus className="size-4" aria-hidden="true" />
-              Criar primeira candidatura
-            </Button>
-          }
-        />
-      ) : !hasItems ? (
-        <EmptyState
-          icon={Search}
-          title="Nenhum resultado encontrado"
-          description="Não há candidaturas que correspondam à busca atual. Ajuste o termo ou limpe a busca."
-          action={
-            <Button type="button" variant="secondary" onClick={clearSearch}>
-              Limpar busca
-            </Button>
-          }
-        />
-      ) : board.data ? (
-        <Board
-          board={board.data}
-          search={search || undefined}
-          onEdit={openEdit}
-          onDelete={openDelete}
-        />
-      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {board.isPending && !board.data ? (
+          <BoardSkeleton />
+        ) : board.isError && !board.data ? null : total === 0 && !search ? (
+          <EmptyState
+            icon={Briefcase}
+            title="Comece seu quadro de candidaturas"
+            description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
+            action={
+              <Button type="button" onClick={openCreate}>
+                <Plus className="size-4" aria-hidden="true" />
+                Criar primeira candidatura
+              </Button>
+            }
+          />
+        ) : !hasItems ? (
+          <EmptyState
+            icon={Search}
+            title="Nenhum resultado encontrado"
+            description="Não há candidaturas que correspondam à busca atual. Ajuste o termo ou limpe a busca."
+            action={
+              <Button type="button" variant="secondary" onClick={clearSearch}>
+                Limpar busca
+              </Button>
+            }
+          />
+        ) : board.data ? (
+          <Board
+            board={board.data}
+            search={search || undefined}
+            onEdit={openEdit}
+            onDelete={openDelete}
+          />
+        ) : null}
+      </div>
 
       <Modal
         isOpen={isFormOpen}

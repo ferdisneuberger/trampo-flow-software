@@ -19,6 +19,22 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
 }
 
 /**
+ * Devolve apenas o hostname (sem `www.`) de uma URL http/https. Usado para
+ * exibir links longos de forma legível na interface.
+ */
+export function formatUrlHost(value: string | null | undefined): string | null {
+  const safeUrl = safeHttpUrl(value);
+
+  if (!safeUrl) {
+    return null;
+  }
+
+  const host = new URL(safeUrl).hostname.replace(/^www\./, '');
+
+  return host.length > 0 ? host : null;
+}
+
+/**
  * Valida um destino interno de redirecionamento recebido via location.state.
  * Rejeita URLs absolutas, protocol-relative e variações com backslash/controle.
  */

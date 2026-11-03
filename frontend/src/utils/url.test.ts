@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { safeHttpUrl, safeRedirectPath } from './url';
+import { formatUrlHost, safeHttpUrl, safeRedirectPath } from './url';
+
+describe('formatUrlHost', () => {
+  it('retorna o hostname sem www para URLs http/https', () => {
+    expect(formatUrlHost('https://www.glassdoor.com.br/job/123?x=1')).toBe(
+      'glassdoor.com.br',
+    );
+    expect(formatUrlHost('http://example.com:3000/vaga')).toBe('example.com');
+  });
+
+  it('retorna null para valores inválidos ou perigosos', () => {
+    expect(formatUrlHost(null)).toBeNull();
+    expect(formatUrlHost('nao-e-url')).toBeNull();
+    expect(formatUrlHost('javascript:alert(1)')).toBeNull();
+  });
+});
 
 describe('safeHttpUrl', () => {
   it('aceita http e https', () => {

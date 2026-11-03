@@ -22,7 +22,7 @@ import { useApplication } from '../hooks/useApplication';
 import { useApplicationMutations } from '../hooks/useApplicationMutations';
 import { getErrorMessage } from '../utils/errors';
 import { formatDate } from '../utils/format';
-import { safeHttpUrl } from '../utils/url';
+import { formatUrlHost, safeHttpUrl } from '../utils/url';
 
 export function ApplicationDetailPage() {
   const { id } = useParams();
@@ -112,7 +112,10 @@ export function ApplicationDetailPage() {
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <h1 className="break-words text-2xl font-semibold tracking-tight text-ink-900">
+          <h1
+            title={application.title}
+            className="line-clamp-2 break-words text-2xl font-semibold tracking-tight text-ink-900"
+          >
             {application.title}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-ink-700">
@@ -136,19 +139,21 @@ export function ApplicationDetailPage() {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex gap-2 lg:shrink-0">
           <Button
             type="button"
             variant="secondary"
             onClick={() => setIsEditing(true)}
+            className="flex-1 sm:flex-none"
           >
             <Pencil className="size-4" aria-hidden="true" />
             Editar
           </Button>
           <Button
             type="button"
-            variant="danger"
+            variant="danger-ghost"
             onClick={() => setIsDeleteOpen(true)}
+            className="flex-1 sm:flex-none"
           >
             <Trash2 className="size-4" aria-hidden="true" />
             Excluir
@@ -173,75 +178,78 @@ export function ApplicationDetailPage() {
         />
       )}
 
-      <Card className="min-w-0 max-w-4xl p-0">
-        <dl className="min-w-0 divide-y divide-line">
-          <div className="px-4 py-3">
+      <Card className="min-w-0 overflow-hidden p-0">
+        <dl className="grid grid-cols-1 gap-px bg-line sm:grid-cols-2">
+          <div className="bg-white px-5 py-4 sm:col-span-2">
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Empresa
+              Fase atual
             </dt>
-            <dd className="mt-0.5 truncate text-sm text-ink-900">
-              {application.company}
+            <dd className="mt-1 text-base font-medium text-ink-900">
+              {application.currentPhase}
             </dd>
           </div>
-          <div className="px-4 py-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Site da empresa
-            </dt>
-            <dd className="mt-0.5 truncate text-sm">
-              {companyUrl ? (
-                <a
-                  href={companyUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block truncate text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
-                >
-                  {application.companyUrl}
-                </a>
-              ) : (
-                <span className="text-ink-500">Não informado</span>
-              )}
-            </dd>
-          </div>
-          <div className="px-4 py-3">
+
+          <div
+            className={
+              companyUrl
+                ? 'bg-white px-5 py-4'
+                : 'bg-white px-5 py-4 sm:col-span-2'
+            }
+          >
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               Link da vaga
             </dt>
-            <dd className="mt-0.5 truncate text-sm">
+            <dd className="mt-1 min-w-0 text-sm">
               {jobUrl ? (
                 <a
                   href={jobUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="block truncate text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
+                  title={application.link}
+                  className="inline-flex max-w-full items-center gap-1.5 text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
                 >
-                  {application.link}
+                  <span className="truncate">{formatUrlHost(jobUrl)}</span>
+                  <ExternalLink
+                    className="size-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
                 </a>
               ) : (
-                <span className="text-ink-700">{application.link}</span>
+                <span className="break-all text-ink-700">
+                  {application.link}
+                </span>
               )}
             </dd>
           </div>
-          <div className="px-4 py-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Fase atual
-            </dt>
-            <dd className="mt-0.5 text-sm text-ink-900">
-              {application.currentPhase}
-            </dd>
-          </div>
-          <div className="px-4 py-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Status
-            </dt>
-            <dd className="mt-1">
-              <ApplicationStatusBadge status={application.status} />
-            </dd>
-          </div>
-          <div className="px-4 py-3">
+
+          {companyUrl && (
+            <div className="bg-white px-5 py-4">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
+                Site da empresa
+              </dt>
+              <dd className="mt-1 min-w-0 text-sm">
+                <a
+                  href={companyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={application.companyUrl ?? undefined}
+                  className="inline-flex max-w-full items-center gap-1.5 text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
+                >
+                  <span className="truncate">{formatUrlHost(companyUrl)}</span>
+                  <ExternalLink
+                    className="size-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                </a>
+              </dd>
+            </div>
+          )}
+
+          <div className="bg-white px-5 py-4">
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               Criada em
             </dt>
-            <dd className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-ink-900">
+            <dd className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink-900">
               <CalendarDays
                 className="size-3.5 text-ink-500"
                 aria-hidden="true"
@@ -249,11 +257,12 @@ export function ApplicationDetailPage() {
               {formatDate(application.createdAt)}
             </dd>
           </div>
-          <div className="px-4 py-3">
+
+          <div className="bg-white px-5 py-4">
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               Atualizada em
             </dt>
-            <dd className="mt-0.5 text-sm text-ink-900">
+            <dd className="mt-1 text-sm text-ink-900">
               {formatDate(application.updatedAt)}
             </dd>
           </div>
