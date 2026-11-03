@@ -199,8 +199,8 @@ export function usePlaceApplication() {
         queryClient.setQueryData(key, data);
       }
     },
-    onSettled: (_data, _error, variables) => {
-      invalidateApplicationData(queryClient, variables.id);
+    onSettled: async (_data, _error, variables) => {
+      await invalidateApplicationData(queryClient, variables.id);
     },
   });
 }

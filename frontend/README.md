@@ -36,7 +36,7 @@ Página (pages/ApplicationDetailPage)
 | `components/ui`           | Design system base: botões, inputs, cards, modais, menu, badges, alertas, skeleton e error boundary |
 | `components/auth`         | Rota protegida e tela de carregamento da sessão                                                     |
 | `components/layout`       | Estrutura global (navegação, conteúdo, logout e skip link)                                          |
-| `components/applications` | Quadro, colunas, cards, formulário, upload e diálogo de exclusão                                    |
+| `components/applications` | Quadro, colunas, cards, formulário e diálogo de exclusão                                            |
 | `pages`                   | Composição das telas                                                                                |
 | `hooks`                   | Query/mutations, formulário, debounce, disclosure e logout                                          |
 | `contexts`                | Sessão autenticada e evento de unauthorized                                                         |
@@ -49,11 +49,11 @@ Página (pages/ApplicationDetailPage)
 
 - **Somente quadro:** a tela inicial é `/candidaturas`; não existe visão de lista nem painel de estatísticas. A rota `/` redireciona para o quadro.
 - **Cache centralizado:** `src/lib/query-keys.ts` concentra as chaves e `src/lib/invalidate.ts` invalida o quadro e o detalhe de uma candidatura. Qualquer mutation passa por esse helper.
-- **Mutations reutilizáveis:** `useApplicationMutations` é a única porta para criar, atualizar, excluir, enviar e remover arquivos. `ApplicationForm` recebe as ações por props, sem disparar queries escondidas.
+- **Mutations reutilizáveis:** `useApplicationMutations` é a única porta para criar, atualizar e excluir candidaturas. `ApplicationForm` recebe as ações por props, sem disparar queries escondidas.
 - **Otimismo com rollback:** mover um card atualiza ordem e totais das colunas imediatamente; se a API falhar, o quadro anterior é restaurado e um alerta é exibido.
 - **Sessão JWT:** o access token fica apenas em memória; o refresh token fica em cookie `httpOnly` + `SameSite=strict`. `refreshAccessToken` deduplica refreshes concorrentes. Logout e `401` limpam o cache de queries.
 - **Erros normalizados:** o interceptor converte falhas de rede e respostas da API em `ApiError`. Um retry com erro 500 **não** derruba a sessão.
-- **Segurança de URLs:** links externos passam por `safeHttpUrl`; downloads só são feitos em caminhos relativos da própria API (`safeApiPath`). O interceptor não envia o token para outra origem.
+- **Segurança de URLs:** links externos passam por `safeHttpUrl`. O interceptor não envia o token para outra origem.
 - **Exclusão com confirmação explícita:** o diálogo exige checkbox de confirmação e oferece exclusão lógica (padrão) ou física.
 - **Acessibilidade:** modais com focus trap e restauração de foco, menus com teclado, skip link, `aria-busy` em botões e respeito a `prefers-reduced-motion`.
 
@@ -74,7 +74,6 @@ frontend/
 │   │   │   ├── BoardCard.tsx
 │   │   │   ├── BoardColumn.tsx
 │   │   │   ├── DeleteApplicationDialog.tsx
-│   │   │   └── FileUploader.tsx
 │   │   ├── auth/
 │   │   ├── layout/
 │   │   └── ui/
@@ -159,41 +158,36 @@ A aplicação fica disponível em `http://localhost:5173`. O Vite encaminha `/ap
 
 ## Variáveis de ambiente
 
-| Variável                         | Padrão                  | Descrição                                                                                     |
-| -------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
-| `VITE_API_URL`                   | `/api`                  | URL base usada pelo cliente Axios. Prefira `/api` para manter o cookie de refresh same-origin |
-| `VITE_APP_NAME`                  | `Trampo Flow`           | Nome exibido na interface                                                                     |
-| `VITE_MAX_FILE_SIZE_MB`          | `5`                     | Limite de tamanho por arquivo exibido no cliente                                              |
-| `VITE_MAX_FILES_PER_APPLICATION` | `3`                     | Limite de arquivos por candidatura exibido no cliente                                         |
-| `VITE_API_PROXY_TARGET`          | `http://localhost:3000` | Destino do proxy `/api` apenas no Vite local                                                  |
+| Variável                | Padrão                  | Descrição                                                                                     |
+| ----------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| `VITE_API_URL`          | `/api`                  | URL base usada pelo cliente Axios. Prefira `/api` para manter o cookie de refresh same-origin |
+| `VITE_APP_NAME`         | `Trampo Flow`           | Nome exibido na interface                                                                     |
+| `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Destino do proxy `/api` apenas no Vite local                                                  |
 
 ## Rotas
 
-| Rota                | Tela                                 |
-| ------------------- | ------------------------------------ |
-| `/login`            | Login                                |
-| `/`                 | Redireciona para `/candidaturas`     |
-| `/candidaturas`     | Quadro Kanban (tela inicial)         |
-| `/candidaturas/:id` | Detalhe, edição, arquivos e exclusão |
-| `*`                 | 404                                  |
+| Rota                | Tela                             |
+| ------------------- | -------------------------------- |
+| `/login`            | Login                            |
+| `/`                 | Redireciona para `/candidaturas` |
+| `/candidaturas`     | Quadro Kanban (tela inicial)     |
+| `/candidaturas/:id` | Detalhe, edição e exclusão       |
+| `*`                 | 404                              |
 
 ## Integração com a API
 
-| Operação        | Método   | Endpoint                                   |
-| --------------- | -------- | ------------------------------------------ |
-| Login           | `POST`   | `/auth/login`                              |
-| Renovar sessão  | `POST`   | `/auth/refresh`                            |
-| Logout          | `POST`   | `/auth/logout`                             |
-| Perfil atual    | `GET`    | `/auth/me`                                 |
-| Quadro          | `GET`    | `/applications/board?search=`              |
-| Mover card      | `PATCH`  | `/applications/:id/placement`              |
-| Detalhe         | `GET`    | `/applications/:id`                        |
-| Criar           | `POST`   | `/applications`                            |
-| Atualizar       | `PATCH`  | `/applications/:id`                        |
-| Upload          | `POST`   | `/applications/:id/files/upload`           |
-| Remover arquivo | `DELETE` | `/applications/:id/files/:fileId`          |
-| Baixar arquivo  | `GET`    | `/applications/:id/files/:fileId/download` |
-| Excluir         | `DELETE` | `/applications/:id?mode=soft\|hard`        |
+| Operação       | Método   | Endpoint                            |
+| -------------- | -------- | ----------------------------------- |
+| Login          | `POST`   | `/auth/login`                       |
+| Renovar sessão | `POST`   | `/auth/refresh`                     |
+| Logout         | `POST`   | `/auth/logout`                      |
+| Perfil atual   | `GET`    | `/auth/me`                          |
+| Quadro         | `GET`    | `/applications/board?search=`       |
+| Mover card     | `PATCH`  | `/applications/:id/placement`       |
+| Detalhe        | `GET`    | `/applications/:id`                 |
+| Criar          | `POST`   | `/applications`                     |
+| Atualizar      | `PATCH`  | `/applications/:id`                 |
+| Excluir        | `DELETE` | `/applications/:id?mode=soft\|hard` |
 
 ## Qualidade
 

@@ -19,16 +19,6 @@ export const APPLICATION_STATUS_OPTIONS = APPLICATION_STATUSES.map((value) => ({
   label: APPLICATION_STATUS_LABELS[value],
 }));
 
-export type ApplicationFile = {
-  id: string;
-  name: string;
-  mimeType: string;
-  sizeInBytes: number;
-  uploadedAt: string;
-  url: string | null;
-  downloadUrl: string | null;
-};
-
 export type Application = {
   id: string;
   title: string;
@@ -38,7 +28,6 @@ export type Application = {
   position: number;
   status: ApplicationStatus;
   currentPhase: string;
-  files: ApplicationFile[];
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;

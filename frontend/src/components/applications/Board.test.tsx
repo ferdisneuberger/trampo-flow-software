@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApplicationBoard } from '../../services/applications.types';
 import { renderWithProviders } from '../../test/render';
@@ -27,7 +28,6 @@ function makeApplication(
     position: 1000,
     status,
     currentPhase: 'Triagem',
-    files: [],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     deletedAt: null,
@@ -120,6 +120,27 @@ describe('Board', () => {
         afterId: undefined,
       }),
     );
+  });
+
+  it('abre o detalhe com um clique', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/candidaturas"
+          element={
+            <Board board={makeBoard()} onEdit={vi.fn()} onDelete={vi.fn()} />
+          }
+        />
+        <Route path="/candidaturas/:id" element={<p>detalhe</p>} />
+      </Routes>,
+      { route: '/candidaturas' },
+    );
+
+    await userEvent.click(
+      screen.getByRole('link', { name: 'Backend Engineer' }),
+    );
+
+    expect(await screen.findByText('detalhe')).toBeInTheDocument();
   });
 
   it('desativa o arrastar durante a busca', () => {

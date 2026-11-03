@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeApiPath, safeHttpUrl, safeRedirectPath } from './url';
+import { safeHttpUrl, safeRedirectPath } from './url';
 
 describe('safeHttpUrl', () => {
   it('aceita http e https', () => {
@@ -15,21 +15,6 @@ describe('safeHttpUrl', () => {
     expect(safeHttpUrl('ftp://example.com')).toBeNull();
     expect(safeHttpUrl('nao-e-url')).toBeNull();
     expect(safeHttpUrl(null)).toBeNull();
-  });
-});
-
-describe('safeApiPath', () => {
-  it('aceita caminho relativo da API', () => {
-    expect(safeApiPath('/applications/1/files/2/download')).toBe(
-      '/applications/1/files/2/download',
-    );
-  });
-
-  it('rejeita URL absoluta e protocol-relative', () => {
-    expect(safeApiPath('https://evil.example.com/file')).toBeNull();
-    expect(safeApiPath('//evil.example.com/file')).toBeNull();
-    expect(safeApiPath('/\\evil.example.com/file')).toBeNull();
-    expect(safeApiPath(null)).toBeNull();
   });
 });
 
