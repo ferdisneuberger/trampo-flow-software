@@ -13,6 +13,7 @@ import type { RegisterUserUseCase } from '../../src/application/auth/use-cases/r
 import type { ForgotPasswordUseCase } from '../../src/application/auth/use-cases/forgot-password.use-case';
 import type { ResendVerificationUseCase } from '../../src/application/auth/use-cases/resend-verification.use-case';
 import type { ResetPasswordUseCase } from '../../src/application/auth/use-cases/reset-password.use-case';
+import type { GoogleSignInUseCase } from '../../src/application/auth/use-cases/google-sign-in.use-case';
 import type { VerifyEmailUseCase } from '../../src/application/auth/use-cases/verify-email.use-case';
 import type { LogoutUseCase } from '../../src/application/auth/use-cases/logout.use-case';
 import type { RefreshSessionUseCase } from '../../src/application/auth/use-cases/refresh-session.use-case';
@@ -37,6 +38,7 @@ function makeUser(): User {
     termsAcceptedAt: new Date('2026-01-01T00:00:00.000Z'),
     termsVersion: '2026-11',
     username: null,
+    googleId: null,
     passwordHash: PASSWORD_HASH,
     lastLoginAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -79,6 +81,7 @@ function createController() {
   const resendVerification = vi.fn();
   const forgotPassword = vi.fn();
   const resetPassword = vi.fn();
+  const googleSignIn = vi.fn();
   const consume = vi.fn();
   const sign = vi.fn().mockReturnValue({ token: 'jwt', expiresAt: 123 });
   const assertAllowed = vi.fn();
@@ -100,6 +103,7 @@ function createController() {
     { execute: resendVerification } as unknown as ResendVerificationUseCase,
     { execute: forgotPassword } as unknown as ForgotPasswordUseCase,
     { execute: resetPassword } as unknown as ResetPasswordUseCase,
+    { execute: googleSignIn } as unknown as GoogleSignInUseCase,
     { consume } as unknown as RateLimiterService,
     { sign, expiresInSeconds: 3600 } as unknown as TokenService,
     {
@@ -122,6 +126,7 @@ function createController() {
     resendVerification,
     forgotPassword,
     resetPassword,
+    googleSignIn,
     consume,
     sign,
     assertAllowed,
@@ -324,6 +329,37 @@ describe('AuthController', () => {
       token: 'token-longo',
       password: 'senha-nova-segura',
     });
+  });
+
+  it('autentica pelo Google e cria a sessão', async () => {
+    const { controller, googleSignIn, createSession, consume, sign } =
+      createController();
+    const { reply, setCookie } = makeReply();
+
+    googleSignIn.mockResolvedValue({ user: makeUser(), isNew: false });
+    createSession.mockResolvedValue({
+      refreshToken: 'refresh-token',
+      refreshTokenExpiresAt: REFRESH_EXPIRES_AT,
+    });
+
+    const result = await controller.google(
+      { credential: 'google-credential' },
+      makeRequest(),
+      reply,
+    );
+
+    expect(consume).toHaveBeenCalledWith('google:ip:127.0.0.1', 10, 60 * 1000);
+    expect(googleSignIn).toHaveBeenCalledWith({
+      credential: 'google-credential',
+      termsAccepted: undefined,
+    });
+    expect(sign).toHaveBeenCalledWith(USER_ID);
+    expect(setCookie).toHaveBeenCalledWith(
+      'refresh_token',
+      'refresh-token',
+      expect.any(Object),
+    );
+    expect(result.user.email).toBe(EMAIL);
   });
 
   it('renova a sessão e rotaciona o cookie', async () => {

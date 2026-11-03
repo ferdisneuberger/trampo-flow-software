@@ -22,6 +22,14 @@ export class PrismaUserRepository implements UserRepository {
     return record ? UserMapper.toDomain(record) : null;
   }
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    const record = await this.prisma.user.findUnique({
+      where: { googleId },
+    });
+
+    return record ? UserMapper.toDomain(record) : null;
+  }
+
   async existsById(id: string): Promise<boolean> {
     const count = await this.prisma.user.count({ where: { id } });
 

@@ -34,6 +34,7 @@ function makeUser(id: string, verified: boolean): User {
     termsAcceptedAt: null,
     termsVersion: null,
     username: null,
+    googleId: null,
     passwordHash: PASSWORD_HASH,
     lastLoginAt: null,
     createdAt: CREATED_AT,

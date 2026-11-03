@@ -1,5 +1,6 @@
 const rawApiUrl = import.meta.env.VITE_API_URL?.trim();
 const rawAppName = import.meta.env.VITE_APP_NAME?.trim();
+const rawGoogleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
 
 function normalizeBaseUrl(value: string | undefined): string {
   const withoutTrailingSlash = value?.replace(/\/+$/, '') ?? '';
@@ -10,4 +11,5 @@ function normalizeBaseUrl(value: string | undefined): string {
 export const env = {
   apiUrl: normalizeBaseUrl(rawApiUrl),
   appName: rawAppName && rawAppName.length > 0 ? rawAppName : 'Trampo Flow',
+  googleClientId: rawGoogleClientId ?? '',
 } as const;

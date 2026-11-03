@@ -37,6 +37,7 @@ function mockAuth(user: ReturnType<typeof makeUser>) {
     isAuthenticated: true,
     isLoading: false,
     login: vi.fn(),
+    loginWithGoogle: vi.fn(),
     logout: vi.fn(),
     refreshProfile,
   });

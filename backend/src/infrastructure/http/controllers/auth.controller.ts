@@ -20,7 +20,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { User } from '../../../domain/users/entities/user.entity';
 import { ForgotPasswordDto } from '../../../application/auth/dtos/forgot-password.dto';
+import { GoogleSignInDto } from '../../../application/auth/dtos/google-sign-in.dto';
 import { LoginDto } from '../../../application/auth/dtos/login.dto';
 import { ResetPasswordDto } from '../../../application/auth/dtos/reset-password.dto';
 import { RegisterUserDto } from '../../../application/auth/dtos/register-user.dto';
@@ -29,6 +31,7 @@ import { AuthenticateUserUseCase } from '../../../application/auth/use-cases/aut
 import { CreateSessionUseCase } from '../../../application/auth/use-cases/create-session.use-case';
 import { ForgotPasswordUseCase } from '../../../application/auth/use-cases/forgot-password.use-case';
 import { GetUserProfileUseCase } from '../../../application/auth/use-cases/get-user-profile.use-case';
+import { GoogleSignInUseCase } from '../../../application/auth/use-cases/google-sign-in.use-case';
 import { LogoutUseCase } from '../../../application/auth/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from '../../../application/auth/use-cases/refresh-session.use-case';
 import { RegisterUserUseCase } from '../../../application/auth/use-cases/register-user.use-case';
@@ -66,6 +69,7 @@ export class AuthController {
     private readonly resendVerification: ResendVerificationUseCase,
     private readonly forgotPassword: ForgotPasswordUseCase,
     private readonly resetPassword: ResetPasswordUseCase,
+    private readonly googleSignIn: GoogleSignInUseCase,
     private readonly rateLimiter: RateLimiterService,
     private readonly tokenService: TokenService,
     private readonly loginRateLimiter: LoginRateLimiter,
@@ -101,31 +105,11 @@ export class AuthController {
         password: dto.password,
       });
 
-      const session = await this.createSession.execute({
-        userId: user.id,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-
-      this.setRefreshCookie(reply, session);
-
-      const { token, expiresAt } = this.tokenService.sign(user.id);
+      const response = await this.issueSession(user, request, reply);
 
       this.loginRateLimiter.registerSuccess();
 
-      return {
-        accessToken: token,
-        tokenType: 'Bearer' as const,
-        expiresIn: this.tokenService.expiresInSeconds,
-        expiresAt,
-        user: {
-          id: user.id,
-          email: user.email ?? '',
-          emailVerified: user.isEmailVerified,
-          hasPassword: user.passwordHash !== null,
-          termsAccepted: user.termsAcceptedAt !== null,
-          verificationResendAvailableAt: null,
-        },
-      };
+      return response;
     } catch (error) {
       if (error instanceof UnauthorizedError) {
         this.loginRateLimiter.registerFailure();
@@ -133,6 +117,29 @@ export class AuthController {
 
       throw error;
     }
+  }
+
+  @Public()
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Autentica com uma credencial do Google' })
+  @ApiOkResponse({ type: LoginResponse })
+  @ApiResponse({ status: 401, description: 'Credencial do Google inválida.' })
+  @ApiResponse({ status: 409, description: 'Conflito de vínculo de conta.' })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas.' })
+  async google(
+    @Body() dto: GoogleSignInDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    this.rateLimiter.consume(`google:ip:${request.ip}`, 10, 60 * 1000);
+
+    const { user } = await this.googleSignIn.execute({
+      credential: dto.credential,
+      termsAccepted: dto.termsAccepted,
+    });
+
+    return this.issueSession(user, request, reply);
   }
 
   @Public()
@@ -332,6 +339,36 @@ export class AuthController {
       termsAccepted: user.termsAcceptedAt !== null,
       verificationResendAvailableAt:
         verificationResendAvailableAt?.toISOString() ?? null,
+    };
+  }
+
+  private async issueSession(
+    user: User,
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    const session = await this.createSession.execute({
+      userId: user.id,
+      userAgent: request.headers['user-agent'] ?? null,
+    });
+
+    this.setRefreshCookie(reply, session);
+
+    const { token, expiresAt } = this.tokenService.sign(user.id);
+
+    return {
+      accessToken: token,
+      tokenType: 'Bearer' as const,
+      expiresIn: this.tokenService.expiresInSeconds,
+      expiresAt,
+      user: {
+        id: user.id,
+        email: user.email ?? '',
+        emailVerified: user.isEmailVerified,
+        hasPassword: user.passwordHash !== null,
+        termsAccepted: user.termsAcceptedAt !== null,
+        verificationResendAvailableAt: null,
+      },
     };
   }
 

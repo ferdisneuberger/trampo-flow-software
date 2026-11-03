@@ -36,6 +36,11 @@ export type ResetPasswordInput = {
   password: string;
 };
 
+export type GoogleLoginInput = {
+  credential: string;
+  termsAccepted?: boolean;
+};
+
 export type RegisterResponse = {
   message: string;
 };

@@ -10,6 +10,7 @@ function clone(user: User): User {
     termsAcceptedAt: user.termsAcceptedAt,
     termsVersion: user.termsVersion,
     username: user.username,
+    googleId: user.googleId,
     passwordHash: user.passwordHash,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
@@ -30,6 +31,14 @@ export class InMemoryUserRepository implements UserRepository {
     const normalized = email.trim().toLowerCase();
     const user = [...this.users.values()].find(
       (candidate) => candidate.email === normalized,
+    );
+
+    return user ? clone(user) : null;
+  }
+
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    const user = [...this.users.values()].find(
+      (candidate) => candidate.googleId === googleId,
     );
 
     return user ? clone(user) : null;

@@ -16,6 +16,7 @@ vi.mock('../services/api/auth.service', () => ({
   authService: {
     me: vi.fn(),
     login: vi.fn(),
+    loginWithGoogle: vi.fn(),
     logout: vi.fn(),
   },
 }));

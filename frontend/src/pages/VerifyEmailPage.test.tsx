@@ -32,6 +32,7 @@ describe('VerifyEmailPage', () => {
       isAuthenticated: false,
       isLoading: false,
       login: vi.fn(),
+      loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
     });

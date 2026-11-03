@@ -47,6 +47,23 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaUserRepository', () => {
     expect(byEmail?.username).toBeNull();
   });
 
+  it('busca por google id', async () => {
+    const user = User.create({
+      email: EMAIL,
+      googleId: 'google-user-1',
+      emailVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    await repository.create(user);
+
+    await expect(
+      repository.findByGoogleId('google-user-1'),
+    ).resolves.toMatchObject({
+      id: user.id,
+    });
+    await expect(repository.findByGoogleId('outro')).resolves.toBeNull();
+  });
+
   it('devolve null para e-mail inexistente', async () => {
     await expect(
       repository.findByEmail('ninguem@example.com'),

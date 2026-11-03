@@ -12,7 +12,11 @@ import {
   AUTH_UNAUTHORIZED_EVENT,
 } from '../services/api/access-token';
 import { refreshAccessToken } from '../services/api/session';
-import type { AuthUser, LoginInput } from '../services/auth.types';
+import type {
+  AuthUser,
+  GoogleLoginInput,
+  LoginInput,
+} from '../services/auth.types';
 import { AuthContext, type AuthContextValue } from './auth-context';
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -88,6 +92,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [queryClient],
   );
 
+  const loginWithGoogle = useCallback(
+    async (input: GoogleLoginInput) => {
+      const response = await authService.googleLogin(input);
+
+      queryClient.clear();
+      accessTokenStore.set(response.accessToken);
+
+      let profile = response.user;
+
+      try {
+        profile = await authService.me();
+      } catch {
+        profile = response.user;
+      }
+
+      setUser(profile);
+      setIsLoading(false);
+    },
+    [queryClient],
+  );
+
   const refreshProfile = useCallback(async () => {
     const profile = await authService.me();
 
@@ -113,10 +138,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isAuthenticated: user !== null,
       isLoading,
       login,
+      loginWithGoogle,
       logout,
       refreshProfile,
     }),
-    [user, isLoading, login, logout, refreshProfile],
+    [user, isLoading, login, loginWithGoogle, logout, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

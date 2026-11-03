@@ -1,6 +1,7 @@
 import type {
   AuthUser,
   ForgotPasswordInput,
+  GoogleLoginInput,
   LoginInput,
   LoginResponse,
   RegisterInput,
@@ -29,6 +30,12 @@ export const authService = {
 
   async verifyEmail(input: VerifyEmailInput): Promise<void> {
     await apiClient.post('/auth/verification/confirm', input);
+  },
+
+  async googleLogin(input: GoogleLoginInput): Promise<LoginResponse> {
+    const { data } = await apiClient.post<LoginResponse>('/auth/google', input);
+
+    return data;
   },
 
   async forgotPassword(input: ForgotPasswordInput): Promise<void> {

@@ -5,6 +5,8 @@ export abstract class UserRepository {
 
   abstract findByEmail(email: string): Promise<User | null>;
 
+  abstract findByGoogleId(googleId: string): Promise<User | null>;
+
   abstract existsById(id: string): Promise<boolean>;
 
   abstract existsAny(): Promise<boolean>;
