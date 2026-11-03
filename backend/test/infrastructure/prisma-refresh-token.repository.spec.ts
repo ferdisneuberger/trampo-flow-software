@@ -101,6 +101,25 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaRefreshTokenRepository', () => {
     expect(second?.revokedAt).toBeInstanceOf(Date);
   });
 
+  it('revoga todas as sessões do usuário', async () => {
+    await repository.create(tokenInput());
+    await repository.create(
+      tokenInput({
+        id: '5a2e3d4c-6b71-4f80-9b0c-1d2e3f4a5b6c',
+        tokenHash: 'c'.repeat(64),
+        familyId: '9f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f',
+      }),
+    );
+
+    await repository.revokeAllForUser(USER_ID);
+
+    const first = await repository.findByHash('a'.repeat(64));
+    const second = await repository.findByHash('c'.repeat(64));
+
+    expect(first?.revokedAt).toBeInstanceOf(Date);
+    expect(second?.revokedAt).toBeInstanceOf(Date);
+  });
+
   it('remove apenas tokens expirados', async () => {
     await repository.create(tokenInput());
     await repository.create(

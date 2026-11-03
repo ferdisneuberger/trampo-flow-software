@@ -158,6 +158,31 @@ describe('User', () => {
     );
   });
 
+  it('troca a senha e atualiza updatedAt', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      passwordHash: PASSWORD_HASH,
+    });
+    const changedAt = new Date('2026-05-01T12:00:00.000Z');
+
+    user.changePassword('scrypt$16384$8$1$bm92bw==$bmV3', changedAt);
+
+    expect(user.passwordHash).toBe('scrypt$16384$8$1$bm92bw==$bmV3');
+    expect(user.updatedAt).toEqual(changedAt);
+  });
+
+  it('recusa troca de senha com hash inválido', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      passwordHash: PASSWORD_HASH,
+    });
+
+    expectDomainError(
+      () => user.changePassword('senha-em-texto', new Date()),
+      'INVALID_PASSWORD_HASH',
+    );
+  });
+
   it('marca o e-mail como verificado', () => {
     const user = User.create({
       email: 'pessoa@exemplo.com',

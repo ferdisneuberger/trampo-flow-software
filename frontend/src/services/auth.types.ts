@@ -27,6 +27,15 @@ export type ResendVerificationResponse = {
   retryAfterSeconds: number;
 };
 
+export type ForgotPasswordInput = {
+  email: string;
+};
+
+export type ResetPasswordInput = {
+  token: string;
+  password: string;
+};
+
 export type RegisterResponse = {
   message: string;
 };

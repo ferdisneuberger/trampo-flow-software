@@ -256,4 +256,18 @@ export class User {
     this.props.verificationSentAt = new Date(at);
     this.props.updatedAt = new Date(at);
   }
+
+  changePassword(passwordHash: string, at: Date): void {
+    assertPasswordHash(passwordHash);
+
+    if (!(at instanceof Date) || Number.isNaN(at.getTime())) {
+      throw new DomainError(
+        'A data de alteração precisa ser válida.',
+        'INVALID_PASSWORD_CHANGE_DATE',
+      );
+    }
+
+    this.props.passwordHash = passwordHash;
+    this.props.updatedAt = new Date(at);
+  }
 }

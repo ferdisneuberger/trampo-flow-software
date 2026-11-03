@@ -20,16 +20,20 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { ForgotPasswordDto } from '../../../application/auth/dtos/forgot-password.dto';
 import { LoginDto } from '../../../application/auth/dtos/login.dto';
+import { ResetPasswordDto } from '../../../application/auth/dtos/reset-password.dto';
 import { RegisterUserDto } from '../../../application/auth/dtos/register-user.dto';
 import { VerifyEmailDto } from '../../../application/auth/dtos/verify-email.dto';
 import { AuthenticateUserUseCase } from '../../../application/auth/use-cases/authenticate-user.use-case';
 import { CreateSessionUseCase } from '../../../application/auth/use-cases/create-session.use-case';
+import { ForgotPasswordUseCase } from '../../../application/auth/use-cases/forgot-password.use-case';
 import { GetUserProfileUseCase } from '../../../application/auth/use-cases/get-user-profile.use-case';
 import { LogoutUseCase } from '../../../application/auth/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from '../../../application/auth/use-cases/refresh-session.use-case';
 import { RegisterUserUseCase } from '../../../application/auth/use-cases/register-user.use-case';
 import { ResendVerificationUseCase } from '../../../application/auth/use-cases/resend-verification.use-case';
+import { ResetPasswordUseCase } from '../../../application/auth/use-cases/reset-password.use-case';
 import { VerifyEmailUseCase } from '../../../application/auth/use-cases/verify-email.use-case';
 import { UnauthorizedError } from '../../../application/shared/errors/unauthorized.error';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
@@ -60,6 +64,8 @@ export class AuthController {
     private readonly registerUser: RegisterUserUseCase,
     private readonly verifyEmail: VerifyEmailUseCase,
     private readonly resendVerification: ResendVerificationUseCase,
+    private readonly forgotPassword: ForgotPasswordUseCase,
+    private readonly resetPassword: ResetPasswordUseCase,
     private readonly rateLimiter: RateLimiterService,
     private readonly tokenService: TokenService,
     private readonly loginRateLimiter: LoginRateLimiter,
@@ -198,6 +204,58 @@ export class AuthController {
     );
 
     return this.resendVerification.execute(userId);
+  }
+
+  @Public()
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Solicita um link de recuperação de senha' })
+  @ApiResponse({ status: 202, description: 'Solicitação processada.' })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas.' })
+  async forgotPasswordRequest(
+    @Body() dto: ForgotPasswordDto,
+    @Req() request: FastifyRequest,
+  ) {
+    this.rateLimiter.consume(
+      `password:forgot:ip:${request.ip}`,
+      10,
+      60 * 60 * 1000,
+    );
+    this.rateLimiter.consume(
+      `password:forgot:email:${dto.email}`,
+      3,
+      60 * 60 * 1000,
+    );
+
+    await this.forgotPassword.execute({ email: dto.email });
+
+    return {
+      message:
+        'Se houver uma conta com esse e-mail, enviaremos um link de recuperação.',
+    };
+  }
+
+  @Public()
+  @Post('password/reset')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Redefine a senha usando o token recebido' })
+  @ApiResponse({ status: 204, description: 'Senha redefinida.' })
+  @ApiResponse({ status: 400, description: 'Token inválido ou expirado.' })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas.' })
+  async resetPasswordRequest(
+    @Body() dto: ResetPasswordDto,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    this.rateLimiter.consume(
+      `password:reset:ip:${request.ip}`,
+      5,
+      60 * 60 * 1000,
+    );
+
+    await this.resetPassword.execute({
+      token: dto.token,
+      password: dto.password,
+    });
   }
 
   @Public()
