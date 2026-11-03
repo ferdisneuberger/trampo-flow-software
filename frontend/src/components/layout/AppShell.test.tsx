@@ -26,6 +26,7 @@ function renderShell() {
     isAuthenticated: true,
     isLoading: false,
     login: vi.fn(),
+    loginWithGoogle: vi.fn(),
     logout,
     refreshProfile: vi.fn(),
   });

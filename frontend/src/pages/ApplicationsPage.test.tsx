@@ -117,6 +117,7 @@ function makeAuthUser(verified = true) {
     isAuthenticated: true,
     isLoading: false,
     login: vi.fn(),
+    loginWithGoogle: vi.fn(),
     logout: vi.fn(),
     refreshProfile: vi.fn(),
   };

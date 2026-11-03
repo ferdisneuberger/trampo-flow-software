@@ -210,6 +210,7 @@ A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do Postgr
 | `EMAIL_VERIFICATION_TTL_HOURS` | não         | Validade do código de verificação; padrão `24`            |
 | `VERIFICATION_RESEND_SECONDS`  | não         | Cooldown de reenvio; padrão `120`                         |
 | `PASSWORD_RESET_TTL_MINUTES`   | não         | Validade do link de recuperação; padrão `60`              |
+| `GOOGLE_CLIENT_ID`             | não         | Client ID público do Google para validar o ID token       |
 | `TERMS_VERSION`                | não         | Versão dos termos aceita no cadastro; padrão `2026-11`    |
 | `SMTP_HOST`                    | não         | Servidor SMTP; padrão `smtp.gmail.com`                    |
 | `SMTP_PORT`                    | não         | Porta SMTP; padrão `587`                                  |
@@ -248,6 +249,22 @@ curl -X POST http://localhost:5173/api/auth/verification/confirm \
 
 Usuários não verificados podem entrar, mas ainda não podem criar candidaturas. O bloqueio é feito no backend com `403 EMAIL_NOT_VERIFIED` e reforçado no frontend. Em desenvolvimento, o Mailpit captura os e-mails em `http://localhost:8025`; para usar o Gmail real, configure `SMTP_HOST=smtp.gmail.com` e a App Password em `SMTP_PASS`.
 
+#### Login com Google
+
+`POST /auth/google` recebe o `credential` (ID token) emitido pelo Google Identity Services. O backend valida assinatura, emissor, audiência, expiração e `email_verified` com `google-auth-library`. Não é necessário Client Secret nesse fluxo.
+
+- Conta nova: criada já verificada, sem senha e com termos aceitos.
+- Conta existente com o mesmo e-mail e já verificada: recebe o vínculo `google_id`.
+- Conta existente com o mesmo e-mail e ainda não verificada: retorna `409 GOOGLE_ACCOUNT_CONFLICT`; o vínculo não é feito.
+
+No Google Cloud, cadastre as origens JavaScript `http://localhost:5173`, `http://127.0.0.1:5173` e o domínio de produção. O backend lê `GOOGLE_CLIENT_ID` e o frontend usa `VITE_GOOGLE_CLIENT_ID` no build.
+
+```bash
+curl -X POST http://localhost:5173/api/auth/google \
+  -H 'content-type: application/json' \
+  -d '{"credential":"id-token-do-google"}'
+```
+
 #### Recuperação de senha
 
 `POST /auth/password/forgot` sempre responde de forma genérica. Se existir uma conta com senha, um link de alta entropia é enviado e expira em 60 minutos. O link abre `/redefinir-senha`, onde o usuário escolhe a nova senha. Ao concluir, o token é consumido e **todas as sessões** da conta são revogadas.
@@ -275,7 +292,7 @@ POST /auth/logout    → revoga a família e limpa o cookie
 
 Cada refresh rotaciona o token: o anterior é revogado e aponta para o substituto. Se um token já revogado for reapresentado fora de uma janela de tolerância de 10 segundos, a **família inteira** é revogada — é a detecção de reuso. A janela existe para duas abas renovando ao mesmo tempo não derrubarem a sessão.
 
-`POST /auth/login`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/refresh`, `POST /auth/logout` e `GET /health` são públicos. `POST /auth/verification/resend` exige sessão. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend mantém o access token apenas em memória, restaura a sessão com `POST /auth/refresh` + `GET /auth/me` e limpa o cache de queries em qualquer resposta `401`. O logout chama `POST /auth/logout`, revoga a família do refresh token e limpa o cookie. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais e-mails estão cadastrados.
+`POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/refresh`, `POST /auth/logout` e `GET /health` são públicos. `POST /auth/verification/resend` exige sessão. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend mantém o access token apenas em memória, restaura a sessão com `POST /auth/refresh` + `GET /auth/me` e limpa o cache de queries em qualquer resposta `401`. O logout chama `POST /auth/logout`, revoga a família do refresh token e limpa o cookie. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais e-mails estão cadastrados.
 
 ## Frontend
 
@@ -380,13 +397,14 @@ Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, 
 - Exclusão lógica (padrão) ou física, com aviso crítico e confirmação explícita por checkbox.
 - Estados de carregamento, erro com retry, confirmação de sucesso, 404 e error boundary.
 - Cadastro público com verificação de e-mail por código, termos de uso e bloqueio de criação até a confirmação.
+- Login com Google para contas verificadas.
 - Sessão com access token em memória, refresh deduplicado, logout no servidor e limpeza de cache no `401`.
 
 Consulte [`frontend/README.md`](frontend/README.md) para a estrutura completa e os detalhes da arquitetura.
 
 ## API
 
-> Todas as rotas de `/applications` exigem `Authorization: Bearer <token>`. Obtenha o token em `POST /auth/login`. `GET /health`, `POST /auth/login`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot` e `POST /auth/password/reset` são públicos. Nos exemplos abaixo, substitua `<token>` pelo `accessToken` retornado no login.
+> Todas as rotas de `/applications` exigem `Authorization: Bearer <token>`. Obtenha o token em `POST /auth/login`. `GET /health`, `POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot` e `POST /auth/password/reset` são públicos. Nos exemplos abaixo, substitua `<token>` pelo `accessToken` retornado no login.
 >
 > A API é acessada pela entrada local do ingress em `http://localhost:5173/api`; o prefixo `/api` é removido antes de chegar à API. Se a API estiver rodando fora do Docker em `http://localhost:3000`, remova o prefixo `/api` das URLs.
 >

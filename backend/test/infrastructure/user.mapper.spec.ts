@@ -15,6 +15,7 @@ function makeRecord(overrides: Partial<PrismaUser> = {}): PrismaUser {
     termsAcceptedAt: null,
     termsVersion: null,
     username: null,
+    googleId: null,
     passwordHash: PASSWORD_HASH,
     lastLoginAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -32,6 +33,12 @@ describe('UserMapper', () => {
     expect(user.username).toBeNull();
     expect(user.lastLoginAt).toBeNull();
     expect(user.createdAt).toEqual(new Date('2026-01-01T00:00:00.000Z'));
+  });
+
+  it('preserva o vínculo com o Google', () => {
+    const user = UserMapper.toDomain(makeRecord({ googleId: 'google-user-1' }));
+
+    expect(user.googleId).toBe('google-user-1');
   });
 
   it('preserva datas de verificação e termos', () => {
@@ -58,6 +65,7 @@ describe('UserMapper', () => {
     expect(data).toMatchObject({
       email: EMAIL,
       username: null,
+      googleId: null,
       passwordHash: PASSWORD_HASH,
     });
     expect(data).not.toHaveProperty('deletedAt');

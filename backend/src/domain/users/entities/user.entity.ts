@@ -18,6 +18,7 @@ type UserProps = {
   termsAcceptedAt: Date | null;
   termsVersion: string | null;
   username: string | null;
+  googleId: string | null;
   passwordHash: string | null;
   lastLoginAt: Date | null;
   createdAt: Date;
@@ -26,7 +27,8 @@ type UserProps = {
 
 export type CreateUserProps = {
   email: string;
-  passwordHash: string;
+  passwordHash?: string | null;
+  googleId?: string | null;
   emailVerifiedAt?: Date | null;
   termsAcceptedAt?: Date | null;
   termsVersion?: string | null;
@@ -84,8 +86,8 @@ export function normalizeUsername(value: string): string {
   return username;
 }
 
-function assertPasswordHash(passwordHash: string | null): void {
-  if (passwordHash === null) {
+function assertPasswordHash(passwordHash: string | null | undefined): void {
+  if (passwordHash === null || passwordHash === undefined) {
     return;
   }
 
@@ -136,7 +138,8 @@ export class User {
         : null,
       termsVersion: input.termsVersion ?? null,
       username: null,
-      passwordHash: input.passwordHash,
+      googleId: input.googleId ?? null,
+      passwordHash: input.passwordHash ?? null,
       lastLoginAt: null,
       createdAt: now,
       updatedAt: now,
@@ -160,6 +163,7 @@ export class User {
         : null,
       termsVersion: input.termsVersion,
       username: input.username ? normalizeUsername(input.username) : null,
+      googleId: input.googleId,
       passwordHash: input.passwordHash,
       lastLoginAt: input.lastLoginAt ? new Date(input.lastLoginAt) : null,
       createdAt: new Date(input.createdAt),
@@ -203,6 +207,10 @@ export class User {
 
   get username(): string | null {
     return this.props.username;
+  }
+
+  get googleId(): string | null {
+    return this.props.googleId;
   }
 
   get passwordHash(): string | null {
@@ -254,6 +262,34 @@ export class User {
     }
 
     this.props.verificationSentAt = new Date(at);
+    this.props.updatedAt = new Date(at);
+  }
+
+  linkGoogleAccount(googleId: string, at: Date): void {
+    const normalized = googleId.trim();
+
+    if (normalized.length === 0) {
+      throw new DomainError(
+        'O identificador do Google é obrigatório.',
+        'GOOGLE_ID_REQUIRED',
+      );
+    }
+
+    if (this.props.googleId && this.props.googleId !== normalized) {
+      throw new DomainError(
+        'Esta conta já está vinculada a outro Google.',
+        'GOOGLE_ACCOUNT_ALREADY_LINKED',
+      );
+    }
+
+    if (!(at instanceof Date) || Number.isNaN(at.getTime())) {
+      throw new DomainError(
+        'A data de vínculo precisa ser válida.',
+        'INVALID_GOOGLE_LINK_DATE',
+      );
+    }
+
+    this.props.googleId = normalized;
     this.props.updatedAt = new Date(at);
   }
 

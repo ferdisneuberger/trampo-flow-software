@@ -94,6 +94,7 @@ describe('AuthenticateUserUseCase', () => {
       termsAcceptedAt: null,
       termsVersion: null,
       username: null,
+      googleId: null,
       passwordHash: null,
       lastLoginAt: null,
       createdAt,

@@ -158,6 +158,43 @@ describe('User', () => {
     );
   });
 
+  it('cria conta Google sem senha', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      googleId: 'google-user-1',
+      emailVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    expect(user.googleId).toBe('google-user-1');
+    expect(user.passwordHash).toBeNull();
+    expect(user.isEmailVerified).toBe(true);
+  });
+
+  it('vincula a conta ao Google', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      passwordHash: PASSWORD_HASH,
+    });
+    const linkedAt = new Date('2026-05-01T12:00:00.000Z');
+
+    user.linkGoogleAccount('google-user-1', linkedAt);
+
+    expect(user.googleId).toBe('google-user-1');
+    expect(user.updatedAt).toEqual(linkedAt);
+  });
+
+  it('recusa vincular a outro Google', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      googleId: 'google-user-1',
+    });
+
+    expectDomainError(
+      () => user.linkGoogleAccount('google-user-2', new Date()),
+      'GOOGLE_ACCOUNT_ALREADY_LINKED',
+    );
+  });
+
   it('troca a senha e atualiza updatedAt', () => {
     const user = User.create({
       email: 'pessoa@exemplo.com',
@@ -219,6 +256,7 @@ describe('User', () => {
       termsAcceptedAt: createdAt,
       termsVersion: '2026-11',
       username: 'fernando',
+      googleId: null,
       passwordHash: PASSWORD_HASH,
       lastLoginAt: createdAt,
       createdAt,
@@ -242,6 +280,7 @@ describe('User', () => {
       termsAcceptedAt: null,
       termsVersion: null,
       username: null,
+      googleId: null,
       passwordHash: null,
       lastLoginAt: null,
       createdAt,

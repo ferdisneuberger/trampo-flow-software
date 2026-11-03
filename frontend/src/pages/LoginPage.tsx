@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
 import { AuthPageLayout } from '../components/auth/AuthPageLayout';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -120,6 +121,8 @@ export function LoginPage() {
             Entrar
           </Button>
         </form>
+
+        <GoogleSignInButton />
 
         <p className="mt-6 text-center text-sm text-ink-500">
           Ainda não tem conta?{' '}

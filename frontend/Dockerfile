@@ -2,6 +2,9 @@ FROM node:24-alpine AS build
 
 WORKDIR /app
 
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 RUN chown node:node /app
 
 COPY --chown=node:node package*.json ./

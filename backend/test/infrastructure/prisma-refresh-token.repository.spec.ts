@@ -26,6 +26,7 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaRefreshTokenRepository', () => {
       create: {
         id: USER_ID,
         username: 'refresh-token-user',
+        googleId: null,
         passwordHash: PASSWORD_HASH,
         createdAt: now,
         updatedAt: now,

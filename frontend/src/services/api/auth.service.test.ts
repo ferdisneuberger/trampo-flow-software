@@ -72,6 +72,31 @@ describe('authService', () => {
     });
   });
 
+  it('faz login com o Google', async () => {
+    const response = {
+      accessToken: 'token',
+      tokenType: 'Bearer',
+      expiresIn: 300,
+      expiresAt: 1,
+      user: {
+        id: 'u1',
+        email: 'pessoa@exemplo.com',
+        emailVerified: true,
+        hasPassword: false,
+        termsAccepted: true,
+        verificationResendAvailableAt: null,
+      },
+    };
+    client.post.mockResolvedValue({ data: response });
+
+    await expect(
+      authService.googleLogin({ credential: 'google-credential' }),
+    ).resolves.toEqual(response);
+    expect(client.post).toHaveBeenCalledWith('/auth/google', {
+      credential: 'google-credential',
+    });
+  });
+
   it('solicita recuperação de senha', async () => {
     client.post.mockResolvedValue({});
 

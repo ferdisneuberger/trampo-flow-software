@@ -1,11 +1,16 @@
 import { createContext, useContext } from 'react';
-import type { AuthUser, LoginInput } from '../services/auth.types';
+import type {
+  AuthUser,
+  GoogleLoginInput,
+  LoginInput,
+} from '../services/auth.types';
 
 export type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (input: LoginInput) => Promise<void>;
+  loginWithGoogle: (input: GoogleLoginInput) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };

@@ -5,6 +5,7 @@ import { AuthenticateUserUseCase } from '../../application/auth/use-cases/authen
 import { CreateSessionUseCase } from '../../application/auth/use-cases/create-session.use-case';
 import { ForgotPasswordUseCase } from '../../application/auth/use-cases/forgot-password.use-case';
 import { GetUserProfileUseCase } from '../../application/auth/use-cases/get-user-profile.use-case';
+import { GoogleSignInUseCase } from '../../application/auth/use-cases/google-sign-in.use-case';
 import { LogoutUseCase } from '../../application/auth/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from '../../application/auth/use-cases/refresh-session.use-case';
 import { RegisterUserUseCase } from '../../application/auth/use-cases/register-user.use-case';
@@ -13,6 +14,7 @@ import { ResetPasswordUseCase } from '../../application/auth/use-cases/reset-pas
 import { VerifyEmailUseCase } from '../../application/auth/use-cases/verify-email.use-case';
 import { AuthSettings } from '../../application/auth/services/auth-settings';
 import { AuthTokenRepository } from '../../domain/auth/repositories/auth-token.repository';
+import { GoogleIdentityVerifier } from '../../domain/auth/services/google-identity-verifier';
 import { Mailer } from '../../domain/auth/services/mailer';
 import { TokenHasher } from '../../domain/auth/services/token-hasher';
 import { PasswordResetTokenGenerator } from '../../domain/auth/services/password-reset-token-generator';
@@ -24,6 +26,7 @@ import { UserRepository } from '../../domain/users/repositories/user.repository'
 import { PasswordHasher } from '../../domain/users/services/password-hasher';
 import { CryptoRefreshTokenGenerator } from '../auth/crypto-refresh-token-generator';
 import { CryptoPasswordResetTokenGenerator } from '../auth/crypto-password-reset-token-generator';
+import { GoogleTokenVerifier } from '../auth/google-token-verifier';
 import { CryptoVerificationCodeGenerator } from '../auth/crypto-verification-code-generator';
 import { HmacTokenHasher } from '../auth/hmac-token-hasher';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -59,6 +62,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     ResendVerificationUseCase,
     ForgotPasswordUseCase,
     ResetPasswordUseCase,
+    GoogleSignInUseCase,
     LoginRateLimiter,
     RateLimiterService,
     ScryptPasswordHasher,
@@ -67,6 +71,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     CryptoRefreshTokenGenerator,
     CryptoVerificationCodeGenerator,
     CryptoPasswordResetTokenGenerator,
+    GoogleTokenVerifier,
     HmacTokenHasher,
     SmtpMailer,
     {
@@ -88,6 +93,10 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     {
       provide: PasswordResetTokenGenerator,
       useExisting: CryptoPasswordResetTokenGenerator,
+    },
+    {
+      provide: GoogleIdentityVerifier,
+      useExisting: GoogleTokenVerifier,
     },
     {
       provide: Mailer,
