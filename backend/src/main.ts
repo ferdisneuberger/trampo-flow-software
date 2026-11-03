@@ -54,6 +54,7 @@ async function bootstrap(): Promise<void> {
     AppModule,
     new FastifyAdapter({
       logger: true,
+      trustProxy: true,
     }),
   );
 

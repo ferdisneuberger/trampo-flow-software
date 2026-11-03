@@ -36,6 +36,20 @@ jobs:
           POSTGRES_DB=trampo_flow
           AUTH_EMAIL=e2e@example.com
           AUTH_PASSWORD=e2e-super-secret-123
+          AUTH_TOKEN_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef
+          APP_BASE_URL=http://127.0.0.1:5173
+          REGISTRATION_ENABLED=true
+          EMAIL_VERIFICATION_TTL_HOURS=24
+          VERIFICATION_RESEND_SECONDS=120
+          TERMS_VERSION=2026-11
+          SMTP_HOST=mailpit
+          SMTP_PORT=1025
+          SMTP_SECURE=false
+          SMTP_USER=
+          SMTP_PASS=
+          MAIL_FROM=e2e@example.com
+          MAIL_FROM_NAME=Trampo Flow
+          MAILPIT_PORT=8025
           JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef
           JWT_EXPIRES_IN=5m
           S3_ACCESS_KEY=trampo
@@ -45,7 +59,7 @@ jobs:
           ENV
 
       - name: Start stack
-        run: docker compose up -d --build postgres api web ingress
+        run: docker compose up -d --build postgres mailpit api web ingress
 
       - name: Wait for the API
         run: |
@@ -82,6 +96,7 @@ jobs:
         working-directory: frontend
         env:
           E2E_EMAIL: e2e@example.com
+          E2E_MAILPIT_URL: http://127.0.0.1:8025
           E2E_PASSWORD: e2e-super-secret-123
           E2E_BASE_URL: http://127.0.0.1:5173
         run: npm run test:e2e

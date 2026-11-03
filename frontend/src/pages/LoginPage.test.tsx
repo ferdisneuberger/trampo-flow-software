@@ -20,6 +20,7 @@ function renderLogin(state?: { from?: unknown }) {
     isLoading: false,
     login,
     logout: vi.fn(),
+    refreshProfile: vi.fn(),
   });
 
   render(
@@ -81,11 +82,13 @@ describe('LoginPage', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        verificationResendAvailableAt: null,
       },
       isAuthenticated: true,
       isLoading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      refreshProfile: vi.fn(),
     });
 
     render(

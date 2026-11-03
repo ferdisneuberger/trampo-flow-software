@@ -194,16 +194,30 @@ Os valores são os padrões do `docker-compose.yml`. Se você alterou o `.env`, 
 
 A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do PostgreSQL, com a senha derivada por **scrypt** (N=16384, r=8, p=1, sal de 16 bytes e chave de 64 bytes). O hash tem o formato `scrypt$N$r$p$sal$chave`, então subir o custo depois não invalida as senhas existentes.
 
-| Variável                      | Obrigatória | Descrição                                                 |
-| ----------------------------- | ----------- | --------------------------------------------------------- |
-| `JWT_SECRET`                  | sim         | Segredo HMAC com pelo menos 32 caracteres                 |
-| `JWT_EXPIRES_IN`              | não         | Validade do access token (`5m`, `30m`, `8h`); padrão `5m` |
-| `REFRESH_TOKEN_TTL_DAYS`      | não         | Validade do refresh token; padrão `7`                     |
-| `REFRESH_TOKEN_GRACE_SECONDS` | não         | Tolerância de reuso entre abas; padrão `10`               |
-| `LOGIN_MAX_ATTEMPTS`          | não         | Falhas consecutivas antes do bloqueio; padrão `10`        |
-| `LOGIN_WINDOW_SECONDS`        | não         | Janela e duração do bloqueio; padrão `900`                |
-| `AUTH_EMAIL`                  | não         | E-mail criado no primeiro boot, se a tabela estiver vazia |
-| `AUTH_PASSWORD`               | não         | Senha do primeiro usuário (mínimo de 12 caracteres)       |
+| Variável                       | Obrigatória | Descrição                                                 |
+| ------------------------------ | ----------- | --------------------------------------------------------- |
+| `JWT_SECRET`                   | sim         | Segredo HMAC com pelo menos 32 caracteres                 |
+| `JWT_EXPIRES_IN`               | não         | Validade do access token (`5m`, `30m`, `8h`); padrão `5m` |
+| `REFRESH_TOKEN_TTL_DAYS`       | não         | Validade do refresh token; padrão `7`                     |
+| `REFRESH_TOKEN_GRACE_SECONDS`  | não         | Tolerância de reuso entre abas; padrão `10`               |
+| `LOGIN_MAX_ATTEMPTS`           | não         | Falhas consecutivas antes do bloqueio; padrão `10`        |
+| `LOGIN_WINDOW_SECONDS`         | não         | Janela e duração do bloqueio; padrão `900`                |
+| `AUTH_EMAIL`                   | não         | E-mail criado no primeiro boot, se a tabela estiver vazia |
+| `AUTH_PASSWORD`                | não         | Senha do primeiro usuário (mínimo de 12 caracteres)       |
+| `AUTH_TOKEN_SECRET`            | sim         | Segredo HMAC dos tokens de verificação (32+ caracteres)   |
+| `APP_BASE_URL`                 | não         | URL pública usada nos links dos e-mails                   |
+| `REGISTRATION_ENABLED`         | não         | Liga/desliga o cadastro público; padrão `false`           |
+| `EMAIL_VERIFICATION_TTL_HOURS` | não         | Validade do código de verificação; padrão `24`            |
+| `VERIFICATION_RESEND_SECONDS`  | não         | Cooldown de reenvio; padrão `120`                         |
+| `TERMS_VERSION`                | não         | Versão dos termos aceita no cadastro; padrão `2026-11`    |
+| `SMTP_HOST`                    | não         | Servidor SMTP; padrão `smtp.gmail.com`                    |
+| `SMTP_PORT`                    | não         | Porta SMTP; padrão `587`                                  |
+| `SMTP_SECURE`                  | não         | TLS direto; padrão `false` (STARTTLS)                     |
+| `SMTP_USER`                    | não         | Conta SMTP                                                |
+| `SMTP_PASS`                    | não         | App Password do Gmail                                     |
+| `MAIL_FROM`                    | não         | Remetente dos e-mails                                     |
+| `MAIL_FROM_NAME`               | não         | Nome exibido no remetente; padrão `Trampo Flow`           |
+| `MAILPIT_PORT`                 | não         | Porta local do Mailpit; padrão `8025`                     |
 
 `AUTH_EMAIL`/`AUTH_PASSWORD` servem apenas para provisionar o **primeiro** usuário. Se a tabela `users` já tem registros, elas são ignoradas — depois do primeiro boot você pode removê-las do `.env` e trocar a senha direto no banco (com um hash scrypt novo). A senha nunca é comparada em texto puro.
 
@@ -215,7 +229,23 @@ curl -X POST http://localhost:5173/api/auth/login \
   -d '{"email":"pessoa@exemplo.com","password":"sua-senha"}'
 ```
 
-O `sub` do token é o **id** do usuário (UUID), não o username. O guard valida a assinatura e confirma que o usuário ainda existe no banco a cada requisição, então apagar um usuário invalida os tokens dele imediatamente.
+O `sub` do token é o **id** do usuário (UUID). O guard valida a assinatura e confirma que o usuário ainda existe no banco a cada requisição, então apagar um usuário invalida os tokens dele imediatamente.
+
+#### Cadastro e verificação de e-mail
+
+O cadastro público é controlado por `REGISTRATION_ENABLED`. Quando habilitado, `POST /auth/register` cria a conta com `email_verified_at` vazio e envia um código de 6 caracteres no formato `ADK-7YP`. O código é armazenado apenas como HMAC-SHA256, expira em 24 horas e é consumido por `POST /auth/verification/confirm`. Após a confirmação, um segundo e-mail avisa que a conta está verificada.
+
+```bash
+curl -X POST http://localhost:5173/api/auth/register \
+  -H 'content-type: application/json' \
+  -d '{"email":"pessoa@exemplo.com","password":"senha-super-secreta","termsAccepted":true}'
+
+curl -X POST http://localhost:5173/api/auth/verification/confirm \
+  -H 'content-type: application/json' \
+  -d '{"token":"ADK-7YP"}'
+```
+
+Usuários não verificados podem entrar, mas ainda não podem criar candidaturas. O bloqueio é feito no backend com `403 EMAIL_NOT_VERIFIED` e reforçado no frontend. Em desenvolvimento, o Mailpit captura os e-mails em `http://localhost:8025`; para usar o Gmail real, configure `SMTP_HOST=smtp.gmail.com` e a App Password em `SMTP_PASS`.
 
 As rotas de `/applications` operam apenas sobre as candidaturas do usuário do token. Um id pertencente a outra conta responde `404`, e não `403`, para não revelar que o registro existe.
 
@@ -230,7 +260,7 @@ POST /auth/logout    → revoga a família e limpa o cookie
 
 Cada refresh rotaciona o token: o anterior é revogado e aponta para o substituto. Se um token já revogado for reapresentado fora de uma janela de tolerância de 10 segundos, a **família inteira** é revogada — é a detecção de reuso. A janela existe para duas abas renovando ao mesmo tempo não derrubarem a sessão.
 
-Apenas `POST /auth/login` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend mantém o access token apenas em memória, restaura a sessão com `POST /auth/refresh` + `GET /auth/me` e limpa o cache de queries em qualquer resposta `401`. O logout chama `POST /auth/logout`, revoga a família do refresh token e limpa o cookie. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais usernames estão cadastrados.
+`POST /auth/login`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/refresh`, `POST /auth/logout` e `GET /health` são públicos. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend mantém o access token apenas em memória, restaura a sessão com `POST /auth/refresh` + `GET /auth/me` e limpa o cache de queries em qualquer resposta `401`. O logout chama `POST /auth/logout`, revoga a família do refresh token e limpa o cookie. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais e-mails estão cadastrados.
 
 ## Frontend
 
@@ -334,13 +364,14 @@ Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, 
 - Criação e edição de candidaturas com título, link, fase e status.
 - Exclusão lógica (padrão) ou física, com aviso crítico e confirmação explícita por checkbox.
 - Estados de carregamento, erro com retry, confirmação de sucesso, 404 e error boundary.
+- Cadastro público com verificação de e-mail por código, termos de uso e bloqueio de criação até a confirmação.
 - Sessão com access token em memória, refresh deduplicado, logout no servidor e limpeza de cache no `401`.
 
 Consulte [`frontend/README.md`](frontend/README.md) para a estrutura completa e os detalhes da arquitetura.
 
 ## API
 
-> Todas as rotas de `/applications` exigem `Authorization: Bearer <token>`. Obtenha o token em `POST /auth/login`. `GET /health` e `POST /auth/login` são públicos. Nos exemplos abaixo, substitua `<token>` pelo `accessToken` retornado no login.
+> Todas as rotas de `/applications` exigem `Authorization: Bearer <token>`. Obtenha o token em `POST /auth/login`. `GET /health`, `POST /auth/login`, `POST /auth/register` e `POST /auth/verification/confirm` são públicos. Nos exemplos abaixo, substitua `<token>` pelo `accessToken` retornado no login.
 >
 > A API é acessada pela entrada local do ingress em `http://localhost:5173/api`; o prefixo `/api` é removido antes de chegar à API. Se a API estiver rodando fora do Docker em `http://localhost:3000`, remova o prefixo `/api` das URLs.
 >

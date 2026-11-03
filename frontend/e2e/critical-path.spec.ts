@@ -87,3 +87,90 @@ test.describe('fluxo crítico do quadro', () => {
     await expect(page).toHaveURL(/\/candidaturas$/);
   });
 });
+
+const mailpitUrl = process.env.E2E_MAILPIT_URL ?? '';
+
+async function waitForVerificationCode(targetEmail: string): Promise<string> {
+  const deadline = Date.now() + 20_000;
+
+  while (Date.now() < deadline) {
+    const response = await fetch(`${mailpitUrl}/api/v1/messages`);
+
+    if (response.ok) {
+      const data = (await response.json()) as {
+        messages?: Array<{ ID: string; To?: Array<{ Address: string }> }>;
+      };
+      const message = data.messages?.find((candidate) =>
+        candidate.To?.some((recipient) => recipient.Address === targetEmail),
+      );
+
+      if (message) {
+        const detail = await fetch(
+          `${mailpitUrl}/api/v1/message/${message.ID}`,
+        );
+
+        if (detail.ok) {
+          const content = (await detail.json()) as { Text?: string };
+          const match = content.Text?.match(/\b[A-Z2-9]{3}-[A-Z2-9]{3}\b/);
+
+          if (match) {
+            return match[0];
+          }
+        }
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  throw new Error('O código de verificação não chegou ao Mailpit.');
+}
+
+test('cadastro público com verificação de e-mail', async ({ page }) => {
+  test.skip(mailpitUrl.length === 0, 'E2E_MAILPIT_URL não definido.');
+
+  const registrationEmail = `e2e-${Date.now()}@example.com`;
+  const registrationPassword = 'e2e-register-secret-123';
+
+  await page.goto('/cadastro');
+  await page.getByLabel('E-mail').fill(registrationEmail);
+  await page.getByLabel('Senha', { exact: true }).fill(registrationPassword);
+  await page.getByLabel('Confirmar senha').fill(registrationPassword);
+  await page.getByRole('checkbox', { name: /termos de uso/ }).check();
+  await page.getByRole('button', { name: /Criar conta/ }).click();
+
+  await expect(page.getByText('Cadastro recebido')).toBeVisible();
+
+  await page.goto('/login');
+  await page.getByLabel('E-mail').fill(registrationEmail);
+  await page.getByLabel('Senha').fill(registrationPassword);
+  await page.getByRole('button', { name: /entrar/i }).click();
+
+  await expect(page).toHaveURL(/\/candidaturas$/);
+  await expect(
+    page.getByText('Confirme seu e-mail para criar candidaturas'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Nova candidatura/ }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole('button', { name: /Reenviar em/ }),
+  ).toBeDisabled();
+
+  const code = await waitForVerificationCode(registrationEmail);
+
+  await page.goto(`/verificar-email#token=${code}`);
+  await expect(page.getByLabel('Código de verificação')).toHaveValue(code);
+  await page.getByRole('button', { name: /Confirmar e-mail/ }).click();
+
+  await expect(page.getByText('E-mail confirmado')).toBeVisible();
+  await page.getByRole('link', { name: 'Ir para o quadro' }).click();
+
+  await expect(page).toHaveURL(/\/candidaturas$/);
+  await expect(
+    page.getByText('Confirme seu e-mail para criar candidaturas'),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: /Nova candidatura/ }),
+  ).toBeEnabled();
+});

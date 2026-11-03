@@ -9,6 +9,7 @@ import { renderWithProviders } from '../test/render';
 import { ApplicationsPage } from './ApplicationsPage';
 
 const mocks = vi.hoisted(() => ({
+  useAuth: vi.fn(),
   useBoard: vi.fn(),
   createApplication: vi.fn(),
   updateApplication: vi.fn(),
@@ -17,6 +18,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../hooks/useBoard', () => ({
   useBoard: mocks.useBoard,
+}));
+
+vi.mock('../contexts/auth-context', () => ({
+  useAuth: mocks.useAuth,
 }));
 
 vi.mock('../hooks/useApplicationMutations', () => ({
@@ -99,6 +104,24 @@ function boardResult(overrides: Record<string, unknown> = {}) {
   } as unknown as ReturnType<typeof import('../hooks/useBoard').useBoard>;
 }
 
+function makeAuthUser(verified = true) {
+  return {
+    user: {
+      id: 'user-1',
+      email: 'pessoa@example.com',
+      emailVerified: verified,
+      hasPassword: true,
+      termsAccepted: true,
+      verificationResendAvailableAt: null,
+    },
+    isAuthenticated: true,
+    isLoading: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    refreshProfile: vi.fn(),
+  };
+}
+
 function renderPage(route = '/candidaturas') {
   return renderWithProviders(<ApplicationsPage />, { route });
 }
@@ -110,6 +133,20 @@ describe('ApplicationsPage', () => {
     mocks.updateApplication.mockResolvedValue(makeApplication());
     mocks.deleteApplication.mockResolvedValue(undefined);
     mocks.useBoard.mockReturnValue(boardResult());
+    mocks.useAuth.mockReturnValue(makeAuthUser());
+  });
+
+  it('desabilita a criação quando o e-mail não foi verificado', () => {
+    mocks.useAuth.mockReturnValue(makeAuthUser(false));
+
+    renderPage();
+
+    expect(
+      screen.getByRole('button', { name: /Nova candidatura/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText('Confirme seu e-mail para criar candidaturas'),
+    ).toBeInTheDocument();
   });
 
   it('mostra skeleton no carregamento inicial', () => {

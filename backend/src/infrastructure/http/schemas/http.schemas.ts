@@ -16,6 +16,13 @@ export class AuthenticatedUserResponse {
 
   @ApiProperty({ example: true })
   termsAccepted!: boolean;
+
+  @ApiProperty({
+    example: '2026-11-03T12:02:00.000Z',
+    nullable: true,
+    type: String,
+  })
+  verificationResendAvailableAt!: string | null;
 }
 
 export class LoginResponse {

@@ -12,7 +12,9 @@ import { ListApplicationsUseCase } from '../../application/applications/use-case
 import { PlaceApplicationUseCase } from '../../application/applications/use-cases/place-application.use-case';
 import { UpdateApplicationUseCase } from '../../application/applications/use-cases/update-application.use-case';
 import { ApplicationRepository } from '../../domain/applications/repositories/application.repository';
+import { UserRepository } from '../../domain/users/repositories/user.repository';
 import { PrismaApplicationRepository } from '../database/prisma/repositories/prisma-application.repository';
+import { PrismaUserRepository } from '../database/prisma/repositories/prisma-user.repository';
 import { ApplicationsController } from '../http/controllers/applications.controller';
 
 @Module({
@@ -33,6 +35,10 @@ import { ApplicationsController } from '../http/controllers/applications.control
     {
       provide: ApplicationRepository,
       useClass: PrismaApplicationRepository,
+    },
+    {
+      provide: UserRepository,
+      useClass: PrismaUserRepository,
     },
   ],
 })

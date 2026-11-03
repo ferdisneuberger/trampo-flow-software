@@ -9,11 +9,15 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AuthenticateUserUseCase } from '../../src/application/auth/use-cases/authenticate-user.use-case';
 import type { CreateSessionUseCase } from '../../src/application/auth/use-cases/create-session.use-case';
 import type { GetUserProfileUseCase } from '../../src/application/auth/use-cases/get-user-profile.use-case';
+import type { RegisterUserUseCase } from '../../src/application/auth/use-cases/register-user.use-case';
+import type { ResendVerificationUseCase } from '../../src/application/auth/use-cases/resend-verification.use-case';
+import type { VerifyEmailUseCase } from '../../src/application/auth/use-cases/verify-email.use-case';
 import type { LogoutUseCase } from '../../src/application/auth/use-cases/logout.use-case';
 import type { RefreshSessionUseCase } from '../../src/application/auth/use-cases/refresh-session.use-case';
 import { UnauthorizedError } from '../../src/application/shared/errors/unauthorized.error';
 import { User } from '../../src/domain/users/entities/user.entity';
 import type { LoginRateLimiter } from '../../src/infrastructure/auth/login-rate-limiter.service';
+import type { RateLimiterService } from '../../src/infrastructure/auth/rate-limiter.service';
 import type { TokenService } from '../../src/infrastructure/auth/token.service';
 import { AuthController } from '../../src/infrastructure/http/controllers/auth.controller';
 
@@ -42,6 +46,7 @@ function makeRequest(
   overrides: { cookies?: Record<string, string>; origin?: string } = {},
 ): FastifyRequest {
   return {
+    ip: '127.0.0.1',
     headers: {
       'user-agent': 'vitest',
       ...(overrides.origin ? { origin: overrides.origin } : {}),
@@ -67,6 +72,10 @@ function createController() {
   const refreshSession = vi.fn();
   const logoutSession = vi.fn();
   const getProfile = vi.fn();
+  const registerUser = vi.fn();
+  const verifyEmail = vi.fn();
+  const resendVerification = vi.fn();
+  const consume = vi.fn();
   const sign = vi.fn().mockReturnValue({ token: 'jwt', expiresAt: 123 });
   const assertAllowed = vi.fn();
   const registerSuccess = vi.fn();
@@ -82,6 +91,10 @@ function createController() {
     { execute: refreshSession } as unknown as RefreshSessionUseCase,
     { execute: logoutSession } as unknown as LogoutUseCase,
     { execute: getProfile } as unknown as GetUserProfileUseCase,
+    { execute: registerUser } as unknown as RegisterUserUseCase,
+    { execute: verifyEmail } as unknown as VerifyEmailUseCase,
+    { execute: resendVerification } as unknown as ResendVerificationUseCase,
+    { consume } as unknown as RateLimiterService,
     { sign, expiresInSeconds: 3600 } as unknown as TokenService,
     {
       assertAllowed,
@@ -98,6 +111,10 @@ function createController() {
     refreshSession,
     logoutSession,
     getProfile,
+    registerUser,
+    verifyEmail,
+    resendVerification,
+    consume,
     sign,
     assertAllowed,
     registerSuccess,
@@ -145,6 +162,7 @@ describe('AuthController', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        verificationResendAvailableAt: null,
       },
     });
     expect(registerSuccess).toHaveBeenCalledOnce();
@@ -185,6 +203,76 @@ describe('AuthController', () => {
       ),
     ).rejects.toBeInstanceOf(HttpException);
     expect(authenticate).not.toHaveBeenCalled();
+  });
+
+  it('cadastra e aplica rate limit por IP', async () => {
+    const { controller, registerUser, consume } = createController();
+
+    const result = await controller.register(
+      {
+        email: 'pessoa@exemplo.com',
+        password: 'senha-super-secreta',
+        termsAccepted: true,
+      },
+      makeRequest(),
+    );
+
+    expect(consume).toHaveBeenCalledWith(
+      'register:ip:127.0.0.1',
+      5,
+      60 * 60 * 1000,
+    );
+    expect(registerUser).toHaveBeenCalledWith({
+      email: 'pessoa@exemplo.com',
+      password: 'senha-super-secreta',
+      termsAccepted: true,
+    });
+    expect(result.message).toContain('código de confirmação');
+  });
+
+  it('confirma a verificação e aplica os dois limites', async () => {
+    const { controller, verifyEmail, consume } = createController();
+
+    await controller.confirmVerification({ token: 'ADK-7YP' }, makeRequest());
+
+    expect(consume).toHaveBeenCalledWith(
+      'verification:minute:127.0.0.1',
+      5,
+      60 * 1000,
+    );
+    expect(consume).toHaveBeenCalledWith(
+      'verification:hour:127.0.0.1',
+      20,
+      60 * 60 * 1000,
+    );
+    expect(verifyEmail).toHaveBeenCalledWith({ token: 'ADK-7YP' });
+  });
+
+  it('reenvia a verificação com limite por usuário e IP', async () => {
+    const { controller, resendVerification, consume } = createController();
+
+    resendVerification.mockResolvedValue({
+      sent: true,
+      retryAfterSeconds: 120,
+    });
+
+    const result = await controller.resendVerificationEmail(
+      USER_ID,
+      makeRequest(),
+    );
+
+    expect(consume).toHaveBeenCalledWith(
+      `verification:resend:user:${USER_ID}`,
+      5,
+      60 * 60 * 1000,
+    );
+    expect(consume).toHaveBeenCalledWith(
+      'verification:resend:ip:127.0.0.1',
+      10,
+      60 * 60 * 1000,
+    );
+    expect(resendVerification).toHaveBeenCalledWith(USER_ID);
+    expect(result).toEqual({ sent: true, retryAfterSeconds: 120 });
   });
 
   it('renova a sessão e rotaciona o cookie', async () => {
@@ -263,7 +351,10 @@ describe('AuthController', () => {
   it('devolve o perfil do usuário do token', async () => {
     const { controller, getProfile } = createController();
 
-    getProfile.mockResolvedValue(makeUser());
+    getProfile.mockResolvedValue({
+      user: makeUser(),
+      verificationResendAvailableAt: null,
+    });
 
     await expect(controller.me(USER_ID)).resolves.toEqual({
       id: USER_ID,
@@ -271,6 +362,7 @@ describe('AuthController', () => {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      verificationResendAvailableAt: null,
     });
   });
 });

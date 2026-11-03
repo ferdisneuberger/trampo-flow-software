@@ -21,15 +21,21 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { LoginDto } from '../../../application/auth/dtos/login.dto';
+import { RegisterUserDto } from '../../../application/auth/dtos/register-user.dto';
+import { VerifyEmailDto } from '../../../application/auth/dtos/verify-email.dto';
 import { AuthenticateUserUseCase } from '../../../application/auth/use-cases/authenticate-user.use-case';
 import { CreateSessionUseCase } from '../../../application/auth/use-cases/create-session.use-case';
 import { GetUserProfileUseCase } from '../../../application/auth/use-cases/get-user-profile.use-case';
 import { LogoutUseCase } from '../../../application/auth/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from '../../../application/auth/use-cases/refresh-session.use-case';
+import { RegisterUserUseCase } from '../../../application/auth/use-cases/register-user.use-case';
+import { ResendVerificationUseCase } from '../../../application/auth/use-cases/resend-verification.use-case';
+import { VerifyEmailUseCase } from '../../../application/auth/use-cases/verify-email.use-case';
 import { UnauthorizedError } from '../../../application/shared/errors/unauthorized.error';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import { LoginRateLimiter } from '../../auth/login-rate-limiter.service';
 import { Public } from '../../auth/public.decorator';
+import { RateLimiterService } from '../../auth/rate-limiter.service';
 import { TokenService } from '../../auth/token.service';
 import {
   AuthenticatedUserResponse,
@@ -51,6 +57,10 @@ export class AuthController {
     private readonly refreshSession: RefreshSessionUseCase,
     private readonly logoutSession: LogoutUseCase,
     private readonly getUserProfile: GetUserProfileUseCase,
+    private readonly registerUser: RegisterUserUseCase,
+    private readonly verifyEmail: VerifyEmailUseCase,
+    private readonly resendVerification: ResendVerificationUseCase,
+    private readonly rateLimiter: RateLimiterService,
     private readonly tokenService: TokenService,
     private readonly loginRateLimiter: LoginRateLimiter,
     configService: ConfigService,
@@ -107,6 +117,7 @@ export class AuthController {
           emailVerified: user.isEmailVerified,
           hasPassword: user.passwordHash !== null,
           termsAccepted: user.termsAcceptedAt !== null,
+          verificationResendAvailableAt: null,
         },
       };
     } catch (error) {
@@ -116,6 +127,77 @@ export class AuthController {
 
       throw error;
     }
+  }
+
+  @Public()
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Cria uma conta e envia o código de verificação' })
+  @ApiResponse({ status: 201, description: 'Cadastro recebido.' })
+  @ApiResponse({ status: 403, description: 'Cadastro desabilitado.' })
+  @ApiResponse({ status: 409, description: 'E-mail já cadastrado.' })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas.' })
+  async register(@Body() dto: RegisterUserDto, @Req() request: FastifyRequest) {
+    this.rateLimiter.consume(`register:ip:${request.ip}`, 5, 60 * 60 * 1000);
+
+    await this.registerUser.execute({
+      email: dto.email,
+      password: dto.password,
+      termsAccepted: dto.termsAccepted,
+    });
+
+    return {
+      message:
+        'Se o e-mail puder ser cadastrado, enviaremos um código de confirmação.',
+    };
+  }
+
+  @Public()
+  @Post('verification/confirm')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Confirma o e-mail com o código recebido' })
+  @ApiResponse({ status: 204, description: 'E-mail confirmado.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Código inválido, expirado ou já utilizado.',
+  })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas.' })
+  async confirmVerification(
+    @Body() dto: VerifyEmailDto,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    this.rateLimiter.consume(`verification:minute:${request.ip}`, 5, 60 * 1000);
+    this.rateLimiter.consume(
+      `verification:hour:${request.ip}`,
+      20,
+      60 * 60 * 1000,
+    );
+
+    await this.verifyEmail.execute({ token: dto.token });
+  }
+
+  @Post('verification/resend')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Reenvia o código de verificação' })
+  @ApiResponse({ status: 202, description: 'Reenvio processado.' })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas.' })
+  async resendVerificationEmail(
+    @CurrentUserId() userId: string,
+    @Req() request: FastifyRequest,
+  ) {
+    this.rateLimiter.consume(
+      `verification:resend:user:${userId}`,
+      5,
+      60 * 60 * 1000,
+    );
+    this.rateLimiter.consume(
+      `verification:resend:ip:${request.ip}`,
+      10,
+      60 * 60 * 1000,
+    );
+
+    return this.resendVerification.execute(userId);
   }
 
   @Public()
@@ -181,7 +263,8 @@ export class AuthController {
   @ApiOkResponse({ type: AuthenticatedUserResponse })
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
   async me(@CurrentUserId() userId: string) {
-    const user = await this.getUserProfile.execute(userId);
+    const { user, verificationResendAvailableAt } =
+      await this.getUserProfile.execute(userId);
 
     return {
       id: user.id,
@@ -189,6 +272,8 @@ export class AuthController {
       emailVerified: user.isEmailVerified,
       hasPassword: user.passwordHash !== null,
       termsAccepted: user.termsAcceptedAt !== null,
+      verificationResendAvailableAt:
+        verificationResendAvailableAt?.toISOString() ?? null,
     };
   }
 
