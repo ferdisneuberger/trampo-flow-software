@@ -44,7 +44,7 @@ describe('password reset email', () => {
   const email = buildPasswordResetEmail({
     token: 'reset-token',
     appBaseUrl: 'https://app.exemplo.com/',
-    expiresInMinutes: 60,
+    expiresInMinutes: 15,
   });
 
   it('destaca o link de redefinição e a validade', () => {
@@ -53,6 +53,6 @@ describe('password reset email', () => {
       'https://app.exemplo.com/redefinir-senha#token=reset-token',
     );
     expect(email.html).toContain('Criar nova senha');
-    expect(email.text).toContain('60 minutos');
+    expect(email.text).toContain('15 minutos');
   });
 });

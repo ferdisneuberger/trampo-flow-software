@@ -21,7 +21,7 @@ function makeSettings(): AuthSettings {
     true,
     24 * 60 * 60 * 1000,
     120 * 1000,
-    60 * 60 * 1000,
+    15 * 60 * 1000,
     '2026-11',
     'https://app.exemplo.com',
   );

@@ -25,7 +25,7 @@ function makeSettings(overrides: Partial<AuthSettings> = {}): AuthSettings {
     overrides.registrationEnabled ?? true,
     overrides.verificationTtlMs ?? 24 * 60 * 60 * 1000,
     overrides.resendCooldownMs ?? 120 * 1000,
-    overrides.passwordResetTtlMs ?? 60 * 60 * 1000,
+    overrides.passwordResetTtlMs ?? 15 * 60 * 1000,
     overrides.termsVersion ?? '2026-11',
     overrides.appBaseUrl ?? 'https://app.exemplo.com',
   );

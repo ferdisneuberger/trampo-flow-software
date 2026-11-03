@@ -124,7 +124,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
           ) * 1000,
           readPositiveInt(
             configService.get<string>('PASSWORD_RESET_TTL_MINUTES'),
-            60,
+            15,
           ) *
             60 *
             1000,
