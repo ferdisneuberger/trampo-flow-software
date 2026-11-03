@@ -23,6 +23,8 @@
     "prisma:seed": "node prisma/seed.mjs",
     "prisma:studio": "prisma studio",
     "auth:set-owner-email": "node scripts/set-owner-email.mjs",
+    "auth:backup-owner": "node scripts/backup-owner.mjs",
+    "auth:restore-owner": "node scripts/restore-owner.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {

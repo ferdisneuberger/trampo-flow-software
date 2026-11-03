@@ -67,4 +67,10 @@ export class InMemoryUserRepository implements UserRepository {
 
     this.users.set(user.id, clone(user));
   }
+
+  async delete(id: string): Promise<void> {
+    if (!this.users.delete(id)) {
+      throw new Error(`User "${id}" does not exist.`);
+    }
+  }
 }

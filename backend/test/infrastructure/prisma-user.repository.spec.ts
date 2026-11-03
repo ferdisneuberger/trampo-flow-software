@@ -107,4 +107,13 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaUserRepository', () => {
   it('propaga erro ao atualizar usuário inexistente', async () => {
     await expect(repository.update(makeUser())).rejects.toThrow();
   });
+
+  it('exclui pelo id', async () => {
+    const user = makeUser();
+
+    await repository.create(user);
+    await repository.delete(user.id);
+
+    await expect(repository.findById(user.id)).resolves.toBeNull();
+  });
 });

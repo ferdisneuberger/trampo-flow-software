@@ -211,6 +211,7 @@ A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do Postgr
 | `VERIFICATION_RESEND_SECONDS`  | não         | Cooldown de reenvio; padrão `120`                         |
 | `PASSWORD_RESET_TTL_MINUTES`   | não         | Validade do link de recuperação; padrão `60`              |
 | `GOOGLE_CLIENT_ID`             | não         | Client ID público do Google para validar o ID token       |
+| `API_KEY_DELETE`               | não         | Chave da rota administrativa de exclusão (somente testes) |
 | `TERMS_VERSION`                | não         | Versão dos termos aceita no cadastro; padrão `2026-11`    |
 | `SMTP_HOST`                    | não         | Servidor SMTP; padrão `smtp.gmail.com`                    |
 | `SMTP_PORT`                    | não         | Porta SMTP; padrão `587`                                  |
@@ -248,6 +249,25 @@ curl -X POST http://localhost:5173/api/auth/verification/confirm \
 ```
 
 Usuários não verificados podem entrar, mas ainda não podem criar candidaturas. O bloqueio é feito no backend com `403 EMAIL_NOT_VERIFIED` e reforçado no frontend. Em desenvolvimento, o Mailpit captura os e-mails em `http://localhost:8025`; para usar o Gmail real, configure `SMTP_HOST=smtp.gmail.com` e a App Password em `SMTP_PASS`.
+
+#### Rota administrativa de testes
+
+`DELETE /admin/users/:email` exclui um usuário e, por cascade, suas candidaturas, arquivos, tokens de verificação e refresh tokens. A rota só é habilitada quando `API_KEY_DELETE` está definida e exige o header `x-api-key`. Sem a variável, responde `403 ADMIN_ROUTE_DISABLED`; com chave errada, `401 INVALID_API_KEY`.
+
+Mantenha `API_KEY_DELETE` vazia em produção. Para testes locais, use uma chave forte e remova-a quando terminar.
+
+Backup e restauração seletiva do owner:
+
+```bash
+DATABASE_URL='postgresql://trampo:trampo_dev@127.0.0.1:5432/trampo_flow' \
+  OWNER_EMAIL='fernandoftneuberger@gmail.com' \
+  npm --prefix backend run auth:backup-owner
+
+DATABASE_URL='postgresql://trampo:trampo_dev@127.0.0.1:5432/trampo_flow' \
+  npm --prefix backend run auth:restore-owner
+```
+
+O backup JSON fica em `backups/` e não é commitado.
 
 #### Login com Google
 

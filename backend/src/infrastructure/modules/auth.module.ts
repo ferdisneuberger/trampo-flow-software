@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthenticateUserUseCase } from '../../application/auth/use-cases/authenticate-user.use-case';
 import { CreateSessionUseCase } from '../../application/auth/use-cases/create-session.use-case';
+import { DeleteUserByEmailUseCase } from '../../application/auth/use-cases/delete-user-by-email.use-case';
 import { ForgotPasswordUseCase } from '../../application/auth/use-cases/forgot-password.use-case';
 import { GetUserProfileUseCase } from '../../application/auth/use-cases/get-user-profile.use-case';
 import { GoogleSignInUseCase } from '../../application/auth/use-cases/google-sign-in.use-case';
@@ -38,6 +39,7 @@ import { UserBootstrapService } from '../auth/user-bootstrap.service';
 import { PrismaAuthTokenRepository } from '../database/prisma/repositories/prisma-auth-token.repository';
 import { PrismaRefreshTokenRepository } from '../database/prisma/repositories/prisma-refresh-token.repository';
 import { PrismaUserRepository } from '../database/prisma/repositories/prisma-user.repository';
+import { AdminUsersController } from '../http/controllers/admin-users.controller';
 import { AuthController } from '../http/controllers/auth.controller';
 import { SmtpMailer } from '../mail/smtp-mailer';
 
@@ -50,7 +52,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
 }
 
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, AdminUsersController],
   providers: [
     AuthenticateUserUseCase,
     CreateSessionUseCase,
@@ -63,6 +65,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     ForgotPasswordUseCase,
     ResetPasswordUseCase,
     GoogleSignInUseCase,
+    DeleteUserByEmailUseCase,
     LoginRateLimiter,
     RateLimiterService,
     ScryptPasswordHasher,
