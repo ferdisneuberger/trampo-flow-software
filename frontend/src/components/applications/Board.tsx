@@ -22,6 +22,7 @@ import { getErrorMessage } from '../../utils/errors';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
 import { BOARD_GRID_CLASSES, BOARD_SCROLL_CLASSES } from './board-layout';
+import { BoardCardOverlay } from './BoardCard';
 import { BoardColumn } from './BoardColumn';
 
 type BoardProps = {
@@ -88,7 +89,7 @@ export function Board({ board, search, onEdit, onDelete }: BoardProps) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {search ? (
         <p className="text-xs text-ink-500">
           Reordenação por arrastar desativada enquanto há busca ativa. Use o
@@ -146,16 +147,15 @@ export function Board({ board, search, onEdit, onDelete }: BoardProps) {
           </div>
         </div>
 
-        <DragOverlay>
+        <DragOverlay
+          // A animação padrão do dnd-kit mira o retângulo do card de origem e
+          // só depois o quadro é atualizado. Como o card muda de coluna, ela
+          // parecia "voltar" para o lugar antigo; sem animação, o card surge
+          // direto na posição nova com a atualização otimista.
+          dropAnimation={null}
+        >
           {activeApplication ? (
-            <div className="w-72 rounded-lg border border-brand-300 bg-white p-3 shadow-none">
-              <p className="line-clamp-2 text-sm font-semibold text-ink-900">
-                {activeApplication.title}
-              </p>
-              <p className="mt-0.5 truncate text-xs text-ink-500">
-                {activeApplication.company}
-              </p>
-            </div>
+            <BoardCardOverlay application={activeApplication} />
           ) : null}
         </DragOverlay>
       </DndContext>

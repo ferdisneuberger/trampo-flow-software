@@ -112,22 +112,25 @@ describe('ApplicationDetailPage', () => {
     renderPage();
 
     expect(screen.getByText('Backend Engineer')).toBeInTheDocument();
-    expect(screen.getByText('Empresa')).toBeInTheDocument();
     expect(screen.getAllByText('Acme').length).toBeGreaterThan(0);
-    expect(screen.getByText('Site da empresa')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'https://acme.dev' }),
-    ).toHaveAttribute('href', 'https://acme.dev/');
-    expect(screen.getByText('Link da vaga')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'https://example.com/vaga' }),
-    ).toHaveAttribute('href', 'https://example.com/vaga');
+    expect(screen.queryByText('Empresa')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status')).not.toBeInTheDocument();
     expect(screen.getByText('Fase atual')).toBeInTheDocument();
-    expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getAllByText('Aguardando').length).toBeGreaterThan(0);
+    expect(screen.getByText('Triagem')).toBeInTheDocument();
+    expect(screen.getByText('Aguardando')).toBeInTheDocument();
+    expect(screen.getByText('Site da empresa')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /acme\.dev/ })).toHaveAttribute(
+      'href',
+      'https://acme.dev/',
+    );
+    expect(screen.getByText('Link da vaga')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /example\.com/ })).toHaveAttribute(
+      'href',
+      'https://example.com/vaga',
+    );
   });
 
-  it('mostra “Não informado” quando o site da empresa está vazio', () => {
+  it('oculta o site da empresa quando não informado', () => {
     mocks.useApplication.mockReturnValue(
       applicationResult({
         data: makeApplication({ companyUrl: null }),
@@ -136,7 +139,9 @@ describe('ApplicationDetailPage', () => {
 
     renderPage();
 
-    expect(screen.getByText('Não informado')).toBeInTheDocument();
+    expect(screen.queryByText('Site da empresa')).not.toBeInTheDocument();
+    expect(screen.queryByText('Não informado')).not.toBeInTheDocument();
+    expect(screen.getByText('Link da vaga')).toBeInTheDocument();
   });
 
   it('não cria link para URL com esquema perigoso', () => {

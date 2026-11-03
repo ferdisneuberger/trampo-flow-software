@@ -18,7 +18,7 @@ export function AppShell() {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-screen bg-bg">
+    <div className="flex h-dvh min-h-0 overflow-hidden bg-bg">
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-700 focus:shadow"
@@ -26,7 +26,7 @@ export function AppShell() {
         Pular para o conteúdo
       </a>
 
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-white px-4 py-6 md:flex">
+      <aside className="sticky top-0 hidden h-full w-60 shrink-0 flex-col border-r border-line bg-white px-4 py-6 md:flex">
         <NavLink
           to="/candidaturas"
           className="flex items-center gap-2.5 rounded-xl px-2 py-1"
@@ -80,7 +80,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-line bg-white px-4 py-3 md:hidden">
           <NavLink
             to="/candidaturas"
@@ -120,7 +120,7 @@ export function AppShell() {
         <main
           id="conteudo"
           tabIndex={-1}
-          className="mx-auto w-full max-w-[100rem] flex-1 px-4 py-6 sm:px-6 lg:px-8"
+          className="mx-auto flex min-h-0 w-full max-w-[100rem] flex-1 flex-col overflow-y-auto px-4 pt-6 pb-10 sm:px-6 lg:px-8"
         >
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense

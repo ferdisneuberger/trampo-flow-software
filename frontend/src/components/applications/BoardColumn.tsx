@@ -39,11 +39,11 @@ export function BoardColumn({
       aria-label={APPLICATION_STATUS_LABELS[status]}
       className={
         isOver
-          ? 'flex min-h-[24rem] flex-col rounded-card border border-brand-300 bg-brand-50/40'
-          : 'flex min-h-[24rem] flex-col rounded-card border border-line bg-surface/40'
+          ? 'flex h-full min-h-0 flex-col rounded-card border border-brand-300 bg-brand-50/40'
+          : 'flex h-full min-h-0 flex-col rounded-card border border-line bg-surface/40'
       }
     >
-      <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-3 py-2.5">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-700">
           {APPLICATION_STATUS_LABELS[status]}
         </h2>
@@ -56,7 +56,7 @@ export function BoardColumn({
         items={items.map((item) => item.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="flex flex-1 flex-col gap-2 p-2">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
           {items.map((application) => (
             <BoardCard
               key={application.id}
