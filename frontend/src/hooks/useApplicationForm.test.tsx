@@ -51,7 +51,6 @@ const storedApplication: Application = {
   position: 1000,
   status: 'COMPLETED',
   currentPhase: 'Proposta',
-  files: [],
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
   deletedAt: null,

@@ -11,7 +11,7 @@ Aplicação full stack para acompanhar candidaturas de emprego. O backend é uma
 - Busca no servidor e quadro kanban como tela inicial.
 - Upload de PDF e TXT em storage compatível com S3.
 - Sessão com access token curto em memória e refresh token em cookie `HttpOnly`.
-- Detalhe da candidatura com edição, upload de arquivos e exclusão.
+- Detalhe da candidatura com edição e exclusão.
 
 O histórico completo está em [CHANGELOG.md](CHANGELOG.md).
 
@@ -253,7 +253,7 @@ Página (pages/ApplicationDetailPage)
 
 - `components/ui`: design system base (botões, inputs, cards, modais, menu, badges, alertas, skeletons e error boundary).
 - `components/layout`: shell global com navegação, skip link, logout e error boundary por rota.
-- `components/applications`: quadro, colunas, cards, formulário, upload e diálogo de exclusão.
+- `components/applications`: quadro, colunas, cards, formulário e diálogo de exclusão.
 - `hooks`: query/mutations (`useBoard`, `useApplicationMutations`), formulário (`useApplicationForm`), debounce, disclosure e logout.
 - `contexts`: sessão autenticada e evento de `401`.
 - `lib`: query client, query keys e invalidação centralizada.
@@ -329,10 +329,9 @@ Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, 
 ### Funcionalidades
 
 - Quadro Kanban como tela inicial (`/candidaturas`), com colunas por status e arrastar e soltar.
-- Cards com título clicável, empresa, fase atual, data e contagem de arquivos.
+- Cards com título clicável, empresa, fase atual e data.
 - Busca por título, empresa ou fase no servidor; a busca desativa temporariamente o arrastar.
 - Criação e edição de candidaturas com título, link, fase e status.
-- Upload de PDF/TXT com validação de extensão, MIME e tamanho, além de remoção e download pelo detalhe.
 - Exclusão lógica (padrão) ou física, com aviso crítico e confirmação explícita por checkbox.
 - Estados de carregamento, erro com retry, confirmação de sucesso, 404 e error boundary.
 - Sessão com access token em memória, refresh deduplicado, logout no servidor e limpeza de cache no `401`.

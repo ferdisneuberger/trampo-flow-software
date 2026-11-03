@@ -11,15 +11,12 @@ vi.mock('../services/api/applications.service', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
-    uploadFile: vi.fn(),
-    removeFile: vi.fn(),
   },
 }));
 
 const create = vi.mocked(applicationsService.create);
 const update = vi.mocked(applicationsService.update);
 const remove = vi.mocked(applicationsService.remove);
-const removeFile = vi.mocked(applicationsService.removeFile);
 
 function makeApplication(overrides: Partial<Application> = {}): Application {
   return {
@@ -31,7 +28,6 @@ function makeApplication(overrides: Partial<Application> = {}): Application {
     position: 1000,
     status: 'PENDING',
     currentPhase: 'Triagem',
-    files: [],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     deletedAt: null,
@@ -64,7 +60,6 @@ describe('useApplicationMutations', () => {
     create.mockResolvedValue(makeApplication());
     update.mockResolvedValue(makeApplication());
     remove.mockResolvedValue(undefined);
-    removeFile.mockResolvedValue(undefined);
   });
 
   it('cria e invalida quadro e detalhe', async () => {
@@ -107,19 +102,6 @@ describe('useApplicationMutations', () => {
     });
 
     expect(remove).toHaveBeenCalledWith('a', 'hard');
-    expect(invalidate).toHaveBeenCalledWith({
-      queryKey: ['application', 'a'],
-    });
-  });
-
-  it('remove arquivo e invalida o detalhe', async () => {
-    const { result, invalidate } = setup();
-
-    await act(async () => {
-      await result.current.removeApplicationFile('a', 'f1');
-    });
-
-    expect(removeFile).toHaveBeenCalledWith('a', 'f1');
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ['application', 'a'],
     });

@@ -1,9 +1,10 @@
 import {
-  closestCorners,
+  pointerWithin,
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -11,6 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useState } from 'react';
+import { useDragClickGuard } from '../../hooks/useDragClickGuard';
 import { resolvePlacement, usePlaceApplication } from '../../hooks/useBoard';
 import type {
   Application,
@@ -31,9 +33,13 @@ type BoardProps = {
 
 export function Board({ board, search, onEdit, onDelete }: BoardProps) {
   const place = usePlaceApplication();
+  const armDragClickGuard = useDragClickGuard();
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -43,14 +49,17 @@ export function Board({ board, search, onEdit, onDelete }: BoardProps) {
   const activeApplication = columns
     .flatMap((column) => column.items)
     .find((item) => item.id === activeId);
-  const draggingEnabled = !search;
+  const draggingEnabled = !search && !place.isPending;
 
   const handleDragStart = (event: DragStartEvent) => {
+    armDragClickGuard();
     setActiveId(String(event.active.id));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null);
+    // Rearma a trava: o clique do drop chega depois deste handler.
+    armDragClickGuard();
 
     if (!event.over || place.isPending) {
       return;
@@ -80,12 +89,16 @@ export function Board({ board, search, onEdit, onDelete }: BoardProps) {
 
   return (
     <div className="space-y-3">
-      {!draggingEnabled && (
+      {search ? (
         <p className="text-xs text-ink-500">
           Reordenação por arrastar desativada enquanto há busca ativa. Use o
           menu do card para mudar de coluna.
         </p>
-      )}
+      ) : place.isPending ? (
+        <p role="status" className="text-xs text-ink-500">
+          Sincronizando o quadro...
+        </p>
+      ) : null}
 
       {place.isError && (
         <Alert
@@ -107,10 +120,13 @@ export function Board({ board, search, onEdit, onDelete }: BoardProps) {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveId(null)}
+        onDragCancel={() => {
+          setActiveId(null);
+          armDragClickGuard();
+        }}
       >
         <div className={BOARD_SCROLL_CLASSES}>
           <div className={BOARD_GRID_CLASSES}>

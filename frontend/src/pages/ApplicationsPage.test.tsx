@@ -13,8 +13,6 @@ const mocks = vi.hoisted(() => ({
   createApplication: vi.fn(),
   updateApplication: vi.fn(),
   deleteApplication: vi.fn(),
-  uploadApplicationFile: vi.fn(),
-  removeApplicationFile: vi.fn(),
 }));
 
 vi.mock('../hooks/useBoard', () => ({
@@ -26,8 +24,6 @@ vi.mock('../hooks/useApplicationMutations', () => ({
     createApplication: mocks.createApplication,
     updateApplication: mocks.updateApplication,
     deleteApplication: mocks.deleteApplication,
-    uploadApplicationFile: mocks.uploadApplicationFile,
-    removeApplicationFile: mocks.removeApplicationFile,
   }),
 }));
 
@@ -69,7 +65,6 @@ function makeApplication(overrides: Partial<Application> = {}): Application {
     position: 1000,
     status: 'PENDING',
     currentPhase: 'Triagem',
-    files: [],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     deletedAt: null,

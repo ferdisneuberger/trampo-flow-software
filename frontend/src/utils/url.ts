@@ -19,23 +19,6 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
 }
 
 /**
- * Aceita apenas caminhos relativos à API (ex.: /applications/:id/files/:fileId/download).
- * Rejeita URLs absolutas e protocol-relative para não enviar o token a outra origem.
- */
-export function safeApiPath(value: string | null | undefined): string | null {
-  if (
-    !value ||
-    value.includes('\\') ||
-    !value.startsWith('/') ||
-    value.startsWith('//')
-  ) {
-    return null;
-  }
-
-  return value;
-}
-
-/**
  * Valida um destino interno de redirecionamento recebido via location.state.
  * Rejeita URLs absolutas, protocol-relative e variações com backslash/controle.
  */

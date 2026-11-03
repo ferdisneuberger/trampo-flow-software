@@ -79,33 +79,6 @@ describe('applicationsService', () => {
     });
   });
 
-  it('faz upload e remoção de arquivo', async () => {
-    client.post.mockResolvedValue({ data: { id: 'a' } });
-    client.delete.mockResolvedValue({});
-
-    await applicationsService.uploadFile('a', new File(['x'], 'cv.pdf'));
-    await applicationsService.removeFile('a', 'f1');
-
-    expect(client.post).toHaveBeenCalledWith(
-      '/applications/a/files/upload',
-      expect.any(FormData),
-    );
-    expect(client.delete).toHaveBeenCalledWith('/applications/a/files/f1');
-  });
-
-  it('baixa arquivo como blob', async () => {
-    const blob = new Blob(['x']);
-    client.get.mockResolvedValue({ data: blob });
-
-    await expect(
-      applicationsService.downloadFile('/applications/a/files/f1/download'),
-    ).resolves.toBe(blob);
-    expect(client.get).toHaveBeenCalledWith(
-      '/applications/a/files/f1/download',
-      { responseType: 'blob' },
-    );
-  });
-
   it('remove com modo soft por padrão', async () => {
     client.delete.mockResolvedValue({});
 

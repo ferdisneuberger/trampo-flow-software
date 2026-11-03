@@ -38,20 +38,6 @@ export function useApplicationMutations() {
       invalidateApplicationData(queryClient, variables.id),
   });
 
-  const uploadFile = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) =>
-      applicationsService.uploadFile(id, file),
-    onSuccess: (application) =>
-      invalidateApplicationData(queryClient, application.id),
-  });
-
-  const removeFile = useMutation({
-    mutationFn: ({ id, fileId }: { id: string; fileId: string }) =>
-      applicationsService.removeFile(id, fileId),
-    onSuccess: (_data, variables) =>
-      invalidateApplicationData(queryClient, variables.id),
-  });
-
   const createApplication = useCallback(
     (input: CreateApplicationInput): Promise<Application> =>
       create.mutateAsync(input),
@@ -70,23 +56,9 @@ export function useApplicationMutations() {
     [remove],
   );
 
-  const uploadApplicationFile = useCallback(
-    (id: string, file: File): Promise<Application> =>
-      uploadFile.mutateAsync({ id, file }),
-    [uploadFile],
-  );
-
-  const removeApplicationFile = useCallback(
-    (id: string, fileId: string): Promise<void> =>
-      removeFile.mutateAsync({ id, fileId }),
-    [removeFile],
-  );
-
   return {
     createApplication,
     updateApplication,
     deleteApplication,
-    uploadApplicationFile,
-    removeApplicationFile,
   };
 }

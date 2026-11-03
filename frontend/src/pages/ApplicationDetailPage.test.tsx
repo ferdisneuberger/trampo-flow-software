@@ -11,10 +11,6 @@ const mocks = vi.hoisted(() => ({
   createApplication: vi.fn(),
   updateApplication: vi.fn(),
   deleteApplication: vi.fn(),
-  uploadApplicationFile: vi.fn(),
-  removeApplicationFile: vi.fn(),
-  downloadFile: vi.fn(),
-  downloadBlob: vi.fn(),
 }));
 
 vi.mock('../hooks/useApplication', () => ({
@@ -26,19 +22,7 @@ vi.mock('../hooks/useApplicationMutations', () => ({
     createApplication: mocks.createApplication,
     updateApplication: mocks.updateApplication,
     deleteApplication: mocks.deleteApplication,
-    uploadApplicationFile: mocks.uploadApplicationFile,
-    removeApplicationFile: mocks.removeApplicationFile,
   }),
-}));
-
-vi.mock('../services/api/applications.service', () => ({
-  applicationsService: {
-    downloadFile: mocks.downloadFile,
-  },
-}));
-
-vi.mock('../utils/download', () => ({
-  downloadBlob: mocks.downloadBlob,
 }));
 
 function makeApplication(overrides: Partial<Application> = {}): Application {
@@ -51,7 +35,6 @@ function makeApplication(overrides: Partial<Application> = {}): Application {
     position: 1000,
     status: 'PENDING',
     currentPhase: 'Triagem',
-    files: [],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-02T00:00:00.000Z',
     deletedAt: null,
@@ -88,8 +71,6 @@ describe('ApplicationDetailPage', () => {
     mocks.useApplication.mockReturnValue(applicationResult());
     mocks.updateApplication.mockResolvedValue(makeApplication());
     mocks.deleteApplication.mockResolvedValue(undefined);
-    mocks.removeApplicationFile.mockResolvedValue(undefined);
-    mocks.downloadFile.mockResolvedValue(new Blob(['conteudo']));
   });
 
   it('mostra skeleton no carregamento', () => {
@@ -127,17 +108,35 @@ describe('ApplicationDetailPage', () => {
     expect(refetch).toHaveBeenCalledOnce();
   });
 
-  it('mostra os dados da candidatura com links seguros', () => {
+  it('mostra todos os dados cadastrados com links seguros', () => {
     renderPage();
 
     expect(screen.getByText('Backend Engineer')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Acme/ })).toHaveAttribute(
-      'href',
-      'https://acme.dev/',
-    );
+    expect(screen.getByText('Empresa')).toBeInTheDocument();
+    expect(screen.getAllByText('Acme').length).toBeGreaterThan(0);
+    expect(screen.getByText('Site da empresa')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'https://acme.dev' }),
+    ).toHaveAttribute('href', 'https://acme.dev/');
+    expect(screen.getByText('Link da vaga')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'https://example.com/vaga' }),
     ).toHaveAttribute('href', 'https://example.com/vaga');
+    expect(screen.getByText('Fase atual')).toBeInTheDocument();
+    expect(screen.getByText('Status')).toBeInTheDocument();
+    expect(screen.getAllByText('Aguardando').length).toBeGreaterThan(0);
+  });
+
+  it('mostra “Não informado” quando o site da empresa está vazio', () => {
+    mocks.useApplication.mockReturnValue(
+      applicationResult({
+        data: makeApplication({ companyUrl: null }),
+      }),
+    );
+
+    renderPage();
+
+    expect(screen.getByText('Não informado')).toBeInTheDocument();
   });
 
   it('não cria link para URL com esquema perigoso', () => {
@@ -154,79 +153,6 @@ describe('ApplicationDetailPage', () => {
 
     expect(screen.queryByRole('link', { name: /Acme/ })).toBeNull();
     expect(screen.queryByRole('link', { name: /javascript/ })).toBeNull();
-  });
-
-  it('baixa um arquivo e trata falha de download', async () => {
-    mocks.useApplication.mockReturnValue(
-      applicationResult({
-        data: makeApplication({
-          files: [
-            {
-              id: 'f1',
-              name: 'curriculo.pdf',
-              mimeType: 'application/pdf',
-              sizeInBytes: 1024,
-              uploadedAt: '2026-01-01T00:00:00.000Z',
-              url: null,
-              downloadUrl: '/applications/a/files/f1/download',
-            },
-          ],
-        }),
-      }),
-    );
-
-    renderPage();
-
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Baixar curriculo.pdf' }),
-    );
-
-    await waitFor(() =>
-      expect(mocks.downloadBlob).toHaveBeenCalledWith(
-        expect.any(Blob),
-        'curriculo.pdf',
-      ),
-    );
-
-    mocks.downloadFile.mockRejectedValue(new Error('Falha no storage.'));
-
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Baixar curriculo.pdf' }),
-    );
-
-    expect(await screen.findByText('Falha no storage.')).toBeInTheDocument();
-  });
-
-  it('mostra erro ao remover arquivo', async () => {
-    mocks.useApplication.mockReturnValue(
-      applicationResult({
-        data: makeApplication({
-          files: [
-            {
-              id: 'f1',
-              name: 'curriculo.pdf',
-              mimeType: 'application/pdf',
-              sizeInBytes: 1024,
-              uploadedAt: '2026-01-01T00:00:00.000Z',
-              url: null,
-              downloadUrl: '/applications/a/files/f1/download',
-            },
-          ],
-        }),
-      }),
-    );
-    mocks.removeApplicationFile.mockRejectedValue(new Error('Falhou.'));
-
-    renderPage();
-
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Remover curriculo.pdf' }),
-    );
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Remover arquivo' }),
-    );
-
-    expect(await screen.findByText('Falhou.')).toBeInTheDocument();
   });
 
   it('exclui a candidatura e volta para o quadro', async () => {
