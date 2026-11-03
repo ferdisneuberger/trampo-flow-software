@@ -10,7 +10,7 @@ describe('GetUserProfileUseCase', () => {
   it('devolve o usuário do token', async () => {
     const repository = new InMemoryUserRepository();
     const user = User.create({
-      username: 'fernando',
+      email: 'fernando@example.com',
       passwordHash: PASSWORD_HASH,
     });
 
@@ -20,7 +20,7 @@ describe('GetUserProfileUseCase', () => {
       user.id,
     );
 
-    expect(profile.username).toBe('fernando');
+    expect(profile.email).toBe('fernando@example.com');
   });
 
   it('rejeita quando o usuário foi removido', async () => {

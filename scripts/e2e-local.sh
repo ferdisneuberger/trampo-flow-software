@@ -9,7 +9,7 @@ WEB_PORT="6173"
 POSTGRES_PORT="55433"
 ADMINER_PORT="8081"
 BASE_URL="http://127.0.0.1:${WEB_PORT}"
-E2E_USER="e2e"
+E2E_EMAIL="e2e@example.com"
 E2E_PASSWORD="e2e-super-secret-123"
 JWT_SECRET="0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -32,7 +32,7 @@ ADMINER_PORT="$ADMINER_PORT" \
 POSTGRES_DB="trampo_e2e" \
 POSTGRES_USER="trampo" \
 POSTGRES_PASSWORD="trampo_e2e" \
-AUTH_USERNAME="$E2E_USER" \
+AUTH_EMAIL="$E2E_EMAIL" \
 AUTH_PASSWORD="$E2E_PASSWORD" \
 JWT_SECRET="$JWT_SECRET" \
 CORS_ORIGINS="$BASE_URL" \
@@ -60,7 +60,7 @@ if [ ! -d "$HOME/.cache/ms-playwright" ]; then
   npx playwright install chromium
 fi
 
-E2E_USERNAME="$E2E_USER" \
+E2E_EMAIL="$E2E_EMAIL" \
 E2E_PASSWORD="$E2E_PASSWORD" \
 E2E_BASE_URL="$BASE_URL" \
 npx playwright test "$@"

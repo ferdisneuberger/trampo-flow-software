@@ -5,8 +5,17 @@ export class AuthenticatedUserResponse {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ example: 'fernando' })
-  username!: string;
+  @ApiProperty({ example: 'pessoa@exemplo.com' })
+  email!: string;
+
+  @ApiProperty({ example: true })
+  emailVerified!: boolean;
+
+  @ApiProperty({ example: true })
+  hasPassword!: boolean;
+
+  @ApiProperty({ example: true })
+  termsAccepted!: boolean;
 }
 
 export class LoginResponse {

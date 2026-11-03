@@ -18,13 +18,19 @@ import type { TokenService } from '../../src/infrastructure/auth/token.service';
 import { AuthController } from '../../src/infrastructure/http/controllers/auth.controller';
 
 const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
+const EMAIL = 'fernando@example.com';
 const PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdA==$a2V5';
 const REFRESH_EXPIRES_AT = new Date('2026-12-01T00:00:00.000Z');
 
 function makeUser(): User {
   return User.restore({
     id: USER_ID,
-    username: 'fernando',
+    email: EMAIL,
+    emailVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+    verificationSentAt: null,
+    termsAcceptedAt: new Date('2026-01-01T00:00:00.000Z'),
+    termsVersion: '2026-11',
+    username: null,
     passwordHash: PASSWORD_HASH,
     lastLoginAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -112,7 +118,7 @@ describe('AuthController', () => {
     });
 
     const result = await controller.login(
-      { username: 'fernando', password: 'senha' },
+      { email: EMAIL, password: 'senha' },
       makeRequest(),
       reply,
     );
@@ -133,7 +139,13 @@ describe('AuthController', () => {
       tokenType: 'Bearer',
       expiresIn: 3600,
       expiresAt: 123,
-      user: { id: USER_ID, username: 'fernando' },
+      user: {
+        id: USER_ID,
+        email: EMAIL,
+        emailVerified: true,
+        hasPassword: true,
+        termsAccepted: true,
+      },
     });
     expect(registerSuccess).toHaveBeenCalledOnce();
   });
@@ -146,7 +158,7 @@ describe('AuthController', () => {
 
     await expect(
       controller.login(
-        { username: 'fernando', password: 'errada' },
+        { email: EMAIL, password: 'errada' },
         makeRequest(),
         reply,
       ),
@@ -167,7 +179,7 @@ describe('AuthController', () => {
 
     await expect(
       controller.login(
-        { username: 'fernando', password: 'senha' },
+        { email: EMAIL, password: 'senha' },
         makeRequest(),
         reply,
       ),
@@ -255,7 +267,10 @@ describe('AuthController', () => {
 
     await expect(controller.me(USER_ID)).resolves.toEqual({
       id: USER_ID,
-      username: 'fernando',
+      email: EMAIL,
+      emailVerified: true,
+      hasPassword: true,
+      termsAccepted: true,
     });
   });
 });

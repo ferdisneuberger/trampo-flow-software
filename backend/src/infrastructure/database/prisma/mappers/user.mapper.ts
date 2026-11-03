@@ -5,6 +5,11 @@ export class UserMapper {
   static toDomain(record: PrismaUser): User {
     return User.restore({
       id: record.id,
+      email: record.email,
+      emailVerifiedAt: record.emailVerifiedAt,
+      verificationSentAt: record.verificationSentAt,
+      termsAcceptedAt: record.termsAcceptedAt,
+      termsVersion: record.termsVersion,
       username: record.username,
       passwordHash: record.passwordHash,
       lastLoginAt: record.lastLoginAt,
@@ -16,6 +21,11 @@ export class UserMapper {
   static toCreateData(user: User): Prisma.UserCreateInput {
     return {
       id: user.id,
+      email: user.email,
+      emailVerifiedAt: user.emailVerifiedAt,
+      verificationSentAt: user.verificationSentAt,
+      termsAcceptedAt: user.termsAcceptedAt,
+      termsVersion: user.termsVersion,
       username: user.username,
       passwordHash: user.passwordHash,
       lastLoginAt: user.lastLoginAt,
@@ -26,7 +36,11 @@ export class UserMapper {
 
   static toUpdateData(user: User): Prisma.UserUncheckedUpdateInput {
     return {
-      username: user.username,
+      email: user.email,
+      emailVerifiedAt: user.emailVerifiedAt,
+      verificationSentAt: user.verificationSentAt,
+      termsAcceptedAt: user.termsAcceptedAt,
+      termsVersion: user.termsVersion,
       passwordHash: user.passwordHash,
       lastLoginAt: user.lastLoginAt,
       updatedAt: user.updatedAt,

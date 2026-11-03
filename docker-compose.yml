@@ -59,7 +59,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-trampo}:${POSTGRES_PASSWORD:-trampo_dev}@postgres:5432/${POSTGRES_DB:-trampo_flow}
       CORS_ORIGINS: '${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,https://app.example.com}'
-      AUTH_USERNAME: '${AUTH_USERNAME:-}'
+      AUTH_EMAIL: '${AUTH_EMAIL:-}'
       AUTH_PASSWORD: '${AUTH_PASSWORD:-}'
       JWT_SECRET: '${JWT_SECRET:?defina JWT_SECRET no arquivo .env}'
       JWT_EXPIRES_IN: '${JWT_EXPIRES_IN:-5m}'

@@ -22,6 +22,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.mjs",
     "prisma:studio": "prisma studio",
+    "auth:set-owner-email": "node scripts/set-owner-email.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {

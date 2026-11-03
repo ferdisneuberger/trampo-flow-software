@@ -4,11 +4,17 @@ import { UserMapper } from '../../src/infrastructure/database/prisma/mappers/use
 import { User } from '../../src/domain/users/entities/user.entity';
 
 const PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdA==$a2V5';
+const EMAIL = 'pessoa@exemplo.com';
 
 function makeRecord(overrides: Partial<PrismaUser> = {}): PrismaUser {
   return {
     id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
-    username: 'fernando',
+    email: EMAIL,
+    emailVerifiedAt: null,
+    verificationSentAt: null,
+    termsAcceptedAt: null,
+    termsVersion: null,
+    username: null,
     passwordHash: PASSWORD_HASH,
     lastLoginAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -22,25 +28,36 @@ describe('UserMapper', () => {
     const user = UserMapper.toDomain(makeRecord());
 
     expect(user.id).toBe('6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10');
-    expect(user.username).toBe('fernando');
+    expect(user.email).toBe(EMAIL);
+    expect(user.username).toBeNull();
     expect(user.lastLoginAt).toBeNull();
     expect(user.createdAt).toEqual(new Date('2026-01-01T00:00:00.000Z'));
   });
 
-  it('preserva lastLoginAt quando existe', () => {
-    const lastLoginAt = new Date('2026-03-01T00:00:00.000Z');
-    const user = UserMapper.toDomain(makeRecord({ lastLoginAt }));
+  it('preserva datas de verificação e termos', () => {
+    const verifiedAt = new Date('2026-03-01T00:00:00.000Z');
+    const user = UserMapper.toDomain(
+      makeRecord({
+        emailVerifiedAt: verifiedAt,
+        termsAcceptedAt: verifiedAt,
+        termsVersion: '2026-11',
+      }),
+    );
 
-    expect(user.lastLoginAt).toEqual(lastLoginAt);
+    expect(user.emailVerifiedAt).toEqual(verifiedAt);
+    expect(user.isEmailVerified).toBe(true);
+    expect(user.termsAcceptedAt).toEqual(verifiedAt);
+    expect(user.termsVersion).toBe('2026-11');
   });
 
   it('não inclui campos gerados no create', () => {
     const data = UserMapper.toCreateData(
-      User.create({ username: 'Fernando', passwordHash: PASSWORD_HASH }),
+      User.create({ email: 'Pessoa@Exemplo.com', passwordHash: PASSWORD_HASH }),
     );
 
     expect(data).toMatchObject({
-      username: 'fernando',
+      email: EMAIL,
+      username: null,
       passwordHash: PASSWORD_HASH,
     });
     expect(data).not.toHaveProperty('deletedAt');
@@ -48,10 +65,11 @@ describe('UserMapper', () => {
 
   it('no update envia apenas os campos mutáveis', () => {
     const data = UserMapper.toUpdateData(
-      User.create({ username: 'Fernando', passwordHash: PASSWORD_HASH }),
+      User.create({ email: EMAIL, passwordHash: PASSWORD_HASH }),
     );
 
     expect(data).toHaveProperty('lastLoginAt');
+    expect(data).toHaveProperty('emailVerifiedAt');
     expect(data).toHaveProperty('updatedAt');
     expect(data).not.toHaveProperty('id');
     expect(data).not.toHaveProperty('createdAt');

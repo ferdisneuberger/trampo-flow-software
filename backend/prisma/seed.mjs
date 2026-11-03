@@ -94,7 +94,7 @@ async function main() {
 
   if (!user) {
     throw new Error(
-      'seed: nenhum usuário encontrado. Suba a API uma vez com AUTH_USERNAME e AUTH_PASSWORD para criar o primeiro usuário.',
+      'seed: nenhum usuário encontrado. Suba a API uma vez com AUTH_EMAIL e AUTH_PASSWORD para criar o primeiro usuário.',
     );
   }
 

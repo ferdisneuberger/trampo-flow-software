@@ -60,7 +60,13 @@ describe('ProtectedRoute', () => {
 
   it('renderiza o conteúdo quando autenticado', () => {
     mockedUseAuth.mockReturnValue({
-      user: { id: 'user-1', username: 'fernando' },
+      user: {
+        id: 'user-1',
+        email: 'fernando@example.com',
+        emailVerified: true,
+        hasPassword: true,
+        termsAccepted: true,
+      },
       isAuthenticated: true,
       isLoading: false,
       login: vi.fn(),

@@ -7,6 +7,7 @@ import { UserBootstrapService } from '../../src/infrastructure/auth/user-bootstr
 import { InMemoryUserRepository } from '../repositories/in-memory-user.repository';
 
 const PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdA==$a2V5';
+const EMAIL = 'fernando@example.com';
 
 function createConfig(
   values: Record<string, string | undefined>,
@@ -38,12 +39,12 @@ describe('UserBootstrapService', () => {
     expect(await repository.existsAny()).toBe(false);
   });
 
-  it('cria o primeiro usuário a partir do ambiente', async () => {
+  it('cria o primeiro usuário verificado a partir do ambiente', async () => {
     const repository = new InMemoryUserRepository();
     const { hasher, hash } = createHasher();
     const service = new UserBootstrapService(
       createConfig({
-        AUTH_USERNAME: '  Fernando  ',
+        AUTH_EMAIL: '  Fernando@Example.com  ',
         AUTH_PASSWORD: 'senha-super-secreta',
       }),
       repository,
@@ -54,9 +55,10 @@ describe('UserBootstrapService', () => {
 
     expect(hash).toHaveBeenCalledWith('senha-super-secreta');
 
-    const created = await repository.findByUsername('fernando');
-    expect(created?.username).toBe('fernando');
+    const created = await repository.findByEmail(EMAIL);
+    expect(created?.email).toBe(EMAIL);
     expect(created?.passwordHash).toBe(PASSWORD_HASH);
+    expect(created?.isEmailVerified).toBe(true);
   });
 
   it('não cria nada quando já existe usuário', async () => {
@@ -64,12 +66,15 @@ describe('UserBootstrapService', () => {
     const { hasher, hash } = createHasher();
 
     await repository.create(
-      User.create({ username: 'existente', passwordHash: PASSWORD_HASH }),
+      User.create({
+        email: 'existente@example.com',
+        passwordHash: PASSWORD_HASH,
+      }),
     );
 
     const service = new UserBootstrapService(
       createConfig({
-        AUTH_USERNAME: 'fernando',
+        AUTH_EMAIL: EMAIL,
         AUTH_PASSWORD: 'senha-super-secreta',
       }),
       repository,
@@ -79,14 +84,14 @@ describe('UserBootstrapService', () => {
     await service.onModuleInit();
 
     expect(hash).not.toHaveBeenCalled();
-    expect(await repository.findByUsername('fernando')).toBeNull();
+    expect(await repository.findByEmail(EMAIL)).toBeNull();
   });
 
   it('recusa senha fora da política', async () => {
     const repository = new InMemoryUserRepository();
     const { hasher } = createHasher();
     const service = new UserBootstrapService(
-      createConfig({ AUTH_USERNAME: 'fernando', AUTH_PASSWORD: 'curta' }),
+      createConfig({ AUTH_EMAIL: EMAIL, AUTH_PASSWORD: 'curta' }),
       repository,
       hasher,
     );

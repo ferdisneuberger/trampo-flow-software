@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const username = process.env.E2E_USERNAME ?? '';
+const email = process.env.E2E_EMAIL ?? '';
 const password = process.env.E2E_PASSWORD ?? '';
 const title = `E2E ${Date.now()}`;
 
@@ -18,14 +18,14 @@ test('login não tem violações WCAG A/AA', async ({ page }) => {
 
 test.describe('fluxo crítico do quadro', () => {
   test.skip(
-    username.length === 0 || password.length === 0,
-    'E2E_USERNAME e E2E_PASSWORD não definidos.',
+    email.length === 0 || password.length === 0,
+    'E2E_EMAIL e E2E_PASSWORD não definidos.',
   );
 
   test('login, criação, busca, detalhe e exclusão', async ({ page }) => {
     await page.goto('/login');
 
-    await page.getByLabel('Usuário').fill(username);
+    await page.getByLabel('E-mail').fill(email);
     await page.getByLabel('Senha').fill(password);
     await page.getByRole('button', { name: /entrar/i }).click();
 
@@ -77,7 +77,7 @@ test.describe('fluxo crítico do quadro', () => {
   test('a rota inicial redireciona para o quadro', async ({ page }) => {
     await page.goto('/login');
 
-    await page.getByLabel('Usuário').fill(username);
+    await page.getByLabel('E-mail').fill(email);
     await page.getByLabel('Senha').fill(password);
     await page.getByRole('button', { name: /entrar/i }).click();
 

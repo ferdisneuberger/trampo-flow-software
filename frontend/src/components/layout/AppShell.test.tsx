@@ -15,7 +15,13 @@ const logout = vi.fn().mockResolvedValue(undefined);
 
 function renderShell() {
   mockedUseAuth.mockReturnValue({
-    user: { id: 'user-1', username: 'fernando' },
+    user: {
+      id: 'user-1',
+      email: 'fernando@example.com',
+      emailVerified: true,
+      hasPassword: true,
+      termsAccepted: true,
+    },
     isAuthenticated: true,
     isLoading: false,
     login: vi.fn(),
@@ -47,7 +53,7 @@ describe('AppShell', () => {
     expect(
       screen.getAllByRole('link', { name: 'Candidaturas' }).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByText('fernando')).toBeInTheDocument();
+    expect(screen.getByText('fernando@example.com')).toBeInTheDocument();
     expect(screen.getByText('conteúdo do quadro')).toBeInTheDocument();
   });
 

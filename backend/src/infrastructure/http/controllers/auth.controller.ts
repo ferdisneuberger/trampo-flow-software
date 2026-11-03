@@ -81,7 +81,7 @@ export class AuthController {
 
     try {
       const user = await this.authenticateUser.execute({
-        username: dto.username,
+        email: dto.email,
         password: dto.password,
       });
 
@@ -103,7 +103,10 @@ export class AuthController {
         expiresAt,
         user: {
           id: user.id,
-          username: user.username,
+          email: user.email ?? '',
+          emailVerified: user.isEmailVerified,
+          hasPassword: user.passwordHash !== null,
+          termsAccepted: user.termsAcceptedAt !== null,
         },
       };
     } catch (error) {
@@ -182,7 +185,10 @@ export class AuthController {
 
     return {
       id: user.id,
-      username: user.username,
+      email: user.email ?? '',
+      emailVerified: user.isEmailVerified,
+      hasPassword: user.passwordHash !== null,
+      termsAccepted: user.termsAcceptedAt !== null,
     };
   }
 

@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
-import { User } from '../../../domain/users/entities/user.entity';
-import { USERNAME_MAX_LENGTH } from '../../../domain/users/entities/user.entity';
+import {
+  normalizeEmail,
+  type User,
+} from '../../../domain/users/entities/user.entity';
 import { UserRepository } from '../../../domain/users/repositories/user.repository';
 import { PasswordHasher } from '../../../domain/users/services/password-hasher';
 import { UnauthorizedError } from '../../shared/errors/unauthorized.error';
 
 export type AuthenticateUserInput = {
-  username: string;
+  email: string;
   password: string;
 };
 
@@ -20,14 +22,13 @@ export class AuthenticateUserUseCase {
     private readonly passwordHasher: PasswordHasher,
   ) {}
 
-  async execute({ username, password }: AuthenticateUserInput): Promise<User> {
-    const candidate = username.trim().toLowerCase();
-    const user =
-      candidate.length > 0 && candidate.length <= USERNAME_MAX_LENGTH
-        ? await this.userRepository.findByUsername(candidate)
-        : null;
+  async execute({ email, password }: AuthenticateUserInput): Promise<User> {
+    const candidate = this.tryNormalizeEmail(email);
+    const user = candidate
+      ? await this.userRepository.findByEmail(candidate)
+      : null;
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       await this.verifyDummyPassword(password);
 
       throw new UnauthorizedError();
@@ -48,10 +49,14 @@ export class AuthenticateUserUseCase {
     return user;
   }
 
-  /**
-   * Gasta o mesmo tempo do caminho feliz quando o usuário não existe, para não
-   * revelar por tempo de resposta quais usernames estão cadastrados.
-   */
+  private tryNormalizeEmail(value: string): string | null {
+    try {
+      return normalizeEmail(value);
+    } catch {
+      return null;
+    }
+  }
+
   private async verifyDummyPassword(password: string): Promise<void> {
     this.dummyHash ??= this.passwordHasher.hash(
       randomBytes(32).toString('hex'),
