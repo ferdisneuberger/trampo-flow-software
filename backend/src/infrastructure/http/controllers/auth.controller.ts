@@ -155,6 +155,8 @@ export class AuthController {
 
     await this.registerUser.execute({
       email: dto.email,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
       password: dto.password,
       termsAccepted: dto.termsAccepted,
     });
@@ -334,6 +336,8 @@ export class AuthController {
     return {
       id: user.id,
       email: user.email ?? '',
+      firstName: user.firstName,
+      lastName: user.lastName,
       emailVerified: user.isEmailVerified,
       hasPassword: user.passwordHash !== null,
       termsAccepted: user.termsAcceptedAt !== null,
@@ -364,6 +368,8 @@ export class AuthController {
       user: {
         id: user.id,
         email: user.email ?? '',
+        firstName: user.firstName,
+        lastName: user.lastName,
         emailVerified: user.isEmailVerified,
         hasPassword: user.passwordHash !== null,
         termsAccepted: user.termsAcceptedAt !== null,

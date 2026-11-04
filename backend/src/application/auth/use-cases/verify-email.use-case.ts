@@ -6,6 +6,7 @@ import { DomainError } from '../../../domain/shared/errors/domain.error';
 import { UserRepository } from '../../../domain/users/repositories/user.repository';
 import { buildVerifiedEmail } from '../emails/verified-email';
 import { AuthSettings } from '../services/auth-settings';
+import { sendMailInBackground } from '../services/send-mail-in-background';
 import { normalizeVerificationCode } from '../services/verification-code';
 
 export type VerifyEmailInput = {
@@ -73,18 +74,15 @@ export class VerifyEmailUseCase {
       appBaseUrl: this.settings.appBaseUrl,
     });
 
-    try {
-      await this.mailer.send({
+    sendMailInBackground(
+      this.mailer,
+      {
         to: user.email ?? '',
         ...emailMessage,
-      });
-    } catch (error) {
-      this.logger.error(
-        `Falha ao enviar confirmação de verificação: ${
-          error instanceof Error ? error.message : 'erro desconhecido'
-        }`,
-      );
-    }
+      },
+      this.logger,
+      'Falha ao enviar confirmação de verificação',
+    );
   }
 }
 

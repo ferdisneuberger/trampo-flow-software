@@ -28,6 +28,8 @@ async function setup(
     ? User.restore({
         id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
         email: 'pessoa@exemplo.com',
+        firstName: null,
+        lastName: null,
         emailVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
         verificationSentAt: null,
         termsAcceptedAt: null,
@@ -93,7 +95,7 @@ describe('ResetPasswordUseCase', () => {
 
     await context.useCase.execute({
       token: TOKEN,
-      password: 'senha-nova-segura',
+      password: 'Senha-nova-segura1!',
     });
 
     const stored = await context.users.findById(context.user.id);
@@ -112,7 +114,10 @@ describe('ResetPasswordUseCase', () => {
     const context = await setup({ expiresAt: new Date(Date.now() - 1000) });
 
     await expect(
-      context.useCase.execute({ token: TOKEN, password: 'senha-nova-segura' }),
+      context.useCase.execute({
+        token: TOKEN,
+        password: 'Senha-nova-segura1!',
+      }),
     ).rejects.toMatchObject({ code: 'INVALID_RESET_TOKEN' });
   });
 
@@ -121,7 +126,10 @@ describe('ResetPasswordUseCase', () => {
     await context.tokens.markUsed(context.token.id, new Date());
 
     await expect(
-      context.useCase.execute({ token: TOKEN, password: 'senha-nova-segura' }),
+      context.useCase.execute({
+        token: TOKEN,
+        password: 'Senha-nova-segura1!',
+      }),
     ).rejects.toMatchObject({ code: 'INVALID_RESET_TOKEN' });
   });
 
@@ -129,7 +137,10 @@ describe('ResetPasswordUseCase', () => {
     const context = await setup({ type: 'EMAIL_VERIFICATION' });
 
     await expect(
-      context.useCase.execute({ token: TOKEN, password: 'senha-nova-segura' }),
+      context.useCase.execute({
+        token: TOKEN,
+        password: 'Senha-nova-segura1!',
+      }),
     ).rejects.toMatchObject({ code: 'INVALID_RESET_TOKEN' });
   });
 
@@ -137,7 +148,10 @@ describe('ResetPasswordUseCase', () => {
     const context = await setup({ noPassword: true });
 
     await expect(
-      context.useCase.execute({ token: TOKEN, password: 'senha-nova-segura' }),
+      context.useCase.execute({
+        token: TOKEN,
+        password: 'Senha-nova-segura1!',
+      }),
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
@@ -156,7 +170,10 @@ describe('ResetPasswordUseCase', () => {
     const context = await setup();
 
     await expect(
-      context.useCase.execute({ token: 'xxx', password: 'senha-nova-segura' }),
+      context.useCase.execute({
+        token: 'xxx',
+        password: 'Senha-nova-segura1!',
+      }),
     ).rejects.toMatchObject({ code: 'INVALID_RESET_TOKEN' });
   });
 });

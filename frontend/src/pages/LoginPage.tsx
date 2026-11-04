@@ -13,7 +13,7 @@ import { getErrorMessage } from '../utils/errors';
 import { safeRedirectPath } from '../utils/url';
 
 export function LoginPage() {
-  const { isAuthenticated, isLoading, login } = useAuth();
+  const { user, isAuthenticated, isLoading, login } = useAuth();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,13 +22,20 @@ export function LoginPage() {
 
   const requestedPath = (location.state as { from?: unknown } | null)?.from;
   const redirectTo = safeRedirectPath(requestedPath) ?? '/candidaturas';
+  const needsEmailVerification = user?.emailVerified === false;
 
   if (isLoading) {
     return <AuthLoadingScreen />;
   }
 
   if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    return (
+      <Navigate
+        to={needsEmailVerification ? '/verificar-email' : redirectTo}
+        state={needsEmailVerification ? { from: redirectTo } : undefined}
+        replace
+      />
+    );
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

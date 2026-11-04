@@ -151,7 +151,7 @@ docker compose version
 Na raiz do projeto:
 
 ```bash
-# Obrigatório: defina AUTH_EMAIL, AUTH_PASSWORD e JWT_SECRET
+# Obrigatório: defina JWT_SECRET e AUTH_TOKEN_SECRET
 cp .env.example .env
 
 # Sobe PostgreSQL, Adminer, API, frontend e ingress
@@ -198,16 +198,14 @@ A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do Postgr
 | ------------------------------ | ----------- | --------------------------------------------------------- |
 | `JWT_SECRET`                   | sim         | Segredo HMAC com pelo menos 32 caracteres                 |
 | `JWT_EXPIRES_IN`               | não         | Validade do access token (`5m`, `30m`, `8h`); padrão `5m` |
-| `REFRESH_TOKEN_TTL_DAYS`       | não         | Validade do refresh token; padrão `7`                     |
+| `REFRESH_TOKEN_TTL_HOURS`      | não         | Validade do refresh token em horas; padrão `12`           |
 | `REFRESH_TOKEN_GRACE_SECONDS`  | não         | Tolerância de reuso entre abas; padrão `10`               |
 | `LOGIN_MAX_ATTEMPTS`           | não         | Falhas consecutivas antes do bloqueio; padrão `10`        |
-| `LOGIN_WINDOW_SECONDS`         | não         | Janela e duração do bloqueio; padrão `900`                |
-| `AUTH_EMAIL`                   | não         | E-mail criado no primeiro boot, se a tabela estiver vazia |
-| `AUTH_PASSWORD`                | não         | Senha do primeiro usuário (mínimo de 8 caracteres)        |
+| `LOGIN_WINDOW_SECONDS`         | não         | Janela e duração do bloqueio; padrão `120`                |
 | `AUTH_TOKEN_SECRET`            | sim         | Segredo HMAC dos tokens de verificação (32+ caracteres)   |
 | `APP_BASE_URL`                 | não         | URL pública usada nos links dos e-mails                   |
 | `REGISTRATION_ENABLED`         | não         | Liga/desliga o cadastro público; padrão `false`           |
-| `EMAIL_VERIFICATION_TTL_HOURS` | não         | Validade do código de verificação; padrão `24`            |
+| `EMAIL_VERIFICATION_TTL_HOURS` | não         | Validade do código de verificação; padrão `12`            |
 | `VERIFICATION_RESEND_SECONDS`  | não         | Cooldown de reenvio; padrão `120`                         |
 | `PASSWORD_RESET_TTL_MINUTES`   | não         | Validade do link de recuperação; padrão `15`              |
 | `GOOGLE_CLIENT_ID`             | não         | Client ID público do Google para validar o ID token       |
@@ -222,7 +220,9 @@ A API usa JWT assinado com HS256. Os usuários ficam na tabela `users` do Postgr
 | `MAIL_FROM_NAME`               | não         | Nome exibido no remetente; padrão `Trampo Flow`           |
 | `MAILPIT_PORT`                 | não         | Porta local do Mailpit; padrão `8025`                     |
 
-`AUTH_EMAIL`/`AUTH_PASSWORD` servem apenas para provisionar o **primeiro** usuário. Se a tabela `users` já tem registros, elas são ignoradas — depois do primeiro boot você pode removê-las do `.env` e trocar a senha direto no banco (com um hash scrypt novo). A senha nunca é comparada em texto puro.
+Não existe mais provisionamento de usuário por variáveis de ambiente. Crie contas pelo cadastro público (com `REGISTRATION_ENABLED=true`) ou diretamente no banco, e gerencie a senha pelo fluxo de recuperação. A senha nunca é comparada em texto puro.
+
+A política de senha exige no mínimo 8 caracteres, incluindo ao menos uma letra maiúscula, um número e um caractere especial (símbolo ou pontuação). O formulário de cadastro exibe os requisitos em tempo real enquanto a senha é digitada e valida a confirmação antes do envio.
 
 Gere um segredo forte com `openssl rand -hex 32` e mantenha o `.env` fora do Git. Restrinja o arquivo ao seu usuário com `chmod 600 .env`. O login é feito em `POST /auth/login` e retorna um `accessToken`; envie-o nas demais rotas como `Authorization: Bearer <token>`.
 
@@ -236,12 +236,14 @@ O `sub` do token é o **id** do usuário (UUID). O guard valida a assinatura e c
 
 #### Cadastro e verificação de e-mail
 
-O cadastro público é controlado por `REGISTRATION_ENABLED`. Quando habilitado, `POST /auth/register` cria a conta com `email_verified_at` vazio e envia um código de 6 caracteres no formato `ADK-7YP`. O código é armazenado apenas como HMAC-SHA256, expira em 24 horas e é consumido por `POST /auth/verification/confirm`. Após a confirmação, um segundo e-mail avisa que a conta está verificada.
+O cadastro público é controlado por `REGISTRATION_ENABLED`. Quando habilitado, `POST /auth/register` cria a conta com `email_verified_at` vazio e envia um código de 6 caracteres no formato `ADK-7YP`. O código é armazenado apenas como HMAC-SHA256, expira em 12 horas e é consumido por `POST /auth/verification/confirm`. Após a confirmação, um segundo e-mail avisa que a conta está verificada.
+
+O cadastro exige `firstName` (nome) e `lastName` (último nome), ambos com até 30 caracteres. O board usa o primeiro nome para identificar a pessoa.
 
 ```bash
 curl -X POST http://localhost:5173/api/auth/register \
   -H 'content-type: application/json' \
-  -d '{"email":"pessoa@exemplo.com","password":"senha-super-secreta","termsAccepted":true}'
+  -d '{"email":"pessoa@exemplo.com","firstName":"Fernando","lastName":"Neuberger","password":"Senha-super-secreta1!","termsAccepted":true}'
 
 curl -X POST http://localhost:5173/api/auth/verification/confirm \
   -H 'content-type: application/json' \
@@ -303,7 +305,7 @@ As rotas de `/applications` operam apenas sobre as candidaturas do usuário do t
 
 #### Sessão e refresh token
 
-O login devolve um **access token** de curta duração e grava um **refresh token** opaco em cookie `HttpOnly` (não acessível a JavaScript), `SameSite=Strict` e `Secure` em produção. O refresh token tem validade de 7 dias e é armazenado no banco apenas como hash SHA-256.
+O login devolve um **access token** de curta duração e grava um **refresh token** opaco em cookie `HttpOnly` (não acessível a JavaScript), `SameSite=Strict` e `Secure` em produção. O refresh token tem validade de 12 horas e é armazenado no banco apenas como hash SHA-256.
 
 ```http
 POST /auth/refresh   → novo access token + cookie rotacionado
@@ -709,7 +711,6 @@ backend/test/
 │   ├── prisma.service.spec.ts
 │   ├── scrypt.spec.ts
 │   ├── token.service.spec.ts
-│   ├── user-bootstrap.service.spec.ts
 │   └── user.mapper.spec.ts
 ├── factories/application.factory.ts
 ├── helpers/expect-domain-error.ts
@@ -777,8 +778,7 @@ backend/test/
 │   │   │   │   ├── public.decorator.ts
 │   │   │   │   ├── scrypt-password-hasher.ts
 │   │   │   │   ├── scrypt.ts
-│   │   │   │   ├── token.service.ts
-│   │   │   │   └── user-bootstrap.service.ts
+│   │   │   │   └── token.service.ts
 │   │   │   └── modules/
 │   │   ├── app.module.ts
 │   │   └── main.ts
@@ -878,7 +878,7 @@ Scripts disponíveis em `backend/package.json`:
 | `WEB_PORT`          | `5173`         | Porta local do ingress em `127.0.0.1`                     |
 | `CORS_ORIGINS`      | origens locais | Origens permitidas no CORS da API (separadas por vírgula) |
 
-As variáveis `AUTH_EMAIL`, `AUTH_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `LOGIN_MAX_ATTEMPTS` e `LOGIN_WINDOW_SECONDS` também ficam no `.env` da raiz e são repassadas ao serviço `api`; veja [Autenticação](#autenticação).
+As variáveis `JWT_SECRET`, `JWT_EXPIRES_IN`, `LOGIN_MAX_ATTEMPTS` e `LOGIN_WINDOW_SECONDS` também ficam no `.env` da raiz e são repassadas ao serviço `api`; veja [Autenticação](#autenticação).
 
 ### Backend (`backend/.env`)
 

@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/auth-context';
 import { AuthLoadingScreen } from './AuthLoadingScreen';
 
 export function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -14,6 +14,18 @@ export function ProtectedRoute() {
     return (
       <Navigate
         to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}${location.hash}`,
+        }}
+      />
+    );
+  }
+
+  if (user?.emailVerified === false) {
+    return (
+      <Navigate
+        to="/verificar-email"
         replace
         state={{
           from: `${location.pathname}${location.search}${location.hash}`,

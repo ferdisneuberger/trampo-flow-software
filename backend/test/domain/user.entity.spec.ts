@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   normalizeEmail,
+  normalizePersonName,
   normalizeUsername,
   User,
 } from '../../src/domain/users/entities/user.entity';
@@ -39,6 +40,36 @@ describe('normalizeEmail', () => {
   it('recusa formato inválido', () => {
     expectDomainError(() => normalizeEmail('nao-e-email'), 'EMAIL_INVALID');
     expectDomainError(() => normalizeEmail('a@b'), 'EMAIL_INVALID');
+  });
+});
+
+describe('normalizePersonName', () => {
+  it('remove espaços extras', () => {
+    expect(normalizePersonName('  Fernando   Silva  ', 'firstName')).toBe(
+      'Fernando Silva',
+    );
+  });
+
+  it('recusa nome vazio', () => {
+    expectDomainError(
+      () => normalizePersonName('   ', 'firstName'),
+      'FIRST_NAME_REQUIRED',
+    );
+    expectDomainError(
+      () => normalizePersonName('   ', 'lastName'),
+      'LAST_NAME_REQUIRED',
+    );
+  });
+
+  it('recusa nome acima de 30 caracteres', () => {
+    expectDomainError(
+      () => normalizePersonName('a'.repeat(31), 'firstName'),
+      'FIRST_NAME_TOO_LONG',
+    );
+    expectDomainError(
+      () => normalizePersonName('a'.repeat(31), 'lastName'),
+      'LAST_NAME_TOO_LONG',
+    );
   });
 });
 
@@ -85,6 +116,8 @@ describe('User', () => {
 
     expect(user.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(user.email).toBe('pessoa@exemplo.com');
+    expect(user.firstName).toBeNull();
+    expect(user.lastName).toBeNull();
     expect(user.username).toBeNull();
     expect(user.emailVerifiedAt).toBeNull();
     expect(user.isEmailVerified).toBe(false);
@@ -99,12 +132,16 @@ describe('User', () => {
     const verifiedAt = new Date('2026-01-01T00:00:00.000Z');
     const user = User.create({
       email: 'pessoa@exemplo.com',
+      firstName: '  Fernando  ',
+      lastName: '  Neuberger  ',
       passwordHash: PASSWORD_HASH,
       emailVerifiedAt: verifiedAt,
       termsAcceptedAt: verifiedAt,
       termsVersion: '2026-11',
     });
 
+    expect(user.firstName).toBe('Fernando');
+    expect(user.lastName).toBe('Neuberger');
     expect(user.isEmailVerified).toBe(true);
     expect(user.emailVerifiedAt).toEqual(verifiedAt);
     expect(user.termsAcceptedAt).toEqual(verifiedAt);
@@ -251,6 +288,8 @@ describe('User', () => {
     const user = User.restore({
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       email: 'pessoa@exemplo.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       emailVerifiedAt: createdAt,
       verificationSentAt: null,
       termsAcceptedAt: createdAt,
@@ -265,6 +304,8 @@ describe('User', () => {
 
     expect(user.id).toBe('6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10');
     expect(user.email).toBe('pessoa@exemplo.com');
+    expect(user.firstName).toBe('Fernando');
+    expect(user.lastName).toBe('Neuberger');
     expect(user.username).toBe('fernando');
     expect(user.lastLoginAt).toEqual(createdAt);
     expect(user.passwordHash).toBe(PASSWORD_HASH);
@@ -275,6 +316,8 @@ describe('User', () => {
     const user = User.restore({
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       email: 'pessoa@exemplo.com',
+      firstName: null,
+      lastName: null,
       emailVerifiedAt: createdAt,
       verificationSentAt: null,
       termsAcceptedAt: null,

@@ -113,5 +113,9 @@ describe('LoginRateLimiter', () => {
     }
 
     expect(() => limiter.assertAllowed()).toThrow(HttpException);
+
+    vi.advanceTimersByTime(120_001);
+
+    expect(() => limiter.assertAllowed()).not.toThrow();
   });
 });

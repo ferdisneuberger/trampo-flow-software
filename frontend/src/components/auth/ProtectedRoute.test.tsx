@@ -18,6 +18,7 @@ function renderRoute() {
           <Route path="/candidaturas" element={<p>quadro</p>} />
         </Route>
         <Route path="/login" element={<p>login</p>} />
+        <Route path="/verificar-email" element={<p>verificacao</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -67,6 +68,8 @@ describe('ProtectedRoute', () => {
       user: {
         id: 'user-1',
         email: 'fernando@example.com',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
@@ -83,5 +86,30 @@ describe('ProtectedRoute', () => {
     renderRoute();
 
     expect(screen.getByText('quadro')).toBeInTheDocument();
+  });
+
+  it('redireciona para verificação quando o e-mail não está confirmado', () => {
+    mockedUseAuth.mockReturnValue({
+      user: {
+        id: 'user-1',
+        email: 'fernando@example.com',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
+        emailVerified: false,
+        hasPassword: true,
+        termsAccepted: true,
+        verificationResendAvailableAt: null,
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      login: vi.fn(),
+      loginWithGoogle: vi.fn(),
+      logout: vi.fn(),
+      refreshProfile: vi.fn(),
+    });
+
+    renderRoute();
+
+    expect(screen.getByText('verificacao')).toBeInTheDocument();
   });
 });

@@ -33,11 +33,11 @@ describe('ResetPasswordPage', () => {
 
     await userEvent.type(
       screen.getByLabelText('Nova senha'),
-      'senha-nova-segura',
+      'Senha-nova-segura1!',
     );
     await userEvent.type(
       screen.getByLabelText('Confirmar nova senha'),
-      'senha-nova-segura',
+      'Senha-nova-segura1!',
     );
     await userEvent.click(
       screen.getByRole('button', { name: /Redefinir senha/ }),
@@ -45,10 +45,53 @@ describe('ResetPasswordPage', () => {
 
     expect(resetPassword).toHaveBeenCalledWith({
       token: 'reset-token',
-      password: 'senha-nova-segura',
+      password: 'Senha-nova-segura1!',
     });
     expect(await screen.findByText('Senha redefinida')).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe(''));
+  });
+
+  it('permite revelar e ocultar a nova senha', async () => {
+    renderPage();
+
+    const passwordInput = screen.getByLabelText('Nova senha');
+
+    expect(passwordInput).toHaveAttribute('type', 'password');
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'Mostrar senha' })[0],
+    );
+
+    expect(passwordInput).toHaveAttribute('type', 'text');
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Ocultar senha' }),
+    );
+
+    expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  it('valida a confirmação de senha em tempo real', async () => {
+    renderPage();
+
+    const passwordInput = screen.getByLabelText('Nova senha');
+    const confirmPasswordInput = screen.getByLabelText('Confirmar nova senha');
+
+    await userEvent.type(passwordInput, 'Senha-nova-segura1!');
+    await userEvent.type(confirmPasswordInput, 'Senha');
+
+    expect(screen.getByText('As senhas não coincidem.')).toBeInTheDocument();
+    expect(confirmPasswordInput).toHaveAttribute('aria-invalid', 'true');
+    expect(confirmPasswordInput).toHaveClass('border-rose-300');
+
+    await userEvent.type(confirmPasswordInput, '-nova-segura1!');
+
+    expect(
+      screen.queryByText('As senhas não coincidem.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('As senhas coincidem.')).toBeInTheDocument();
+    expect(confirmPasswordInput).not.toHaveAttribute('aria-invalid');
+    expect(confirmPasswordInput).toHaveClass('border-emerald-300');
   });
 
   it('valida senha curta e confirmação', async () => {
@@ -87,11 +130,11 @@ describe('ResetPasswordPage', () => {
 
     await userEvent.type(
       screen.getByLabelText('Nova senha'),
-      'senha-nova-segura',
+      'Senha-nova-segura1!',
     );
     await userEvent.type(
       screen.getByLabelText('Confirmar nova senha'),
-      'senha-nova-segura',
+      'Senha-nova-segura1!',
     );
     await userEvent.click(
       screen.getByRole('button', { name: /Redefinir senha/ }),

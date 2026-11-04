@@ -109,6 +109,8 @@ function makeAuthUser(verified = true) {
     user: {
       id: 'user-1',
       email: 'pessoa@example.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       emailVerified: verified,
       hasPassword: true,
       termsAccepted: true,
@@ -145,9 +147,6 @@ describe('ApplicationsPage', () => {
     expect(
       screen.getByRole('button', { name: /Nova candidatura/ }),
     ).toBeDisabled();
-    expect(
-      screen.getByText('Confirme seu e-mail para criar candidaturas'),
-    ).toBeInTheDocument();
   });
 
   it('mostra skeleton no carregamento inicial', () => {

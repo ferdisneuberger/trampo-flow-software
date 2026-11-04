@@ -4,6 +4,7 @@ import { DomainError } from '../../shared/errors/domain.error';
 export const EMAIL_MAX_LENGTH = 254;
 export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 120;
+export const PERSON_NAME_MAX_LENGTH = 30;
 export const PASSWORD_HASH_MAX_LENGTH = 255;
 export const TERMS_VERSION_MAX_LENGTH = 20;
 
@@ -13,6 +14,8 @@ const PASSWORD_HASH_PREFIX = 'scrypt$';
 
 type UserProps = {
   email: string | null;
+  firstName: string | null;
+  lastName: string | null;
   emailVerifiedAt: Date | null;
   verificationSentAt: Date | null;
   termsAcceptedAt: Date | null;
@@ -27,6 +30,8 @@ type UserProps = {
 
 export type CreateUserProps = {
   email: string;
+  firstName?: string | null;
+  lastName?: string | null;
   passwordHash?: string | null;
   googleId?: string | null;
   emailVerifiedAt?: Date | null;
@@ -37,6 +42,30 @@ export type CreateUserProps = {
 export type RestoreUserProps = UserProps & {
   id: string;
 };
+
+export type PersonNameField = 'firstName' | 'lastName';
+
+export function normalizePersonName(
+  value: string,
+  field: PersonNameField,
+): string {
+  const name = value.trim().replace(/\s+/g, ' ');
+  const label = field === 'firstName' ? 'O nome' : 'O último nome';
+  const code = field === 'firstName' ? 'FIRST_NAME' : 'LAST_NAME';
+
+  if (name.length === 0) {
+    throw new DomainError(`${label} é obrigatório.`, `${code}_REQUIRED`);
+  }
+
+  if (name.length > PERSON_NAME_MAX_LENGTH) {
+    throw new DomainError(
+      `${label} deve ter no máximo ${PERSON_NAME_MAX_LENGTH} caracteres.`,
+      `${code}_TOO_LONG`,
+    );
+  }
+
+  return name;
+}
 
 export function normalizeEmail(value: string): string {
   const email = value.trim().toLowerCase();
@@ -129,6 +158,14 @@ export class User {
 
     return new User(randomUUID(), {
       email: normalizeEmail(input.email),
+      firstName:
+        input.firstName !== null && input.firstName !== undefined
+          ? normalizePersonName(input.firstName, 'firstName')
+          : null,
+      lastName:
+        input.lastName !== null && input.lastName !== undefined
+          ? normalizePersonName(input.lastName, 'lastName')
+          : null,
       emailVerifiedAt: input.emailVerifiedAt
         ? new Date(input.emailVerifiedAt)
         : null,
@@ -152,6 +189,14 @@ export class User {
 
     return new User(input.id, {
       email: input.email ? normalizeEmail(input.email) : null,
+      firstName:
+        input.firstName !== null
+          ? normalizePersonName(input.firstName, 'firstName')
+          : null,
+      lastName:
+        input.lastName !== null
+          ? normalizePersonName(input.lastName, 'lastName')
+          : null,
       emailVerifiedAt: input.emailVerifiedAt
         ? new Date(input.emailVerifiedAt)
         : null,
@@ -177,6 +222,14 @@ export class User {
 
   get email(): string | null {
     return this.props.email;
+  }
+
+  get firstName(): string | null {
+    return this.props.firstName;
+  }
+
+  get lastName(): string | null {
+    return this.props.lastName;
   }
 
   get emailVerifiedAt(): Date | null {

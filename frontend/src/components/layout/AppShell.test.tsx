@@ -18,6 +18,8 @@ function renderShell() {
     user: {
       id: 'user-1',
       email: 'fernando@example.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
@@ -56,6 +58,7 @@ describe('AppShell', () => {
     expect(
       screen.getAllByRole('link', { name: 'Candidaturas' }).length,
     ).toBeGreaterThan(0);
+    expect(screen.getByText('Fernando')).toBeInTheDocument();
     expect(screen.getByText('fernando@example.com')).toBeInTheDocument();
     expect(screen.getByText('conteúdo do quadro')).toBeInTheDocument();
   });

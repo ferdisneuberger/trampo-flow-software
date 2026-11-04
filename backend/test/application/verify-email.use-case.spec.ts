@@ -100,6 +100,14 @@ describe('VerifyEmailUseCase', () => {
     expect(sendMail).toHaveBeenCalledOnce();
   });
 
+  it('não aguarda o envio do e-mail de confirmação', async () => {
+    const { useCase, sendMail } = await setup();
+
+    sendMail.mockReturnValueOnce(new Promise<void>(() => undefined));
+
+    await expect(useCase.execute({ token: CODE })).resolves.toBeUndefined();
+  });
+
   it('recusa código inválido', async () => {
     const { useCase } = await setup();
 

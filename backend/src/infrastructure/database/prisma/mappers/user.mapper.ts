@@ -6,6 +6,8 @@ export class UserMapper {
     return User.restore({
       id: record.id,
       email: record.email,
+      firstName: record.firstName,
+      lastName: record.lastName,
       emailVerifiedAt: record.emailVerifiedAt,
       verificationSentAt: record.verificationSentAt,
       termsAcceptedAt: record.termsAcceptedAt,
@@ -23,6 +25,8 @@ export class UserMapper {
     return {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       emailVerifiedAt: user.emailVerifiedAt,
       verificationSentAt: user.verificationSentAt,
       termsAcceptedAt: user.termsAcceptedAt,
@@ -39,6 +43,8 @@ export class UserMapper {
   static toUpdateData(user: User): Prisma.UserUncheckedUpdateInput {
     return {
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       emailVerifiedAt: user.emailVerifiedAt,
       verificationSentAt: user.verificationSentAt,
       termsAcceptedAt: user.termsAcceptedAt,

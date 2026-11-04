@@ -10,6 +10,8 @@ function makeRecord(overrides: Partial<PrismaUser> = {}): PrismaUser {
   return {
     id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
     email: EMAIL,
+    firstName: 'Fernando',
+    lastName: 'Neuberger',
     emailVerifiedAt: null,
     verificationSentAt: null,
     termsAcceptedAt: null,
@@ -30,6 +32,8 @@ describe('UserMapper', () => {
 
     expect(user.id).toBe('6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10');
     expect(user.email).toBe(EMAIL);
+    expect(user.firstName).toBe('Fernando');
+    expect(user.lastName).toBe('Neuberger');
     expect(user.username).toBeNull();
     expect(user.lastLoginAt).toBeNull();
     expect(user.createdAt).toEqual(new Date('2026-01-01T00:00:00.000Z'));

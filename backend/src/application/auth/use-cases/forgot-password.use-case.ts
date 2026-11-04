@@ -8,6 +8,7 @@ import { normalizeEmail } from '../../../domain/users/entities/user.entity';
 import { UserRepository } from '../../../domain/users/repositories/user.repository';
 import { buildPasswordResetEmail } from '../emails/password-reset-email';
 import { AuthSettings } from '../services/auth-settings';
+import { sendMailInBackground } from '../services/send-mail-in-background';
 
 export type ForgotPasswordInput = {
   email: string;
@@ -67,14 +68,11 @@ export class ForgotPasswordUseCase {
       ),
     });
 
-    try {
-      await this.mailer.send({ to: email, ...message });
-    } catch (error) {
-      this.logger.error(
-        `Falha ao enviar recuperação de senha: ${
-          error instanceof Error ? error.message : 'erro desconhecido'
-        }`,
-      );
-    }
+    sendMailInBackground(
+      this.mailer,
+      { to: email, ...message },
+      this.logger,
+      'Falha ao enviar recuperação de senha',
+    );
   }
 }
