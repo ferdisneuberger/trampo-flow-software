@@ -65,9 +65,12 @@ export function AppShell() {
         </nav>
 
         <div className="mt-6 border-t border-line pt-4">
-          <p className="truncate px-3 text-xs font-medium text-ink-700">
-            {user?.email}
+          <p className="truncate px-3 text-sm font-semibold text-ink-900">
+            {user?.firstName ?? user?.email}
           </p>
+          {user?.firstName && (
+            <p className="truncate px-3 text-xs text-ink-500">{user.email}</p>
+          )}
           <button
             type="button"
             onClick={() => void logout()}

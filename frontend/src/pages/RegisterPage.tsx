@@ -2,21 +2,40 @@ import { CheckCircle2, UserPlus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthPageLayout } from '../components/auth/AuthPageLayout';
+import { PasswordRequirements } from '../components/auth/PasswordRequirements';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { ButtonLink } from '../components/ui/ButtonLink';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import { authService } from '../services/api/auth.service';
 import { getErrorMessage } from '../utils/errors';
+import {
+  getPasswordError,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from '../utils/password';
 
 type FormErrors = Partial<
-  Record<'email' | 'password' | 'confirmPassword' | 'terms' | 'form', string>
+  Record<
+    | 'firstName'
+    | 'lastName'
+    | 'email'
+    | 'password'
+    | 'confirmPassword'
+    | 'terms'
+    | 'form',
+    string
+  >
 >;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAME_MAX_LENGTH = 30;
 
 export function RegisterPage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,16 +43,32 @@ export function RegisterPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const passwordsMatch =
+    confirmPassword.length > 0 && confirmPassword === password;
+  const confirmPasswordError =
+    confirmPassword.length > 0 && confirmPassword !== password
+      ? 'As senhas não coincidem.'
+      : errors.confirmPassword;
 
   function validate(): FormErrors {
     const next: FormErrors = {};
+
+    if (firstName.trim().length === 0) {
+      next.firstName = 'Informe seu nome.';
+    }
+
+    if (lastName.trim().length === 0) {
+      next.lastName = 'Informe seu último nome.';
+    }
 
     if (!EMAIL_PATTERN.test(email.trim())) {
       next.email = 'Informe um e-mail válido.';
     }
 
-    if (password.length < 8) {
-      next.password = 'A senha deve ter pelo menos 8 caracteres.';
+    const passwordError = getPasswordError(password);
+
+    if (passwordError) {
+      next.password = passwordError;
     }
 
     if (confirmPassword !== password) {
@@ -64,6 +99,8 @@ export function RegisterPage() {
     try {
       await authService.register({
         email: email.trim().toLowerCase(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         password,
         termsAccepted,
       });
@@ -125,6 +162,44 @@ export function RegisterPage() {
           onSubmit={(event) => void handleSubmit(event)}
           noValidate
         >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Nome"
+              autoComplete="given-name"
+              autoCapitalize="words"
+              maxLength={NAME_MAX_LENGTH}
+              required
+              value={firstName}
+              error={errors.firstName}
+              onChange={(event) => {
+                setFirstName(event.target.value);
+                setErrors((current) => ({
+                  ...current,
+                  firstName: undefined,
+                  form: undefined,
+                }));
+              }}
+            />
+
+            <Input
+              label="Último nome"
+              autoComplete="family-name"
+              autoCapitalize="words"
+              maxLength={NAME_MAX_LENGTH}
+              required
+              value={lastName}
+              error={errors.lastName}
+              onChange={(event) => {
+                setLastName(event.target.value);
+                setErrors((current) => ({
+                  ...current,
+                  lastName: undefined,
+                  form: undefined,
+                }));
+              }}
+            />
+          </div>
+
           <Input
             label="E-mail"
             type="email"
@@ -145,34 +220,42 @@ export function RegisterPage() {
             }}
           />
 
-          <Input
-            label="Senha"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            maxLength={256}
-            required
-            hint="Mínimo de 12 caracteres."
-            value={password}
-            error={errors.password}
-            onChange={(event) => {
-              setPassword(event.target.value);
-              setErrors((current) => ({
-                ...current,
-                password: undefined,
-                form: undefined,
-              }));
-            }}
-          />
+          <div>
+            <PasswordInput
+              label="Senha"
+              autoComplete="new-password"
+              minLength={PASSWORD_MIN_LENGTH}
+              maxLength={PASSWORD_MAX_LENGTH}
+              required
+              aria-describedby="register-password-requirements"
+              value={password}
+              error={errors.password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setErrors((current) => ({
+                  ...current,
+                  password: undefined,
+                  confirmPassword: undefined,
+                  form: undefined,
+                }));
+              }}
+            />
+            <PasswordRequirements
+              id="register-password-requirements"
+              password={password}
+              className="mt-2"
+            />
+          </div>
 
-          <Input
+          <PasswordInput
             label="Confirmar senha"
-            type="password"
             autoComplete="new-password"
-            maxLength={256}
+            maxLength={PASSWORD_MAX_LENGTH}
             required
             value={confirmPassword}
-            error={errors.confirmPassword}
+            error={confirmPasswordError}
+            valid={passwordsMatch}
+            validMessage="As senhas coincidem."
             onChange={(event) => {
               setConfirmPassword(event.target.value);
               setErrors((current) => ({

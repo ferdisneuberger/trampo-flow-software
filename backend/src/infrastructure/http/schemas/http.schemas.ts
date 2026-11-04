@@ -8,6 +8,12 @@ export class AuthenticatedUserResponse {
   @ApiProperty({ example: 'pessoa@exemplo.com' })
   email!: string;
 
+  @ApiProperty({ example: 'Fernando', nullable: true, type: String })
+  firstName!: string | null;
+
+  @ApiProperty({ example: 'Neuberger', nullable: true, type: String })
+  lastName!: string | null;
+
   @ApiProperty({ example: true })
   emailVerified!: boolean;
 

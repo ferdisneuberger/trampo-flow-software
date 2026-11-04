@@ -21,7 +21,7 @@ export class LoginRateLimiter {
     this.windowMs =
       readPositiveInt(
         configService.get<string>('LOGIN_WINDOW_SECONDS'),
-        15 * 60,
+        2 * 60,
       ) * 1000;
   }
 

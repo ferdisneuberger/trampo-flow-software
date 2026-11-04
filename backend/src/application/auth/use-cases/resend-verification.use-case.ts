@@ -8,6 +8,7 @@ import { UserRepository } from '../../../domain/users/repositories/user.reposito
 import { UnauthorizedError } from '../../shared/errors/unauthorized.error';
 import { buildVerificationEmail } from '../emails/verification-email';
 import { AuthSettings } from '../services/auth-settings';
+import { sendMailInBackground } from '../services/send-mail-in-background';
 
 export type ResendVerificationResult = {
   sent: boolean;
@@ -85,15 +86,12 @@ export class ResendVerificationUseCase {
       ),
     });
 
-    try {
-      await this.mailer.send({ to: user.email ?? '', ...message });
-    } catch (error) {
-      this.logger.error(
-        `Falha ao reenviar verificação: ${
-          error instanceof Error ? error.message : 'erro desconhecido'
-        }`,
-      );
-    }
+    sendMailInBackground(
+      this.mailer,
+      { to: user.email ?? '', ...message },
+      this.logger,
+      'Falha ao reenviar verificação',
+    );
 
     return {
       sent: true,

@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 
 const email = process.env.E2E_EMAIL ?? '';
 const password = process.env.E2E_PASSWORD ?? '';
+const mailpitUrl = process.env.E2E_MAILPIT_URL ?? '';
 const title = `E2E ${Date.now()}`;
 
 test('login não tem violações WCAG A/AA', async ({ page }) => {
@@ -18,9 +19,33 @@ test('login não tem violações WCAG A/AA', async ({ page }) => {
 
 test.describe('fluxo crítico do quadro', () => {
   test.skip(
-    email.length === 0 || password.length === 0,
-    'E2E_EMAIL e E2E_PASSWORD não definidos.',
+    email.length === 0 || password.length === 0 || mailpitUrl.length === 0,
+    'E2E_EMAIL, E2E_PASSWORD e E2E_MAILPIT_URL não definidos.',
   );
+
+  test.beforeAll(async ({ request }) => {
+    const registration = await request.post('/api/auth/register', {
+      data: {
+        email,
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
+        password,
+        termsAccepted: true,
+      },
+    });
+
+    if (registration.status() !== 201) {
+      expect(registration.status()).toBe(409);
+      return;
+    }
+
+    const code = await waitForVerificationCode(email);
+    const confirmation = await request.post('/api/auth/verification/confirm', {
+      data: { token: code },
+    });
+
+    expect(confirmation.status()).toBe(204);
+  });
 
   test('login, criação, busca, detalhe e exclusão', async ({ page }) => {
     await page.goto('/login');
@@ -88,8 +113,6 @@ test.describe('fluxo crítico do quadro', () => {
   });
 });
 
-const mailpitUrl = process.env.E2E_MAILPIT_URL ?? '';
-
 async function waitForVerificationCode(targetEmail: string): Promise<string> {
   const deadline = Date.now() + 20_000;
 
@@ -130,9 +153,11 @@ test('cadastro público com verificação de e-mail', async ({ page }) => {
   test.skip(mailpitUrl.length === 0, 'E2E_MAILPIT_URL não definido.');
 
   const registrationEmail = `e2e-${Date.now()}@example.com`;
-  const registrationPassword = 'e2e-register-secret-123';
+  const registrationPassword = 'E2e-register-secret-123';
 
   await page.goto('/cadastro');
+  await page.getByLabel('Nome', { exact: true }).fill('Fernando');
+  await page.getByLabel('Último nome').fill('Neuberger');
   await page.getByLabel('E-mail').fill(registrationEmail);
   await page.getByLabel('Senha', { exact: true }).fill(registrationPassword);
   await page.getByLabel('Confirmar senha').fill(registrationPassword);
@@ -146,13 +171,8 @@ test('cadastro público com verificação de e-mail', async ({ page }) => {
   await page.getByLabel('Senha').fill(registrationPassword);
   await page.getByRole('button', { name: /entrar/i }).click();
 
-  await expect(page).toHaveURL(/\/candidaturas$/);
-  await expect(
-    page.getByText('Confirme seu e-mail para criar candidaturas'),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: /Nova candidatura/ }),
-  ).toBeDisabled();
+  await expect(page).toHaveURL(/\/verificar-email$/);
+  await expect(page.getByText(registrationEmail)).toBeVisible();
   await expect(
     page.getByRole('button', { name: /Reenviar em/ }),
   ).toBeDisabled();
@@ -167,9 +187,6 @@ test('cadastro público com verificação de e-mail', async ({ page }) => {
   await page.getByRole('link', { name: 'Ir para o quadro' }).click();
 
   await expect(page).toHaveURL(/\/candidaturas$/);
-  await expect(
-    page.getByText('Confirme seu e-mail para criar candidaturas'),
-  ).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: /Nova candidatura/ }),
   ).toBeEnabled();
@@ -215,12 +232,14 @@ test('recuperação de senha com link por e-mail', async ({ page, request }) => 
   test.skip(mailpitUrl.length === 0, 'E2E_MAILPIT_URL não definido.');
 
   const resetEmail = `e2e-reset-${Date.now()}@example.com`;
-  const initialPassword = 'e2e-reset-secret-123';
-  const newPassword = 'e2e-reset-secret-456';
+  const initialPassword = 'E2e-reset-secret-123';
+  const newPassword = 'E2e-reset-secret-456';
 
   const register = await request.post('/api/auth/register', {
     data: {
       email: resetEmail,
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       password: initialPassword,
       termsAccepted: true,
     },

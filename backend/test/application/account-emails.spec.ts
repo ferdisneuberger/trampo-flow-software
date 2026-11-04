@@ -7,14 +7,14 @@ describe('verification email', () => {
   const email = buildVerificationEmail({
     code: 'ADK-7YP',
     appBaseUrl: 'https://app.exemplo.com/',
-    expiresInHours: 24,
+    expiresInHours: 12,
   });
 
   it('destaca o código no texto e no HTML', () => {
     expect(email.subject).toContain('verificação');
     expect(email.text).toContain('ADK-7YP');
     expect(email.html).toContain('ADK-7YP');
-    expect(email.text).toContain('24 horas');
+    expect(email.text).toContain('12 horas');
   });
 
   it('inclui o link com o código no fragmento', () => {

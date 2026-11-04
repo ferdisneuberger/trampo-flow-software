@@ -29,6 +29,8 @@ function makeUser(id: string, verified: boolean): User {
   return User.restore({
     id,
     email: `${id}@example.com`,
+    firstName: null,
+    lastName: null,
     emailVerifiedAt: verified ? CREATED_AT : null,
     verificationSentAt: null,
     termsAcceptedAt: null,

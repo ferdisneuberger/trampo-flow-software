@@ -84,6 +84,8 @@ describe('AuthProvider', () => {
     me.mockResolvedValue({
       id: 'user-1',
       email: 'fernando@example.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
@@ -135,6 +137,8 @@ describe('AuthProvider', () => {
     me.mockResolvedValue({
       id: 'user-1',
       email: 'fernando@example.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,

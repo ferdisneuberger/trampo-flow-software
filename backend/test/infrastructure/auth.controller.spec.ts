@@ -33,6 +33,8 @@ function makeUser(): User {
   return User.restore({
     id: USER_ID,
     email: EMAIL,
+    firstName: 'Fernando',
+    lastName: 'Neuberger',
     emailVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
     verificationSentAt: null,
     termsAcceptedAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -172,6 +174,8 @@ describe('AuthController', () => {
       user: {
         id: USER_ID,
         email: EMAIL,
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
@@ -224,6 +228,8 @@ describe('AuthController', () => {
     const result = await controller.register(
       {
         email: 'pessoa@exemplo.com',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         password: 'senha-super-secreta',
         termsAccepted: true,
       },
@@ -237,6 +243,8 @@ describe('AuthController', () => {
     );
     expect(registerUser).toHaveBeenCalledWith({
       email: 'pessoa@exemplo.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       password: 'senha-super-secreta',
       termsAccepted: true,
     });
@@ -446,6 +454,8 @@ describe('AuthController', () => {
     await expect(controller.me(USER_ID)).resolves.toEqual({
       id: USER_ID,
       email: EMAIL,
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,

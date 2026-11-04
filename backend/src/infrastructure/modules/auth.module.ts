@@ -35,7 +35,6 @@ import { LoginRateLimiter } from '../auth/login-rate-limiter.service';
 import { RateLimiterService } from '../auth/rate-limiter.service';
 import { ScryptPasswordHasher } from '../auth/scrypt-password-hasher';
 import { TokenService } from '../auth/token.service';
-import { UserBootstrapService } from '../auth/user-bootstrap.service';
 import { PrismaAuthTokenRepository } from '../database/prisma/repositories/prisma-auth-token.repository';
 import { PrismaRefreshTokenRepository } from '../database/prisma/repositories/prisma-refresh-token.repository';
 import { PrismaUserRepository } from '../database/prisma/repositories/prisma-user.repository';
@@ -43,7 +42,7 @@ import { AdminUsersController } from '../http/controllers/admin-users.controller
 import { AuthController } from '../http/controllers/auth.controller';
 import { SmtpMailer } from '../mail/smtp-mailer';
 
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const HOUR_IN_MS = 60 * 60 * 1000;
 
 function readPositiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
@@ -70,7 +69,6 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     RateLimiterService,
     ScryptPasswordHasher,
     TokenService,
-    UserBootstrapService,
     CryptoRefreshTokenGenerator,
     CryptoVerificationCodeGenerator,
     CryptoPasswordResetTokenGenerator,
@@ -113,7 +111,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
           configService.get<string>('REGISTRATION_ENABLED') === 'true',
           readPositiveInt(
             configService.get<string>('EMAIL_VERIFICATION_TTL_HOURS'),
-            24,
+            12,
           ) *
             60 *
             60 *
@@ -153,9 +151,9 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
       useFactory: (configService: ConfigService) =>
         new RefreshTokenPolicy(
           readPositiveInt(
-            configService.get<string>('REFRESH_TOKEN_TTL_DAYS'),
-            7,
-          ) * DAY_IN_MS,
+            configService.get<string>('REFRESH_TOKEN_TTL_HOURS'),
+            12,
+          ) * HOUR_IN_MS,
           readPositiveInt(
             configService.get<string>('REFRESH_TOKEN_GRACE_SECONDS'),
             10,

@@ -1,6 +1,8 @@
 export type AuthUser = {
   id: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
   emailVerified: boolean;
   hasPassword: boolean;
   termsAccepted: boolean;
@@ -14,6 +16,8 @@ export type LoginInput = {
 
 export type RegisterInput = {
   email: string;
+  firstName: string;
+  lastName: string;
   password: string;
   termsAccepted: boolean;
 };

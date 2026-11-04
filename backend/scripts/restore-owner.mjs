@@ -31,6 +31,8 @@ function toUserData(user) {
   return {
     id: user.id,
     email: user.email,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
     emailVerifiedAt: toDate(user.emailVerifiedAt),
     verificationSentAt: toDate(user.verificationSentAt),
     termsAcceptedAt: toDate(user.termsAcceptedAt),

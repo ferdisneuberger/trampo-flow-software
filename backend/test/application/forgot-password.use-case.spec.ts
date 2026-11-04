@@ -31,6 +31,8 @@ async function setup(options: { noPassword?: boolean } = {}) {
     ? User.restore({
         id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
         email: 'pessoa@exemplo.com',
+        firstName: null,
+        lastName: null,
         emailVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
         verificationSentAt: null,
         termsAcceptedAt: null,

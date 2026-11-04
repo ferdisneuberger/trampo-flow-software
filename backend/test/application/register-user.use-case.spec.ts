@@ -78,13 +78,17 @@ describe('RegisterUserUseCase', () => {
 
     await useCase.execute({
       email: '  PESSOA@EXEMPLO.COM  ',
-      password: 'senha-super-secreta',
+      firstName: '  Fernando  ',
+      lastName: '  Neuberger  ',
+      password: 'Senha-super-secreta1!',
       termsAccepted: true,
     });
 
     const user = await users.findByEmail(EMAIL);
 
     expect(user).not.toBeNull();
+    expect(user?.firstName).toBe('Fernando');
+    expect(user?.lastName).toBe('Neuberger');
     expect(user?.isEmailVerified).toBe(false);
     expect(user?.termsVersion).toBe('2026-11');
     expect(user?.termsAcceptedAt).toBeInstanceOf(Date);
@@ -111,7 +115,9 @@ describe('RegisterUserUseCase', () => {
     await expect(
       useCase.execute({
         email: EMAIL,
-        password: 'senha-super-secreta',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
+        password: 'Senha-super-secreta1!',
         termsAccepted: true,
       }),
     ).rejects.toBeInstanceOf(ConflictError);
@@ -123,7 +129,9 @@ describe('RegisterUserUseCase', () => {
     await expect(
       useCase.execute({
         email: EMAIL,
-        password: 'senha-super-secreta',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
+        password: 'Senha-super-secreta1!',
         termsAccepted: true,
       }),
     ).rejects.toBeInstanceOf(ForbiddenError);
@@ -135,7 +143,9 @@ describe('RegisterUserUseCase', () => {
     await expect(
       useCase.execute({
         email: EMAIL,
-        password: 'senha-super-secreta',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
+        password: 'Senha-super-secreta1!',
         termsAccepted: false,
       }),
     ).rejects.toMatchObject({
@@ -149,6 +159,8 @@ describe('RegisterUserUseCase', () => {
     await expect(
       useCase.execute({
         email: EMAIL,
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         password: 'curta',
         termsAccepted: true,
       }),
@@ -165,7 +177,9 @@ describe('RegisterUserUseCase', () => {
 
     await useCase.execute({
       email: EMAIL,
-      password: 'senha-super-secreta',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
+      password: 'Senha-super-secreta1!',
       termsAccepted: true,
     });
 

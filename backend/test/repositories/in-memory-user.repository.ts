@@ -5,6 +5,8 @@ function clone(user: User): User {
   return User.restore({
     id: user.id,
     email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
     emailVerifiedAt: user.emailVerifiedAt,
     verificationSentAt: user.verificationSentAt,
     termsAcceptedAt: user.termsAcceptedAt,

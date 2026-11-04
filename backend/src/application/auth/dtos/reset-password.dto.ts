@@ -12,13 +12,14 @@ export class ResetPasswordDto {
   token!: string;
 
   @ApiProperty({
-    description: 'Nova senha em texto puro.',
+    description:
+      'Nova senha em texto puro (mínimo de 8 caracteres, com maiúscula, número e caractere especial).',
     format: 'password',
-    minLength: 12,
+    minLength: 8,
     maxLength: 256,
   })
   @IsString()
-  @MinLength(12)
+  @MinLength(8)
   @MaxLength(256)
   password!: string;
 }

@@ -11,12 +11,24 @@ vi.mock('../contexts/auth-context', () => ({
 
 const mockedUseAuth = vi.mocked(useAuth);
 
-function renderLogin(state?: { from?: unknown }) {
+function renderLogin(
+  state?: { from?: unknown },
+  user: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    emailVerified: boolean;
+    hasPassword: boolean;
+    termsAccepted: boolean;
+    verificationResendAvailableAt: string | null;
+  } | null = null,
+) {
   const login = vi.fn().mockResolvedValue(undefined);
 
   mockedUseAuth.mockReturnValue({
-    user: null,
-    isAuthenticated: false,
+    user,
+    isAuthenticated: user !== null,
     isLoading: false,
     login,
     loginWithGoogle: vi.fn(),
@@ -29,6 +41,7 @@ function renderLogin(state?: { from?: unknown }) {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/candidaturas" element={<p>quadro</p>} />
+        <Route path="/verificar-email" element={<p>verificacao</p>} />
         <Route path="*" element={<p>outra rota</p>} />
       </Routes>
     </MemoryRouter>,
@@ -80,6 +93,8 @@ describe('LoginPage', () => {
       user: {
         id: 'user-1',
         email: 'fernando@example.com',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
@@ -108,5 +123,20 @@ describe('LoginPage', () => {
     );
 
     expect(screen.getByText('quadro')).toBeInTheDocument();
+  });
+
+  it('redireciona usuário não verificado para a verificação de e-mail', () => {
+    renderLogin(undefined, {
+      id: 'user-1',
+      email: 'fernando@example.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
+      emailVerified: false,
+      hasPassword: true,
+      termsAccepted: true,
+      verificationResendAvailableAt: null,
+    });
+
+    expect(screen.getByText('verificacao')).toBeInTheDocument();
   });
 });

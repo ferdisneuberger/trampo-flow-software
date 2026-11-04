@@ -2,7 +2,6 @@ import { Briefcase, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApplicationForm } from '../components/applications/ApplicationForm';
-import { UnverifiedEmailBanner } from '../components/auth/UnverifiedEmailBanner';
 import { Board } from '../components/applications/Board';
 import {
   BOARD_GRID_CLASSES,
@@ -50,6 +49,7 @@ export function ApplicationsPage() {
   const board = useBoard(search || undefined);
   const { user } = useAuth();
   const canCreate = user?.emailVerified ?? false;
+  const firstName = user?.firstName?.trim();
   const { createApplication, updateApplication } = useApplicationMutations();
 
   const {
@@ -158,11 +158,13 @@ export function ApplicationsPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <UnverifiedEmailBanner />
-
       <PageHeader
         title="Candidaturas"
-        description="Arraste os cards para acompanhar cada processo seletivo pelo funil."
+        description={
+          firstName
+            ? `${firstName}, arraste os cards para acompanhar cada processo seletivo pelo funil.`
+            : 'Arraste os cards para acompanhar cada processo seletivo pelo funil.'
+        }
         actions={
           <>
             <Button

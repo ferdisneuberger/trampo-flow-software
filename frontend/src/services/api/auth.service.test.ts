@@ -28,6 +28,8 @@ describe('authService', () => {
       user: {
         id: 'u1',
         email: 'fernando@example.com',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
@@ -51,12 +53,16 @@ describe('authService', () => {
     await expect(
       authService.register({
         email: 'pessoa@exemplo.com',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         password: 'senha-super-secreta',
         termsAccepted: true,
       }),
     ).resolves.toEqual({ message: 'ok' });
     expect(client.post).toHaveBeenCalledWith('/auth/register', {
       email: 'pessoa@exemplo.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       password: 'senha-super-secreta',
       termsAccepted: true,
     });
@@ -81,6 +87,8 @@ describe('authService', () => {
       user: {
         id: 'u1',
         email: 'pessoa@exemplo.com',
+        firstName: null,
+        lastName: null,
         emailVerified: true,
         hasPassword: false,
         termsAccepted: true,
@@ -134,6 +142,8 @@ describe('authService', () => {
       data: {
         id: 'u1',
         email: 'fernando@example.com',
+        firstName: 'Fernando',
+        lastName: 'Neuberger',
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
@@ -144,6 +154,8 @@ describe('authService', () => {
     await expect(authService.me()).resolves.toEqual({
       id: 'u1',
       email: 'fernando@example.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,

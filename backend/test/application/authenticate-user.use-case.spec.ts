@@ -89,6 +89,8 @@ describe('AuthenticateUserUseCase', () => {
     const user = User.restore({
       id: '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10',
       email: EMAIL,
+      firstName: null,
+      lastName: null,
       emailVerifiedAt: createdAt,
       verificationSentAt: null,
       termsAcceptedAt: null,

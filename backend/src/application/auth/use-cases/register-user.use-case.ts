@@ -8,6 +8,7 @@ import { TokenHasher } from '../../../domain/auth/services/token-hasher';
 import { VerificationCodeGenerator } from '../../../domain/auth/services/verification-code-generator';
 import {
   normalizeEmail,
+  normalizePersonName,
   User,
 } from '../../../domain/users/entities/user.entity';
 import { UserRepository } from '../../../domain/users/repositories/user.repository';
@@ -16,9 +17,12 @@ import { assertPasswordPolicy } from '../../../domain/users/services/password-po
 import { DomainError } from '../../../domain/shared/errors/domain.error';
 import { buildVerificationEmail } from '../emails/verification-email';
 import { AuthSettings } from '../services/auth-settings';
+import { sendMailInBackground } from '../services/send-mail-in-background';
 
 export type RegisterUserInput = {
   email: string;
+  firstName: string;
+  lastName: string;
   password: string;
   termsAccepted: boolean;
 };
@@ -53,6 +57,8 @@ export class RegisterUserUseCase {
     }
 
     const email = normalizeEmail(input.email);
+    const firstName = normalizePersonName(input.firstName, 'firstName');
+    const lastName = normalizePersonName(input.lastName, 'lastName');
 
     assertPasswordPolicy(input.password);
 
@@ -67,6 +73,8 @@ export class RegisterUserUseCase {
     const now = new Date();
     const user = User.create({
       email,
+      firstName,
+      lastName,
       passwordHash,
       termsAcceptedAt: now,
       termsVersion: this.settings.termsVersion,
@@ -112,17 +120,14 @@ export class RegisterUserUseCase {
       ),
     });
 
-    try {
-      await this.mailer.send({
+    sendMailInBackground(
+      this.mailer,
+      {
         to: email,
         ...emailMessage,
-      });
-    } catch (error) {
-      this.logger.error(
-        `Falha ao enviar verificação para ${email}: ${
-          error instanceof Error ? error.message : 'erro desconhecido'
-        }`,
-      );
-    }
+      },
+      this.logger,
+      `Falha ao enviar verificação para ${email}`,
+    );
   }
 }
