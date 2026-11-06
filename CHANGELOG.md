@@ -37,6 +37,8 @@ versionamento semântico.
   da interface.
 - Dockerfile da API passou a multi-stage, reduzindo a imagem de 1,27 GB para 818 MB.
 - Logs de SMTP mostram configuração mascarada e falhas de entrega com código e comando.
+- `backend/.env.example` alinhado aos defaults do Compose para JWT, refresh token,
+  janela de login e TTL de verificação de email.
 
 ### Corrigido
 
