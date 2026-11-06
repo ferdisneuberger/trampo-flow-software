@@ -3,6 +3,85 @@
 Todas as mudanças relevantes do projeto. O formato segue Conventional Commits e o
 versionamento semântico.
 
+## 2.0.4 — 2026-11-06
+
+### Adicionado
+
+- Cadastro público com verificação de email, tokens com hash, limites de reenvio e
+  emails transacionais via SMTP (Mailpit no desenvolvimento).
+- Recuperação de senha com tokens de uso único, expiração padrão de 15 minutos e
+  revogação de todas as sessões após a troca.
+- Login com Google, com verificação do ID token, criação de conta já verificada e
+  vinculação apenas a emails verificados.
+- Endpoint administrativo `DELETE /admin/users/:email`, protegido por `x-api-key` e
+  limites de taxa, com cascata de dados e scripts de backup/restauração do dono.
+- Nome e sobrenome no cadastro e nas respostas de autenticação.
+- Workflow de publicação das imagens de backend e frontend no GHCR a cada push em
+  `main`.
+
+### Alterado
+
+- Login passa a usar email como identidade; o username fica opcional e o bootstrap de
+  usuário por variáveis de ambiente foi removido.
+- Política de senha passa a exigir no mínimo 8 caracteres, com feedback em tempo real e
+  alternância de visibilidade.
+- Links de redefinição de senha expiram em 15 minutos; o TTL de verificação de email e a
+  janela de rate limit do login foram reduzidos.
+- Usuários sem email verificado podem entrar, mas são direcionados à verificação e não
+  podem criar candidaturas até confirmar a conta.
+- Workspace passa a ser somente o quadro: dashboard, visão em lista e página de conta
+  foram removidos.
+- Quadro mantém as quatro colunas na horizontal em qualquer viewport, com rolagem
+  interna, e o detalhe da candidatura foi reorganizado.
+- Sessão e invalidação de cache foram consolidadas; upload e download de arquivos saíram
+  da interface.
+- Dockerfile da API passou a multi-stage, reduzindo a imagem de 1,27 GB para 818 MB.
+- Logs de SMTP mostram configuração mascarada e falhas de entrega com código e comando.
+
+### Corrigido
+
+- Falhas de envio de email agora ficam registradas com contexto suficiente para
+  diagnóstico.
+- Cliques gerados pelo fim de um arraste não abrem mais o cartão por engano.
+- Criação de candidatura por usuário sem email verificado é bloqueada no cliente e na
+  API.
+
+### Removido
+
+- Dashboard, listagem em tabela e página de conta.
+- Upload e download de arquivos pela interface.
+- Bootstrap de usuário por variáveis de ambiente.
+
+## 2.0.3 — 2026-11-02
+
+### Alterado
+
+- Cliente de storage migrado para o AWS SDK v3.
+- Overrides para `deepmerge-ts`, `glob` e `minimatch`.
+- Pipeline de e2e desabilitado até a revisão da versão.
+
+### Corrigido
+
+- Vulnerabilidades zeradas nos três pacotes.
+
+## 2.0.2 — 2026-11-02
+
+### Adicionado
+
+- Verificação de e2e local no pre-push, com escape via `SKIP_E2E`.
+- Workflow de e2e com filtro de paths e cache de browser.
+
+### Alterado
+
+- Fluxo de ponta a ponta passa a cobrir o reload da sessão.
+
+## 2.0.1 — 2026-11-02
+
+### Corrigido
+
+- Logout ao atualizar a página: o access token renovado passa a ser guardado antes de
+  buscar o perfil.
+
 ## 2.0.0 — 2026-11-02
 
 ### Adicionado
