@@ -30,6 +30,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     emailVerified: false,
     hasPassword: true,
     termsAccepted: true,
+    themePreference: 'light' as const,
     verificationResendAvailableAt: null,
     ...overrides,
   };
@@ -48,6 +49,7 @@ function mockAuth(
     loginWithGoogle: vi.fn(),
     logout,
     refreshProfile,
+    updateThemePreference: vi.fn(),
   });
 
   return { refreshProfile, logout };

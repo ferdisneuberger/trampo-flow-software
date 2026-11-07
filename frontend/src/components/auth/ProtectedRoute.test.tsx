@@ -38,6 +38,7 @@ describe('ProtectedRoute', () => {
       loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      updateThemePreference: vi.fn(),
     });
 
     renderRoute();
@@ -56,6 +57,7 @@ describe('ProtectedRoute', () => {
       loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      updateThemePreference: vi.fn(),
     });
 
     renderRoute();
@@ -73,6 +75,7 @@ describe('ProtectedRoute', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        themePreference: 'light',
         verificationResendAvailableAt: null,
       },
       isAuthenticated: true,
@@ -81,6 +84,7 @@ describe('ProtectedRoute', () => {
       loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      updateThemePreference: vi.fn(),
     });
 
     renderRoute();
@@ -98,6 +102,7 @@ describe('ProtectedRoute', () => {
         emailVerified: false,
         hasPassword: true,
         termsAccepted: true,
+        themePreference: 'light',
         verificationResendAvailableAt: null,
       },
       isAuthenticated: true,
@@ -106,6 +111,7 @@ describe('ProtectedRoute', () => {
       loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      updateThemePreference: vi.fn(),
     });
 
     renderRoute();

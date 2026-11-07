@@ -15,7 +15,7 @@
       "bash -c 'cd backend && ./node_modules/.bin/eslint --fix \"$@\"' _",
       "prettier --write"
     ],
-    "frontend/**/*.{ts,tsx}": [
+    "frontend/src/**/*.{ts,tsx}": [
       "bash -c 'cd frontend && ./node_modules/.bin/eslint --fix \"$@\"' _",
       "prettier --write"
     ],

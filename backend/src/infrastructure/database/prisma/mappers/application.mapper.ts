@@ -1,11 +1,9 @@
 import {
   Application as PrismaApplication,
-  ApplicationFile as PrismaApplicationFile,
   ApplicationStatus as PrismaApplicationStatus,
   Prisma,
 } from '@prisma/client';
 import { Application } from '../../../../domain/applications/entities/application.entity';
-import { ApplicationFile } from '../../../../domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../../../domain/applications/enums/application-status.enum';
 
 const statusToDomain: Record<PrismaApplicationStatus, ApplicationStatus> = {
@@ -23,12 +21,10 @@ const statusToPersistence: Record<ApplicationStatus, PrismaApplicationStatus> =
     [ApplicationStatus.REJECTED]: PrismaApplicationStatus.REJECTED,
   };
 
-export type PrismaApplicationWithFiles = PrismaApplication & {
-  files: PrismaApplicationFile[];
-};
+export type PrismaApplicationRecord = PrismaApplication;
 
 export class ApplicationMapper {
-  static toDomain(record: PrismaApplicationWithFiles): Application {
+  static toDomain(record: PrismaApplicationRecord): Application {
     return Application.restore({
       id: record.id,
       title: record.title,
@@ -38,18 +34,6 @@ export class ApplicationMapper {
       position: record.position,
       status: statusToDomain[record.status],
       currentPhase: record.currentPhase,
-      files: record.files.map((file) =>
-        ApplicationFile.restore({
-          id: file.id,
-          name: file.name,
-          storageKey: file.storageKey,
-          legacyUrl: file.legacyUrl,
-          mimeType: file.mimeType,
-          sizeInBytes: file.sizeInBytes,
-          checksum: file.checksum,
-          uploadedAt: file.uploadedAt,
-        }),
-      ),
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       deletedAt: record.deletedAt,
@@ -71,11 +55,6 @@ export class ApplicationMapper {
       createdAt: application.createdAt,
       updatedAt: application.updatedAt,
       deletedAt: application.deletedAt,
-      files: {
-        create: application.files.map((file) =>
-          ApplicationMapper.toFileCreateData(file),
-        ),
-      },
     };
   }
 
@@ -92,35 +71,6 @@ export class ApplicationMapper {
       currentPhase: application.currentPhase,
       updatedAt: application.updatedAt,
       deletedAt: application.deletedAt,
-    };
-  }
-
-  static toFileCreateData(
-    file: ApplicationFile,
-  ): Prisma.ApplicationFileCreateWithoutApplicationInput {
-    return {
-      id: file.id,
-      name: file.name,
-      storageKey: file.storageKey,
-      legacyUrl: file.legacyUrl,
-      mimeType: file.mimeType,
-      sizeInBytes: file.sizeInBytes,
-      checksum: file.checksum,
-      uploadedAt: file.uploadedAt,
-    };
-  }
-
-  static toFileUpdateData(
-    file: ApplicationFile,
-  ): Prisma.ApplicationFileUncheckedUpdateInput {
-    return {
-      name: file.name,
-      storageKey: file.storageKey,
-      legacyUrl: file.legacyUrl,
-      mimeType: file.mimeType,
-      sizeInBytes: file.sizeInBytes,
-      checksum: file.checksum,
-      uploadedAt: file.uploadedAt,
     };
   }
 }

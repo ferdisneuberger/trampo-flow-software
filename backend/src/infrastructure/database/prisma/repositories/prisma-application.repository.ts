@@ -82,7 +82,6 @@ export class PrismaApplicationRepository implements ApplicationRepository {
   async findById(id: string, userId: string): Promise<Application | null> {
     const record = await this.prisma.application.findFirst({
       where: { id, userId },
-      include: { files: true },
     });
 
     return record ? ApplicationMapper.toDomain(record) : null;
@@ -94,7 +93,6 @@ export class PrismaApplicationRepository implements ApplicationRepository {
   ): Promise<Application[]> {
     const records = await this.prisma.application.findMany({
       where: buildWhere(userId, options),
-      include: { files: true },
       orderBy:
         options.sort === 'recent'
           ? [{ createdAt: 'desc' }, { id: 'desc' }]
@@ -138,7 +136,6 @@ export class PrismaApplicationRepository implements ApplicationRepository {
         status,
         search: options.search,
       }),
-      include: { files: true },
       orderBy: [{ position: 'asc' }, { id: 'asc' }],
       take: options.limit,
     });
@@ -225,29 +222,6 @@ export class PrismaApplicationRepository implements ApplicationRepository {
         throw new Error(
           `Application "${application.id}" was not found for this user.`,
         );
-      }
-
-      const fileIds = application.files.map((file) => file.id);
-
-      await transaction.applicationFile.deleteMany({
-        where: {
-          applicationId: application.id,
-          ...(fileIds.length > 0 ? { id: { notIn: fileIds } } : {}),
-        },
-      });
-
-      for (const file of application.files) {
-        await transaction.applicationFile.upsert({
-          where: { id: file.id },
-          create: {
-            ...ApplicationMapper.toFileCreateData(file),
-            applicationId: application.id,
-          },
-          update: {
-            ...ApplicationMapper.toFileUpdateData(file),
-            applicationId: application.id,
-          },
-        });
       }
     });
   }

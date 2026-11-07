@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type {
+  AuthThemePreference,
   AuthUser,
   GoogleLoginInput,
   LoginInput,
@@ -13,6 +14,9 @@ export type AuthContextValue = {
   loginWithGoogle: (input: GoogleLoginInput) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateThemePreference: (
+    themePreference: AuthThemePreference,
+  ) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

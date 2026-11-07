@@ -100,12 +100,12 @@ export function VerifyEmailPage() {
     return (
       <AuthPageLayout>
         <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="size-7" aria-hidden="true" />
+          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-success-soft text-ink-900 shadow-hard-sm">
+            <CheckCircle2 className="size-8" aria-hidden="true" />
           </span>
-          <h2 className="mt-5 text-lg font-semibold tracking-tight text-ink-900">
+          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
             E-mail confirmado
-          </h2>
+          </h1>
           <p className="mt-2 text-sm leading-6 text-ink-500">
             Sua conta está verificada e já pode criar candidaturas.
           </p>
@@ -128,17 +128,17 @@ export function VerifyEmailPage() {
     <AuthPageLayout tagline="Confirme seu e-mail">
       <Card className="p-6 sm:p-8">
         <div className="mb-6">
-          <span className="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-700">
-            <MailCheck className="size-5" aria-hidden="true" />
+          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
+            <MailCheck className="size-6" aria-hidden="true" />
           </span>
-          <h2 className="mt-4 text-lg font-semibold tracking-tight text-ink-900">
+          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
             Informe o código
-          </h2>
+          </h1>
           <p className="mt-1 text-sm leading-6 text-ink-500">
             {isAuthenticated && user?.email ? (
               <>
                 Enviamos um código de 6 caracteres para{' '}
-                <strong className="text-ink-700">{user.email}</strong>. Ele
+                <strong className="text-ink-900">{user.email}</strong>. Ele
                 expira em 12 horas.
               </>
             ) : (
@@ -178,7 +178,7 @@ export function VerifyEmailPage() {
         </form>
 
         {isAuthenticated && user && !user.emailVerified && (
-          <div className="mt-5 border-t border-line pt-5">
+          <div className="mt-5 border-t-2 border-dashed border-ink-900/20 pt-5">
             <p className="mb-3 text-sm text-ink-500">
               Não recebeu o e-mail? Envie novamente.
             </p>
@@ -191,7 +191,7 @@ export function VerifyEmailPage() {
             type="button"
             onClick={() => void logout()}
             disabled={isLoggingOut}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-surface hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-transparent px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-500 transition hover:border-ink-900 hover:bg-surface hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOut className="size-4" aria-hidden="true" />
             Sair e usar outra conta
@@ -200,7 +200,7 @@ export function VerifyEmailPage() {
           <p className="mt-6 text-center text-sm text-ink-500">
             <Link
               to="/login"
-              className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+              className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
             >
               Voltar para o login
             </Link>

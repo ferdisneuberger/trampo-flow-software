@@ -19,6 +19,7 @@ function makeRecord(overrides: Partial<PrismaUser> = {}): PrismaUser {
     username: null,
     googleId: null,
     passwordHash: PASSWORD_HASH,
+    themePreference: 'light',
     lastLoginAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
@@ -35,6 +36,7 @@ describe('UserMapper', () => {
     expect(user.firstName).toBe('Fernando');
     expect(user.lastName).toBe('Neuberger');
     expect(user.username).toBeNull();
+    expect(user.themePreference).toBe('light');
     expect(user.lastLoginAt).toBeNull();
     expect(user.createdAt).toEqual(new Date('2026-01-01T00:00:00.000Z'));
   });
@@ -71,6 +73,7 @@ describe('UserMapper', () => {
       username: null,
       googleId: null,
       passwordHash: PASSWORD_HASH,
+      themePreference: 'light',
     });
     expect(data).not.toHaveProperty('deletedAt');
   });

@@ -22,19 +22,11 @@ async function main() {
     where: { userId: user.id },
     orderBy: { createdAt: 'asc' },
   });
-  const applicationIds = applications.map((application) => application.id);
-  const files = applicationIds.length
-    ? await prisma.applicationFile.findMany({
-        where: { applicationId: { in: applicationIds } },
-        orderBy: { uploadedAt: 'asc' },
-      })
-    : [];
 
   const snapshot = {
     createdAt: new Date().toISOString(),
     user,
     applications,
-    files,
   };
 
   const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -48,9 +40,7 @@ async function main() {
   mkdirSync(backupDirectory, { recursive: true });
   writeFileSync(file, JSON.stringify(snapshot, null, 2));
 
-  console.log(
-    `Backup de ${email}: ${applications.length} candidatura(s), ${files.length} arquivo(s).`,
-  );
+  console.log(`Backup de ${email}: ${applications.length} candidatura(s).`);
   console.log(file);
 }
 

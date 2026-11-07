@@ -63,7 +63,7 @@ export abstract class ApplicationRepository {
   abstract update(application: Application, userId: string): Promise<void>;
 
   /**
-   * Physically removes the application and its files.
+   * Physically removes the application.
    */
   abstract delete(application: Application, userId: string): Promise<void>;
 }

@@ -7,7 +7,6 @@ cd "$ROOT"
 PROJECT="trampo-e2e"
 WEB_PORT="6173"
 POSTGRES_PORT="55433"
-ADMINER_PORT="8081"
 MAILPIT_PORT="8026"
 BASE_URL="http://127.0.0.1:${WEB_PORT}"
 E2E_EMAIL="e2e@example.com"
@@ -30,7 +29,6 @@ echo "e2e-local: subindo stack isolado em ${BASE_URL}"
 COMPOSE_PROJECT_NAME="$PROJECT" \
 WEB_PORT="$WEB_PORT" \
 POSTGRES_PORT="$POSTGRES_PORT" \
-ADMINER_PORT="$ADMINER_PORT" \
 MAILPIT_PORT="$MAILPIT_PORT" \
 POSTGRES_DB="trampo_e2e" \
 POSTGRES_USER="trampo" \
@@ -75,4 +73,4 @@ E2E_EMAIL="$E2E_EMAIL" \
 E2E_MAILPIT_URL="http://127.0.0.1:${MAILPIT_PORT}" \
 E2E_PASSWORD="$E2E_PASSWORD" \
 E2E_BASE_URL="$BASE_URL" \
-npx playwright test "$@"
+npx playwright test --project=chromium "$@"

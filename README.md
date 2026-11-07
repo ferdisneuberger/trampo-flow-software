@@ -9,7 +9,6 @@ Aplicação full stack para acompanhar candidaturas de emprego. O backend é uma
 - Candidaturas por usuário, com empresa e site.
 - Quadro kanban com arrastar e soltar e reordenação manual persistida.
 - Busca no servidor e quadro kanban como tela inicial.
-- Upload de PDF e TXT em storage compatível com S3.
 - Sessão com access token curto em memória e refresh token em cookie `HttpOnly`.
 - Detalhe da candidatura com edição e exclusão.
 
@@ -20,7 +19,7 @@ O histórico completo está em [CHANGELOG.md](CHANGELOG.md).
 - **Node.js 24** e **TypeScript**
 - **NestJS 12** com **Fastify** (`@nestjs/platform-fastify`)
 - **Prisma ORM 6** para persistência no PostgreSQL
-- **PostgreSQL 16** e **Adminer** via Docker Compose
+- **PostgreSQL 16** via Docker Compose
 - **class-validator** / **class-transformer** para validação dos DTOs
 - **Vitest** para testes unitários com repositórios em memória
 - **React 19**, **Vite 8**, **TypeScript 6** e **Tailwind CSS 4** no frontend
@@ -89,7 +88,6 @@ O `backend/src/main.ts` configura:
 | `position`     | inteiro        | Ordem manual dentro da coluna do quadro                 |
 | `status`       | enum           | Um dos status fixos abaixo; padrão `PENDING`            |
 | `currentPhase` | string         | Obrigatório, texto livre, até 120 caracteres            |
-| `files`        | lista          | Zero ou mais currículos/anexos                          |
 | `createdAt`    | data           | Preenchido na criação                                   |
 | `updatedAt`    | data           | Atualizado em cada alteração                            |
 | `deletedAt`    | data ou nulo   | Preenchido na exclusão lógica                           |
@@ -105,23 +103,10 @@ O `backend/src/main.ts` configura:
 
 Os status são um conjunto fechado. A API retorna o valor do enum e a documentação mantém o rótulo em português.
 
-### Arquivo (`ApplicationFile`)
-
-| Campo         | Tipo    | Regra                                                   |
-| ------------- | ------- | ------------------------------------------------------- |
-| `id`          | UUID    | Gerado na criação                                       |
-| `name`        | string  | Obrigatório, até 255 caracteres                         |
-| `url`         | string  | Obrigatório, URL HTTP/HTTPS válida, até 2048 caracteres |
-| `mimeType`    | string  | Obrigatório, formato `type/subtype`, até 100 caracteres |
-| `sizeInBytes` | inteiro | Positivo                                                |
-| `uploadedAt`  | data    | Opcional na entrada; padrão é o momento do anexo        |
-
-O agregado permite múltiplos arquivos por candidatura. O backend armazena os metadados e a URL do arquivo; o upload binário para um storage externo não faz parte desta etapa.
-
 ### Exclusão lógica e física
 
 - `DELETE /applications/:id` ou `DELETE /applications/:id?mode=soft` faz exclusão lógica: preenche `deletedAt` e mantém o registro.
-- `DELETE /applications/:id?mode=hard` remove fisicamente a candidatura e seus arquivos.
+- `DELETE /applications/:id?mode=hard` remove fisicamente a candidatura.
 - Candidaturas com exclusão lógica não aparecem em `GET /applications`.
 - Editar ou excluir logicamente uma candidatura já excluída retorna `409` com `APPLICATION_ALREADY_DELETED`.
 - Uma candidatura com exclusão lógica ainda pode ser removida fisicamente com `mode=hard`.
@@ -154,7 +139,7 @@ Na raiz do projeto:
 # Obrigatório: defina JWT_SECRET e AUTH_TOKEN_SECRET
 cp .env.example .env
 
-# Sobe PostgreSQL, Adminer, API, frontend e ingress
+# Sobe PostgreSQL, API, frontend e ingress
 docker compose up --build
 
 # Ou em segundo plano
@@ -165,7 +150,7 @@ Na inicialização, o container da API executa `prisma migrate deploy` antes de 
 
 O serviço `ingress` é a única entrada pública no host (`127.0.0.1:${WEB_PORT:-5173}`). Ele encaminha `/api/*` para `http://api:3000`, removendo o prefixo `/api`, e o restante para `http://web:5173`. O container `web` serve apenas o build estático de produção com Nginx e fallback de SPA. API e frontend não publicam portas no host. O Compose padrão não monta o código como volume; alterações exigem rebuild da imagem.
 
-> A migração `20261023230000_applications` substitui a antiga tabela `job_applications` pelas tabelas `applications` e `application_files`. A migração inicial é preservada para manter o histórico.
+> A migração `20261023230000_applications` substitui a antiga tabela `job_applications` pela tabela `applications`. O histórico é preservado.
 
 ### Serviços
 
@@ -173,20 +158,9 @@ O serviço `ingress` é a única entrada pública no host (`127.0.0.1:${WEB_PORT
 | -------- | ------------------------- | --------------------------------------------------------------------------------------------- |
 | Frontend | http://localhost:5173     | Entrada única pelo ingress; build de produção servido por Nginx                               |
 | API      | http://localhost:5173/api | Via ingress; `GET /api/health` e `POST /api/auth/login` são públicos; demais rotas exigem JWT |
-| Adminer  | http://localhost:8080     | Interface web do PostgreSQL em `127.0.0.1`                                                    |
 | Postgres | `localhost:5432`          | Acesso por cliente SQL externo em `127.0.0.1`                                                 |
 
 A API não publica a porta `3000` e o container `web` não publica a `5173`; o único serviço com porta publicada para acesso externo é o `ingress` (`127.0.0.1:${WEB_PORT:-5173}`). A API só é acessível pela rede do Compose ou pela entrada do ingress.
-
-### Adminer
-
-| Campo    | Valor         |
-| -------- | ------------- |
-| Sistema  | PostgreSQL    |
-| Servidor | `postgres`    |
-| Usuário  | `trampo`      |
-| Senha    | `trampo_dev`  |
-| Base     | `trampo_flow` |
 
 Os valores são os padrões do `docker-compose.yml`. Se você alterou o `.env`, use os valores correspondentes.
 
@@ -254,7 +228,7 @@ Usuários não verificados podem entrar, mas ainda não podem criar candidaturas
 
 #### Rota administrativa de testes
 
-`DELETE /admin/users/:email` exclui um usuário e, por cascade, suas candidaturas, arquivos, tokens de verificação e refresh tokens. A rota só é habilitada quando `API_KEY_DELETE` está definida e exige o header `x-api-key`. Sem a variável, responde `403 ADMIN_ROUTE_DISABLED`; com chave errada, `401 INVALID_API_KEY`.
+`DELETE /admin/users/:email` exclui um usuário e, por cascade, suas candidaturas, tokens de verificação e refresh tokens. A rota só é habilitada quando `API_KEY_DELETE` está definida e exige o header `x-api-key`. Sem a variável, responde `403 ADMIN_ROUTE_DISABLED`; com chave errada, `401 INVALID_API_KEY`.
 
 Mantenha `API_KEY_DELETE` vazia em produção. Para testes locais, use uma chave forte e remova-a quando terminar.
 
@@ -314,7 +288,9 @@ POST /auth/logout    → revoga a família e limpa o cookie
 
 Cada refresh rotaciona o token: o anterior é revogado e aponta para o substituto. Se um token já revogado for reapresentado fora de uma janela de tolerância de 10 segundos, a **família inteira** é revogada — é a detecção de reuso. A janela existe para duas abas renovando ao mesmo tempo não derrubarem a sessão.
 
-`POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/refresh`, `POST /auth/logout` e `GET /health` são públicos. `POST /auth/verification/resend` exige sessão. Todas as rotas de `/applications` e `GET /auth/me` passam pelo guard global. O frontend mantém o access token apenas em memória, restaura a sessão com `POST /auth/refresh` + `GET /auth/me` e limpa o cache de queries em qualquer resposta `401`. O logout chama `POST /auth/logout`, revoga a família do refresh token e limpa o cookie. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais e-mails estão cadastrados.
+A preferência de tema é salva por usuário em `PATCH /auth/me/theme` (`light`, `dark` ou `system`). O padrão é `light`; o frontend guarda uma cópia em `localStorage` apenas para aplicar o tema antes do React e evitar flash.
+
+`POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/refresh`, `POST /auth/logout` e `GET /health` são públicos. `POST /auth/verification/resend` exige sessão. Todas as rotas de `/applications`, `GET /auth/me` e `PATCH /auth/me/theme` passam pelo guard global. O frontend mantém o access token apenas em memória, restaura a sessão com `POST /auth/refresh` + `GET /auth/me` e limpa o cache de queries em qualquer resposta `401`. O logout chama `POST /auth/logout`, revoga a família do refresh token e limpa o cookie. Credenciais inválidas recebem sempre `401` com a mesma mensagem, e o hash é executado mesmo quando o usuário não existe, para não revelar quais e-mails estão cadastrados.
 
 ## Frontend
 
@@ -397,10 +373,10 @@ O fluxo crítico (login → criar → buscar → detalhe → excluir) roda com *
 docker compose up -d
 cd frontend
 npx playwright install chromium
-E2E_USERNAME=... E2E_PASSWORD=... npm run test:e2e
+E2E_EMAIL=... E2E_PASSWORD=... E2E_MAILPIT_URL=http://127.0.0.1:8025 npm run test:e2e
 ```
 
-Sem `E2E_USERNAME` e `E2E_PASSWORD`, o teste é pulado. No CI, o workflow `E2E` sobe o Compose, cria um usuário de teste pelo bootstrap e roda o fluxo em um Chromium.
+Sem `E2E_EMAIL`, `E2E_PASSWORD` e `E2E_MAILPIT_URL`, o teste é pulado. No CI, o workflow `E2E` sobe o Compose, cria um usuário de teste pelo bootstrap e roda o fluxo em um Chromium.
 
 Para rodar localmente sem tocar no seu banco, use o script de stack isolado:
 
@@ -410,9 +386,27 @@ npm run test:e2e:local
 
 Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio, e derruba tudo no final. O workflow de E2E roda em pull requests que tocam frontend/backend/infra, sob demanda (`workflow_dispatch`) e em schedule noturno.
 
+### Regressão visual
+
+Os snapshots de UI ficam em `frontend/e2e/__screenshots__` e são gerados em Linux para bater com o CI. O comando abaixo usa Docker automaticamente no macOS:
+
+```bash
+cd frontend
+npm run test:visual
+```
+
+Para atualizar as baselines de forma consciente:
+
+```bash
+npm run test:visual:update
+```
+
+O workflow `Visual` roda em PRs que tocam `frontend/**` e publica os diffs quando falha. O fluxo de E2E existente não foi alterado.
+
 ### Funcionalidades
 
 - Quadro Kanban como tela inicial (`/candidaturas`), com colunas por status e arrastar e soltar.
+- Tema claro, escuro ou automático, com preferência salva na conta e no navegador. O padrão é claro.
 - Cards com título clicável, empresa, fase atual e data.
 - Busca por título, empresa ou fase no servidor; a busca desativa temporariamente o arrastar.
 - Criação e edição de candidaturas com título, link, fase e status.
@@ -455,15 +449,7 @@ curl -X POST http://localhost:5173/api/applications \
     "link": "https://example.com/jobs/backend-engineer",
     "company": "Nubank",
     "companyUrl": "https://nubank.com.br",
-    "currentPhase": "Triagem",
-    "files": [
-      {
-        "name": "curriculo.pdf",
-        "url": "https://storage.example.com/curriculo.pdf",
-        "mimeType": "application/pdf",
-        "sizeInBytes": 102400
-      }
-    ]
+    "currentPhase": "Triagem"
   }'
 ```
 
@@ -477,17 +463,6 @@ Campos aceitos:
 | `companyUrl`   | string | não         | URL HTTP/HTTPS válida, até 2048 caracteres                            |
 | `currentPhase` | string | sim         | até 120 caracteres                                                    |
 | `status`       | enum   | não         | `PENDING`, `IN_PROGRESS`, `COMPLETED` ou `REJECTED`; padrão `PENDING` |
-| `files`        | array  | não         | lista de arquivos com os metadados abaixo                             |
-
-Metadados de cada arquivo:
-
-| Campo         | Tipo    | Obrigatório | Regra                                      |
-| ------------- | ------- | ----------- | ------------------------------------------ |
-| `name`        | string  | sim         | até 255 caracteres                         |
-| `url`         | string  | sim         | URL HTTP/HTTPS válida, até 2048 caracteres |
-| `mimeType`    | string  | sim         | formato `type/subtype`, até 100 caracteres |
-| `sizeInBytes` | inteiro | sim         | maior que zero                             |
-| `uploadedAt`  | string  | não         | data ISO 8601; padrão é o momento do anexo |
 
 ### Listar candidaturas
 
@@ -564,30 +539,6 @@ curl -X PATCH http://localhost:5173/api/applications/<id> \
 
 Todos os campos são opcionais, mas pelo menos um deve ser enviado. Campos aceitos: `title`, `link`, `currentPhase` e `status`.
 
-### Anexar arquivos
-
-Envio real de binário, com limite de **5 MB** por arquivo e **3 arquivos** por candidatura. Apenas **PDF** e **TXT** são aceitos; o tipo é validado pela extensão e pelos primeiros bytes, não pelo `Content-Type` enviado.
-
-```bash
-curl -X POST http://localhost:5173/api/applications/<id>/files/upload \
-  -H 'Authorization: Bearer <token>' \
-  -F 'file=@curriculo.pdf'
-```
-
-O arquivo é gravado no storage S3/MinIO e o registro guarda apenas a chave do objeto, o tamanho e o checksum SHA-256. O nome enviado é usado só para exibição.
-
-```bash
-# download autenticado, sempre como anexo
-curl -OJ http://localhost:5173/api/applications/<id>/files/<fileId>/download \
-  -H 'Authorization: Bearer <token>'
-
-# remover um arquivo
-curl -X DELETE http://localhost:5173/api/applications/<id>/files/<fileId> \
-  -H 'Authorization: Bearer <token>'
-```
-
-Arquivos cadastrados antes deste recurso continuam aparecendo como link externo (`url` no payload, sem `downloadUrl`).
-
 ### Excluir candidatura
 
 ```bash
@@ -655,36 +606,33 @@ TEST_DATABASE_URL=postgresql://trampo:trampo_dev@127.0.0.1:5432/trampo_flow_test
 
 O helper de teste recusa qualquer URL cujo banco não termine em `_test` e recusa uma URL igual a `DATABASE_URL`, para que um valor copiado por engano não apague dados de desenvolvimento.
 
-O `TEST_DATABASE_URL` também é o que ativa o threshold de cobertura: sem ele, os arquivos pulados distorceriam a média e o limite é ignorado.
+O `TEST_DATABASE_URL` também é o que ativa o threshold de cobertura: sem ele, os testes pulados distorceriam a média e o limite é ignorado.
 
 Cenários cobertos:
 
-- Criação com status padrão, status explícito, múltiplos arquivos e metadados.
-- Validação de título, link, fase, status e metadados dos arquivos.
+- Criação com status padrão e status explícito.
+- Validação de título, link, fase e status.
 - Atualização de título, link, fase atual e todos os status fixos.
-- Atualização parcial, preservação de arquivos e atualização de `updatedAt`.
+- Atualização parcial e atualização de `updatedAt`.
 - Rejeição de atualização sem campos, de candidatura inexistente e de candidatura excluída.
-- Anexo de um ou vários arquivos, preservação dos existentes e rejeição de metadados inválidos.
 - Exclusão lógica padrão, exclusão lógica explícita, exclusão física e purge de registro já excluído.
 - Rejeição de segunda exclusão lógica, modo inválido e candidatura inexistente.
 - Listagem apenas de candidaturas ativas.
-- Regras das entidades `Application` e `ApplicationFile`.
+- Regras da entidade `Application`.
 - Autenticação do usuário único, emissão/validação do JWT e rejeição de tokens inválidos.
 - Bloqueio global de login após falhas consecutivas, expiração da janela e reset em caso de sucesso.
 - Guard global: rotas públicas, preflight, token ausente, esquema inválido e token de outro usuário.
-- Mapper Prisma ↔ domínio: round-trip, todos os status, arquivos aninhados e `deletedAt`.
-- Presenter HTTP: campos, datas em ISO e lista de arquivos.
+- Mapper Prisma ↔ domínio: round-trip, todos os status e `deletedAt`.
+- Presenter HTTP: campos e datas em ISO.
 - Filtro de exceções: mapeamento de domínio para 400, 404 e 409.
-- Controllers: conversão de `uploadedAt`, repasse de campos e modo de exclusão.
-- Repositório Prisma contra Postgres: persistência, filtro de excluídos, ordenação,
-  inclusão e remoção de arquivos na mesma transação, exclusão em cascata.
+- Controllers: repasse de campos e modo de exclusão.
+- Repositório Prisma contra Postgres: persistência, filtro de excluídos, ordenação e exclusão em cascata.
 
 Estrutura dos testes:
 
 ```text
 backend/test/
 ├── application/
-│   ├── add-application-files.use-case.spec.ts
 │   ├── authenticate-user.use-case.spec.ts
 │   ├── create-application.use-case.spec.ts
 │   ├── delete-application.use-case.spec.ts
@@ -692,7 +640,6 @@ backend/test/
 │   ├── list-applications.use-case.spec.ts
 │   └── update-application.use-case.spec.ts
 ├── domain/
-│   ├── application-file.entity.spec.ts
 │   ├── application.entity.spec.ts
 │   ├── password-policy.spec.ts
 │   └── user.entity.spec.ts
@@ -739,8 +686,7 @@ backend/test/
 │   │   │   │   └── validation/
 │   │   │   └── applications/
 │   │   │       ├── entities/
-│   │   │       │   ├── application.entity.ts
-│   │   │       │   └── application-file.entity.ts
+│   │   │       │   └── application.entity.ts
 │   │   │       ├── enums/application-status.enum.ts
 │   │   │       └── repositories/application.repository.ts
 │   │   │   └── users/
@@ -874,7 +820,6 @@ Scripts disponíveis em `backend/package.json`:
 | `POSTGRES_PASSWORD` | `trampo_dev`   | Senha do PostgreSQL                                       |
 | `POSTGRES_DB`       | `trampo_flow`  | Banco criado na inicialização                             |
 | `POSTGRES_PORT`     | `5432`         | Porta do Postgres em `127.0.0.1`                          |
-| `ADMINER_PORT`      | `8080`         | Porta do Adminer em `127.0.0.1`                           |
 | `WEB_PORT`          | `5173`         | Porta local do ingress em `127.0.0.1`                     |
 | `CORS_ORIGINS`      | origens locais | Origens permitidas no CORS da API (separadas por vírgula) |
 
@@ -892,20 +837,6 @@ As variáveis `JWT_SECRET`, `JWT_EXPIRES_IN`, `LOGIN_MAX_ATTEMPTS` e `LOGIN_WIND
 As variáveis de autenticação também são lidas do ambiente; veja [Autenticação](#autenticação).
 
 No Docker, o Compose define `DATABASE_URL` apontando para o host `postgres` e sobrescreve o valor do `.env`.
-
-### Storage (`api`)
-
-Os anexos ficam em um bucket compatível com S3. No Compose, o MinIO sobe junto e o bucket é criado no boot da API.
-
-| Variável        | Padrão              | Descrição                               |
-| --------------- | ------------------- | --------------------------------------- |
-| `S3_ENDPOINT`   | `minio`             | Host do storage                         |
-| `S3_PORT`       | `9000`              | Porta                                   |
-| `S3_USE_SSL`    | `false`             | Usa TLS                                 |
-| `S3_ACCESS_KEY` | `trampo`            | Credencial de acesso                    |
-| `S3_SECRET_KEY` | `trampo_dev_secret` | Credencial secreta (troque em produção) |
-| `S3_BUCKET`     | `trampo-files`      | Bucket onde os arquivos são gravados    |
-| `S3_REGION`     | `us-east-1`         | Região informada ao cliente             |
 
 ### Frontend (`frontend/.env`)
 
@@ -957,7 +888,7 @@ docker compose down -v
 
 **Porta em uso**
 
-Altere `WEB_PORT`, `POSTGRES_PORT` ou `ADMINER_PORT` no `.env` e suba novamente com `docker compose up -d`. A API e o frontend não publicam portas no host; apenas o ingress usa `WEB_PORT`.
+Altere `WEB_PORT` ou `POSTGRES_PORT` no `.env` e suba novamente com `docker compose up -d`. A API e o frontend não publicam portas no host; apenas o ingress usa `WEB_PORT`.
 
 **API não fica saudável**
 
@@ -1011,11 +942,10 @@ Esta seção deixa explícito o que o projeto **não** faz, e por quê. Nenhum i
 - **Logout.** O frontend chama `POST /auth/logout` antes de limpar o estado local; se a API estiver indisponível, o logout local ainda acontece e o cookie pode permanecer válido até expirar.
 - **Rate limit de login.** Em memória, global e por janela fixa; zera no restart e não é compartilhado entre réplicas. Para mudar: contador no Postgres (ou Redis) por `username` + IP, com janela deslizante.
 - **Listagem.** A interface usa o quadro (`GET /applications/board`); a API mantém o endpoint de listagem paginada para integrações e estatísticas.
-- **Arquivos.** `ApplicationFile` guarda nome, MIME, tamanho e URL; não há upload de binário. Para mudar: storage de objetos (S3/MinIO) com URL pré-assinada e upload multipart.
 - **Usuários.** A tabela `users` existe no Postgres, mas não há registro público nem troca de senha pela interface: criar usuário é operação administrativa. Para mudar: endpoint de troca de senha com invalidação de tokens e, se fizer sentido, cadastro por convite.
 - **Papéis e permissões.** Cada usuário enxerga apenas as próprias candidaturas, mas não há papéis (administrador, leitor) nem compartilhamento entre contas. Para mudar: modelo de papéis e regras de autorização por recurso.
 - **Custo do guard.** Valida a assinatura e consulta `users` a cada requisição (um `SELECT` por chave primária). Para mudar: cache em memória com TTL curto, se o volume justificar.
-- **Testes de UI.** Componentes e páginas têm testes com Testing Library, os hooks/serviços têm cobertura e o Playwright cobre o caminho crítico (login, criação, busca, detalhe e exclusão). O E2E roda em PRs, sob demanda e em schedule.
+- **Testes de UI.** Componentes e páginas têm testes com Testing Library, os hooks/serviços têm cobertura e o Playwright cobre o caminho crítico (login, criação, busca, detalhe e exclusão). O E2E roda em PRs, sob demanda e em schedule. A regressão visual usa snapshots Linux e roda em um workflow separado.
 - **Observabilidade.** Log padrão do Nest/Fastify, sem request-id nem métricas. Para mudar: Pino estruturado, correlação de requisição e endpoint de métricas.
 
 ## Licença

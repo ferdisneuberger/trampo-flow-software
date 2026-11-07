@@ -3,10 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { DeleteApplicationUseCase } from '../../src/application/applications/use-cases/delete-application.use-case';
 import { ApplicationDeleteMode } from '../../src/application/applications/types/application-delete-mode';
 import { InMemoryApplicationRepository } from '../repositories/in-memory-application.repository';
-import {
-  makeApplicationFile,
-  makeRestoredApplication,
-} from '../factories/application.factory';
+import { makeRestoredApplication } from '../factories/application.factory';
 
 const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
 
@@ -40,9 +37,8 @@ describe('DeleteApplicationUseCase', () => {
     ).toHaveLength(1);
   });
 
-  it('soft deletes with an explicit mode and preserves attached files', async () => {
-    const file = makeApplicationFile();
-    const application = makeRestoredApplication({ files: [file] });
+  it('soft deletes with an explicit mode', async () => {
+    const application = makeRestoredApplication();
     await repository.create(application, USER_ID);
 
     await useCase.execute({
@@ -54,8 +50,6 @@ describe('DeleteApplicationUseCase', () => {
     const stored = await repository.findById(application.id, USER_ID);
 
     expect(stored?.isDeleted).toBe(true);
-    expect(stored?.files).toHaveLength(1);
-    expect(stored?.files[0].id).toBe(file.id);
   });
 
   it('physically deletes the application with hard mode', async () => {

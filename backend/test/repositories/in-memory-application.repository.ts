@@ -1,5 +1,4 @@
 import { Application } from '../../src/domain/applications/entities/application.entity';
-import { ApplicationFile } from '../../src/domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
 import {
   ApplicationRepository,
@@ -23,18 +22,6 @@ function cloneApplication(application: Application): Application {
     position: application.position,
     status: application.status,
     currentPhase: application.currentPhase,
-    files: application.files.map((file) =>
-      ApplicationFile.restore({
-        id: file.id,
-        name: file.name,
-        storageKey: file.storageKey,
-        legacyUrl: file.legacyUrl,
-        mimeType: file.mimeType,
-        sizeInBytes: file.sizeInBytes,
-        checksum: file.checksum,
-        uploadedAt: file.uploadedAt,
-      }),
-    ),
     createdAt: application.createdAt,
     updatedAt: application.updatedAt,
     deletedAt: application.deletedAt,
@@ -55,7 +42,6 @@ function withPlacement(
     position,
     status,
     currentPhase: application.currentPhase,
-    files: application.files,
     createdAt: application.createdAt,
     updatedAt: application.updatedAt,
     deletedAt: application.deletedAt,

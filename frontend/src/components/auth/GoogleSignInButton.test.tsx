@@ -78,6 +78,7 @@ describe('GoogleSignInButton', () => {
       loginWithGoogle,
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      updateThemePreference: vi.fn(),
     });
   });
 
@@ -99,7 +100,24 @@ describe('GoogleSignInButton', () => {
     expect(google.initialize).toHaveBeenCalledWith(
       expect.objectContaining({ client_id: 'client-id' }),
     );
-    expect(google.renderButton).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(google.renderButton).toHaveBeenCalledWith(
+        expect.any(HTMLElement),
+        expect.objectContaining({
+          width: 320,
+          size: 'large',
+          locale: 'pt-BR',
+        }),
+      ),
+    );
+    expect(google.initialize).toHaveBeenCalledOnce();
+
+    const visualButton = screen.getByText('Continuar com Google');
+
+    expect(visualButton).toHaveAttribute('aria-hidden', 'true');
+    expect(
+      screen.queryByRole('button', { name: 'Continuar com Google' }),
+    ).not.toBeInTheDocument();
   });
 
   it('envia a credencial ao autenticar', async () => {

@@ -46,5 +46,5 @@ Fora do escopo:
 - JWT assinado com HMAC-SHA256, `iss`/`aud` validados e TTL máximo de 30 dias.
 - `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`.
 - Cabeçalhos de segurança aplicados na API; CSP restritiva fora de `/docs`.
-- Portas de banco e Adminer publicadas apenas em `127.0.0.1`.
+- Porta do banco publicada apenas em `127.0.0.1`.
 - Dependabot e secret scanning habilitados no repositório.

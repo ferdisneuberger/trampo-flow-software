@@ -13,12 +13,14 @@ import type { RegisterUserUseCase } from '../../src/application/auth/use-cases/r
 import type { ForgotPasswordUseCase } from '../../src/application/auth/use-cases/forgot-password.use-case';
 import type { ResendVerificationUseCase } from '../../src/application/auth/use-cases/resend-verification.use-case';
 import type { ResetPasswordUseCase } from '../../src/application/auth/use-cases/reset-password.use-case';
+import type { UpdateThemePreferenceUseCase } from '../../src/application/auth/use-cases/update-theme-preference.use-case';
 import type { GoogleSignInUseCase } from '../../src/application/auth/use-cases/google-sign-in.use-case';
 import type { VerifyEmailUseCase } from '../../src/application/auth/use-cases/verify-email.use-case';
 import type { LogoutUseCase } from '../../src/application/auth/use-cases/logout.use-case';
 import type { RefreshSessionUseCase } from '../../src/application/auth/use-cases/refresh-session.use-case';
 import { UnauthorizedError } from '../../src/application/shared/errors/unauthorized.error';
 import { User } from '../../src/domain/users/entities/user.entity';
+import { ThemePreference } from '../../src/domain/users/enums/theme-preference.enum';
 import type { LoginRateLimiter } from '../../src/infrastructure/auth/login-rate-limiter.service';
 import type { RateLimiterService } from '../../src/infrastructure/auth/rate-limiter.service';
 import type { TokenService } from '../../src/infrastructure/auth/token.service';
@@ -83,6 +85,7 @@ function createController() {
   const resendVerification = vi.fn();
   const forgotPassword = vi.fn();
   const resetPassword = vi.fn();
+  const updateThemePreference = vi.fn();
   const googleSignIn = vi.fn();
   const consume = vi.fn();
   const sign = vi.fn().mockReturnValue({ token: 'jwt', expiresAt: 123 });
@@ -105,6 +108,9 @@ function createController() {
     { execute: resendVerification } as unknown as ResendVerificationUseCase,
     { execute: forgotPassword } as unknown as ForgotPasswordUseCase,
     { execute: resetPassword } as unknown as ResetPasswordUseCase,
+    {
+      execute: updateThemePreference,
+    } as unknown as UpdateThemePreferenceUseCase,
     { execute: googleSignIn } as unknown as GoogleSignInUseCase,
     { consume } as unknown as RateLimiterService,
     { sign, expiresInSeconds: 3600 } as unknown as TokenService,
@@ -128,6 +134,7 @@ function createController() {
     resendVerification,
     forgotPassword,
     resetPassword,
+    updateThemePreference,
     googleSignIn,
     consume,
     sign,
@@ -179,6 +186,7 @@ describe('AuthController', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        themePreference: 'light',
         verificationResendAvailableAt: null,
       },
     });
@@ -459,7 +467,55 @@ describe('AuthController', () => {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      themePreference: 'light',
       verificationResendAvailableAt: null,
     });
+  });
+
+  it('atualiza a preferência de tema do usuário', async () => {
+    const { controller, updateThemePreference, getProfile } =
+      createController();
+    const user = makeUser();
+    user.changeThemePreference(ThemePreference.DARK);
+
+    updateThemePreference.mockResolvedValue(user);
+    getProfile.mockResolvedValue({
+      user,
+      verificationResendAvailableAt: null,
+    });
+
+    await expect(
+      controller.updateTheme(USER_ID, {
+        themePreference: ThemePreference.DARK,
+      }),
+    ).resolves.toMatchObject({ themePreference: ThemePreference.DARK });
+    expect(updateThemePreference).toHaveBeenCalledWith({
+      userId: USER_ID,
+      themePreference: ThemePreference.DARK,
+    });
+  });
+
+  it('mantém o cooldown de reenvio ao atualizar o tema', async () => {
+    const { controller, updateThemePreference, getProfile } =
+      createController();
+    const user = makeUser();
+    user.changeThemePreference(ThemePreference.DARK);
+    const resendAvailableAt = new Date('2026-11-07T12:02:00.000Z');
+
+    updateThemePreference.mockResolvedValue(user);
+    getProfile.mockResolvedValue({
+      user,
+      verificationResendAvailableAt: resendAvailableAt,
+    });
+
+    await expect(
+      controller.updateTheme(USER_ID, {
+        themePreference: ThemePreference.DARK,
+      }),
+    ).resolves.toMatchObject({
+      themePreference: ThemePreference.DARK,
+      verificationResendAvailableAt: resendAvailableAt.toISOString(),
+    });
+    expect(getProfile).toHaveBeenCalledWith(USER_ID);
   });
 });

@@ -25,7 +25,6 @@ model Application {
   position     Int               @default(0)
   status       ApplicationStatus @default(PENDING)
   currentPhase String            @map("current_phase") @db.VarChar(120)
-  files        ApplicationFile[]
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
   deletedAt    DateTime?         @map("deleted_at")
@@ -48,6 +47,7 @@ model User {
   username           String?   @unique @db.VarChar(120)
   googleId           String?   @unique @map("google_id") @db.VarChar(255)
   passwordHash       String?   @map("password_hash") @db.VarChar(255)
+  themePreference    String    @default("light") @map("theme_preference") @db.VarChar(10)
   lastLoginAt        DateTime? @map("last_login_at")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
@@ -76,22 +76,6 @@ model AuthToken {
   @@index([userId, type])
   @@index([expiresAt])
   @@map("auth_tokens")
-}
-
-model ApplicationFile {
-  id            String      @id @db.Uuid
-  applicationId String      @map("application_id") @db.Uuid
-  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  name          String      @db.VarChar(255)
-  storageKey    String?     @unique @map("storage_key") @db.VarChar(512)
-  legacyUrl     String?     @map("legacy_url") @db.VarChar(2048)
-  mimeType      String      @map("mime_type") @db.VarChar(100)
-  sizeInBytes   Int         @map("size_in_bytes")
-  checksum      String?     @db.VarChar(64)
-  uploadedAt    DateTime    @default(now()) @map("uploaded_at")
-
-  @@index([applicationId])
-  @@map("application_files")
 }
 
 model RefreshToken {

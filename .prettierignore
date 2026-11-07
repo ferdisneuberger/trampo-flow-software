@@ -5,5 +5,4 @@ package-lock.json
 *.tsbuildinfo
 .env
 .env.*
-PLANO*.md
 LICENSE

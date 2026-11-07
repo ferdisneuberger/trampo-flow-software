@@ -21,7 +21,7 @@ export function PasswordRequirements({
       <ul
         id={id}
         aria-label="Requisitos da senha"
-        className="grid gap-1 sm:grid-cols-2"
+        className="grid gap-1.5 sm:grid-cols-2"
       >
         {requirements.map((requirement) => (
           <li
@@ -31,8 +31,8 @@ export function PasswordRequirements({
               requirement.met ? 'atendido' : 'pendente'
             }`}
             className={cn(
-              'flex items-center gap-1.5 text-xs',
-              requirement.met ? 'text-emerald-600' : 'text-ink-500',
+              'flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.04em]',
+              requirement.met ? 'text-green' : 'text-ink-500',
             )}
           >
             {requirement.met ? (
