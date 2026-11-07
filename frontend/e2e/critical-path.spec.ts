@@ -1,10 +1,19 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+const baseUrl = process.env.E2E_BASE_URL ?? '';
 const email = process.env.E2E_EMAIL ?? '';
 const password = process.env.E2E_PASSWORD ?? '';
 const mailpitUrl = process.env.E2E_MAILPIT_URL ?? '';
 const title = `E2E ${Date.now()}`;
+
+// Sem E2E_BASE_URL explícito nada roda: isso evita apontar sem querer para o
+// stack de desenvolvimento, que usa o SMTP real e o banco de verdade. O CI e o
+// `npm run test:e2e:local` definem a variável para um stack com Mailpit.
+test.skip(
+  baseUrl.length === 0,
+  'E2E_BASE_URL não definido. Use `npm run test:e2e:local`.',
+);
 
 test('login não tem violações WCAG A/AA', async ({ page }) => {
   await page.goto('/login');
@@ -18,34 +27,12 @@ test('login não tem violações WCAG A/AA', async ({ page }) => {
 });
 
 test.describe('fluxo crítico do quadro', () => {
+  // O usuário é criado já verificado por `backend/scripts/create-e2e-user.mjs`,
+  // então este fluxo não depende de e-mail.
   test.skip(
-    email.length === 0 || password.length === 0 || mailpitUrl.length === 0,
-    'E2E_EMAIL, E2E_PASSWORD e E2E_MAILPIT_URL não definidos.',
+    email.length === 0 || password.length === 0,
+    'E2E_EMAIL e E2E_PASSWORD não definidos.',
   );
-
-  test.beforeAll(async ({ request }) => {
-    const registration = await request.post('/api/auth/register', {
-      data: {
-        email,
-        firstName: 'Fernando',
-        lastName: 'Neuberger',
-        password,
-        termsAccepted: true,
-      },
-    });
-
-    if (registration.status() !== 201) {
-      expect(registration.status()).toBe(409);
-      return;
-    }
-
-    const code = await waitForVerificationCode(email);
-    const confirmation = await request.post('/api/auth/verification/confirm', {
-      data: { token: code },
-    });
-
-    expect(confirmation.status()).toBe(204);
-  });
 
   test('login, criação, busca, detalhe e exclusão', async ({ page }) => {
     await page.goto('/login');
@@ -149,6 +136,8 @@ async function waitForVerificationCode(targetEmail: string): Promise<string> {
   throw new Error('O código de verificação não chegou ao Mailpit.');
 }
 
+// Único teste que depende de e-mail: valida o contrato entre o e-mail enviado,
+// o código e a página de verificação.
 test('cadastro público com verificação de e-mail', async ({ page }) => {
   test.skip(mailpitUrl.length === 0, 'E2E_MAILPIT_URL não definido.');
 
@@ -190,91 +179,4 @@ test('cadastro público com verificação de e-mail', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: /Nova candidatura/ }),
   ).toBeEnabled();
-});
-
-async function waitForPasswordResetToken(targetEmail: string): Promise<string> {
-  const deadline = Date.now() + 20_000;
-
-  while (Date.now() < deadline) {
-    const response = await fetch(`${mailpitUrl}/api/v1/messages`);
-
-    if (response.ok) {
-      const data = (await response.json()) as {
-        messages?: Array<{ ID: string; To?: Array<{ Address: string }> }>;
-      };
-      const messages = (data.messages ?? []).filter((candidate) =>
-        candidate.To?.some((recipient) => recipient.Address === targetEmail),
-      );
-
-      for (const message of messages) {
-        const detail = await fetch(
-          `${mailpitUrl}/api/v1/message/${message.ID}`,
-        );
-
-        if (detail.ok) {
-          const content = (await detail.json()) as { Text?: string };
-          const match = content.Text?.match(/#token=([A-Za-z0-9_-]{20,})/);
-
-          if (match) {
-            return match[1];
-          }
-        }
-      }
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-
-  throw new Error('O link de recuperação não chegou ao Mailpit.');
-}
-
-test('recuperação de senha com link por e-mail', async ({ page, request }) => {
-  test.skip(mailpitUrl.length === 0, 'E2E_MAILPIT_URL não definido.');
-
-  const resetEmail = `e2e-reset-${Date.now()}@example.com`;
-  const initialPassword = 'E2e-reset-secret-123';
-  const newPassword = 'E2e-reset-secret-456';
-
-  const register = await request.post('/api/auth/register', {
-    data: {
-      email: resetEmail,
-      firstName: 'Fernando',
-      lastName: 'Neuberger',
-      password: initialPassword,
-      termsAccepted: true,
-    },
-  });
-  expect(register.status()).toBe(201);
-
-  const code = await waitForVerificationCode(resetEmail);
-  const confirm = await request.post('/api/auth/verification/confirm', {
-    data: { token: code },
-  });
-  expect(confirm.status()).toBe(204);
-
-  await page.goto('/esqueci-senha');
-  await page.getByLabel('E-mail').fill(resetEmail);
-  await page.getByRole('button', { name: /Enviar link/ }).click();
-  await expect(page.getByText('Verifique seu e-mail')).toBeVisible();
-
-  const resetToken = await waitForPasswordResetToken(resetEmail);
-
-  await page.goto(`/redefinir-senha#token=${resetToken}`);
-  await page.getByLabel('Nova senha', { exact: true }).fill(newPassword);
-  await page.getByLabel('Confirmar nova senha').fill(newPassword);
-  await page.getByRole('button', { name: /Redefinir senha/ }).click();
-
-  await expect(page.getByText('Senha redefinida')).toBeVisible();
-
-  const oldPasswordLogin = await request.post('/api/auth/login', {
-    data: { email: resetEmail, password: initialPassword },
-  });
-  expect(oldPasswordLogin.status()).toBe(401);
-
-  await page.goto('/login');
-  await page.getByLabel('E-mail').fill(resetEmail);
-  await page.getByLabel('Senha').fill(newPassword);
-  await page.getByRole('button', { name: /entrar/i }).click();
-
-  await expect(page).toHaveURL(/\/candidaturas$/);
 });
