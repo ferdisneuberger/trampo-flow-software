@@ -14,6 +14,7 @@ function clone(user: User): User {
     username: user.username,
     googleId: user.googleId,
     passwordHash: user.passwordHash,
+    themePreference: user.themePreference,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

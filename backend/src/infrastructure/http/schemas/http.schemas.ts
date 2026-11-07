@@ -24,6 +24,13 @@ export class AuthenticatedUserResponse {
   termsAccepted!: boolean;
 
   @ApiProperty({
+    enum: ['light', 'dark', 'system'],
+    enumName: 'ThemePreference',
+    example: 'light',
+  })
+  themePreference!: 'light' | 'dark' | 'system';
+
+  @ApiProperty({
     example: '2026-11-03T12:02:00.000Z',
     nullable: true,
     type: String,

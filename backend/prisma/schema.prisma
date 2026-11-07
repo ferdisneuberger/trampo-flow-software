@@ -47,6 +47,7 @@ model User {
   username           String?   @unique @db.VarChar(120)
   googleId           String?   @unique @map("google_id") @db.VarChar(255)
   passwordHash       String?   @map("password_hash") @db.VarChar(255)
+  themePreference    String    @default("light") @map("theme_preference") @db.VarChar(10)
   lastLoginAt        DateTime? @map("last_login_at")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")

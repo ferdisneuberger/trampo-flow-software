@@ -1,5 +1,13 @@
 import { Prisma, User as PrismaUser } from '@prisma/client';
 import { User } from '../../../../domain/users/entities/user.entity';
+import {
+  DEFAULT_THEME_PREFERENCE,
+  isThemePreference,
+} from '../../../../domain/users/enums/theme-preference.enum';
+
+function toThemePreference(value: string) {
+  return isThemePreference(value) ? value : DEFAULT_THEME_PREFERENCE;
+}
 
 export class UserMapper {
   static toDomain(record: PrismaUser): User {
@@ -15,6 +23,7 @@ export class UserMapper {
       username: record.username,
       googleId: record.googleId,
       passwordHash: record.passwordHash,
+      themePreference: toThemePreference(record.themePreference),
       lastLoginAt: record.lastLoginAt,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
@@ -34,6 +43,7 @@ export class UserMapper {
       username: user.username,
       googleId: user.googleId,
       passwordHash: user.passwordHash,
+      themePreference: user.themePreference,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -50,6 +60,7 @@ export class UserMapper {
       termsAcceptedAt: user.termsAcceptedAt,
       termsVersion: user.termsVersion,
       passwordHash: user.passwordHash,
+      themePreference: user.themePreference,
       lastLoginAt: user.lastLoginAt,
       updatedAt: user.updatedAt,
     };

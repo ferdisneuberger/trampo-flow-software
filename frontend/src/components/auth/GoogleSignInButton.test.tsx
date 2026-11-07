@@ -78,6 +78,7 @@ describe('GoogleSignInButton', () => {
       loginWithGoogle,
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      updateThemePreference: vi.fn(),
     });
   });
 

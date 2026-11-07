@@ -40,6 +40,7 @@ function toUserData(user) {
     username: user.username,
     googleId: user.googleId,
     passwordHash: user.passwordHash,
+    themePreference: user.themePreference ?? 'light',
     lastLoginAt: toDate(user.lastLoginAt),
     createdAt: new Date(user.createdAt),
     updatedAt: new Date(user.updatedAt),

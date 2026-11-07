@@ -8,6 +8,7 @@ import type {
   RegisterResponse,
   ResendVerificationResponse,
   ResetPasswordInput,
+  UpdateThemePreferenceInput,
   VerifyEmailInput,
 } from '../auth.types';
 import { apiClient } from './client';
@@ -60,6 +61,14 @@ export const authService = {
 
   async me(): Promise<AuthUser> {
     const { data } = await apiClient.get<AuthUser>('/auth/me');
+
+    return data;
+  },
+
+  async updateThemePreference(
+    input: UpdateThemePreferenceInput,
+  ): Promise<AuthUser> {
+    const { data } = await apiClient.patch<AuthUser>('/auth/me/theme', input);
 
     return data;
   },

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../contexts/auth-context';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import { LoginPage } from './LoginPage';
 
 vi.mock('../contexts/auth-context', () => ({
@@ -21,6 +22,7 @@ function renderLogin(
     emailVerified: boolean;
     hasPassword: boolean;
     termsAccepted: boolean;
+    themePreference: 'light' | 'dark' | 'system';
     verificationResendAvailableAt: string | null;
   } | null = null,
 ) {
@@ -34,17 +36,20 @@ function renderLogin(
     loginWithGoogle: vi.fn(),
     logout: vi.fn(),
     refreshProfile: vi.fn(),
+    updateThemePreference: vi.fn(),
   });
 
   render(
-    <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/candidaturas" element={<p>quadro</p>} />
-        <Route path="/verificar-email" element={<p>verificacao</p>} />
-        <Route path="*" element={<p>outra rota</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/candidaturas" element={<p>quadro</p>} />
+          <Route path="/verificar-email" element={<p>verificacao</p>} />
+          <Route path="*" element={<p>outra rota</p>} />
+        </Routes>
+      </MemoryRouter>
+    </ThemeProvider>,
   );
 
   return { login };
@@ -98,6 +103,7 @@ describe('LoginPage', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        themePreference: 'light',
         verificationResendAvailableAt: null,
       },
       isAuthenticated: true,
@@ -106,20 +112,23 @@ describe('LoginPage', () => {
       loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      updateThemePreference: vi.fn(),
     });
 
     render(
-      <MemoryRouter
-        initialEntries={[
-          { pathname: '/login', state: { from: '//evil.example.com' } },
-        ]}
-      >
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/candidaturas" element={<p>quadro</p>} />
-          <Route path="*" element={<p>outra rota</p>} />
-        </Routes>
-      </MemoryRouter>,
+      <ThemeProvider>
+        <MemoryRouter
+          initialEntries={[
+            { pathname: '/login', state: { from: '//evil.example.com' } },
+          ]}
+        >
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/candidaturas" element={<p>quadro</p>} />
+            <Route path="*" element={<p>outra rota</p>} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>,
     );
 
     expect(screen.getByText('quadro')).toBeInTheDocument();
@@ -134,6 +143,7 @@ describe('LoginPage', () => {
       emailVerified: false,
       hasPassword: true,
       termsAccepted: true,
+      themePreference: 'light',
       verificationResendAvailableAt: null,
     });
 

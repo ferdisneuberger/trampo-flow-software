@@ -6,12 +6,14 @@ vi.mock('./client', () => ({
   apiClient: {
     get: vi.fn(),
     post: vi.fn(),
+    patch: vi.fn(),
   },
 }));
 
 const client = apiClient as unknown as {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
 };
 
 describe('authService', () => {
@@ -33,6 +35,7 @@ describe('authService', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        themePreference: 'light',
         verificationResendAvailableAt: null,
       },
     };
@@ -92,6 +95,7 @@ describe('authService', () => {
         emailVerified: true,
         hasPassword: false,
         termsAccepted: true,
+        themePreference: 'light',
         verificationResendAvailableAt: null,
       },
     };
@@ -147,6 +151,7 @@ describe('authService', () => {
         emailVerified: true,
         hasPassword: true,
         termsAccepted: true,
+        themePreference: 'light',
         verificationResendAvailableAt: null,
       },
     });
@@ -159,8 +164,31 @@ describe('authService', () => {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      themePreference: 'light',
       verificationResendAvailableAt: null,
     });
     expect(client.get).toHaveBeenCalledWith('/auth/me');
+  });
+
+  it('atualiza a preferência de tema', async () => {
+    const profile = {
+      id: 'u1',
+      email: 'fernando@example.com',
+      firstName: 'Fernando',
+      lastName: 'Neuberger',
+      emailVerified: true,
+      hasPassword: true,
+      termsAccepted: true,
+      themePreference: 'dark',
+      verificationResendAvailableAt: null,
+    };
+    client.patch.mockResolvedValue({ data: profile });
+
+    await expect(
+      authService.updateThemePreference({ themePreference: 'dark' }),
+    ).resolves.toEqual(profile);
+    expect(client.patch).toHaveBeenCalledWith('/auth/me/theme', {
+      themePreference: 'dark',
+    });
   });
 });

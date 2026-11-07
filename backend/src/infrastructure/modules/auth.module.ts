@@ -12,6 +12,7 @@ import { RefreshSessionUseCase } from '../../application/auth/use-cases/refresh-
 import { RegisterUserUseCase } from '../../application/auth/use-cases/register-user.use-case';
 import { ResendVerificationUseCase } from '../../application/auth/use-cases/resend-verification.use-case';
 import { ResetPasswordUseCase } from '../../application/auth/use-cases/reset-password.use-case';
+import { UpdateThemePreferenceUseCase } from '../../application/auth/use-cases/update-theme-preference.use-case';
 import { VerifyEmailUseCase } from '../../application/auth/use-cases/verify-email.use-case';
 import { AuthSettings } from '../../application/auth/services/auth-settings';
 import { AuthTokenRepository } from '../../domain/auth/repositories/auth-token.repository';
@@ -63,6 +64,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     ResendVerificationUseCase,
     ForgotPasswordUseCase,
     ResetPasswordUseCase,
+    UpdateThemePreferenceUseCase,
     GoogleSignInUseCase,
     DeleteUserByEmailUseCase,
     LoginRateLimiter,
