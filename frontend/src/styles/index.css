@@ -1,25 +1,75 @@
-@import 'tailwindcss';
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/dm-sans';
+@import '@fontsource/space-mono/latin-400.css';
+@import '@fontsource/space-mono/latin-700.css';
+@import 'tailwindcss' source(none);
+
+@source '../**/*.{ts,tsx}';
+@source '../../index.html';
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans:
-    'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
+    'DM Sans Variable', 'DM Sans', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display:
+    'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'DM Sans Variable',
+    ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #d9e6ff;
-  --color-brand-500: #3563e9;
-  --color-brand-600: #274dc4;
-  --color-brand-700: #1f3d9e;
+  --color-brand-50: #fff4d6;
+  --color-brand-100: #ffe9b0;
+  --color-brand-500: #2447ff;
+  --color-brand-600: #ff5a3c;
+  --color-brand-700: #d43f24;
 
-  --color-ink-900: #101828;
-  --color-ink-700: #344054;
-  --color-ink-500: #667085;
+  --color-cream: #f2e8d5;
+  --color-surface: #fffaf0;
+  --color-surface-raised: #fffdf7;
+  --color-ink-900: #171512;
+  --color-ink-700: #3f3a31;
+  --color-ink-500: #6d6457;
+  --color-line: #d8cbb5;
 
-  --color-bg: #fafaf9;
-  --color-surface: #f8fafc;
-  --color-line: #e4e7ec;
+  --color-yellow: #f7c948;
+  --color-yellow-soft: #fbe7a6;
+  --color-coral: #ff5a3c;
+  --color-coral-dark: #b42318;
+  --color-cobalt: #2447ff;
+  --color-green: #00a878;
+  --color-pink: #ff9ecb;
+
+  --color-solid: #171512;
+  --color-on-solid: #fffaf0;
+  --color-sidebar: #f7c948;
+  --color-sidebar-ink: #171512;
+  --color-sidebar-muted: rgba(23, 21, 18, 0.75);
+  --color-sidebar-hover: rgba(255, 250, 240, 0.5);
+  --color-sidebar-border: #171512;
+  --color-column: #fbf4e6;
+  --color-accent-soft: rgba(247, 201, 72, 0.4);
+  --color-on-accent: #171512;
+  --color-on-coral: #171512;
+  --color-danger-soft: #ffe1dc;
+  --color-warning-soft: #fff1c9;
+  --color-success-soft: #b8f5d6;
+  --color-info-soft: #cfe0ff;
+  --color-danger-strong: #d92d20;
+  --color-danger-strong-hover: #b42318;
+  --color-shadow: #171512;
+  --color-brand-tile: #171512;
+  --color-tip-bg: #171512;
+  --color-tip-text: #fffaf0;
+  --color-tip-muted: rgba(255, 250, 240, 0.75);
+  --color-overlay: rgba(23, 21, 18, 0.45);
 
   --radius-card: 0.75rem;
+  --radius-btn: 0.5rem;
+
+  --shadow-hard: 3px 3px 0 var(--color-shadow);
+  --shadow-hard-sm: 2px 2px 0 var(--color-shadow);
+  --shadow-hard-lg: 6px 6px 0 var(--color-shadow);
 }
 
 @layer base {
@@ -27,9 +77,54 @@
     border-color: var(--color-line);
   }
 
+  :root {
+    --tf-dot: rgba(23, 21, 18, 0.13);
+  }
+
   html {
     color-scheme: light;
     scroll-behavior: smooth;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  .dark {
+    --color-cream: #12100e;
+    --color-surface: #1c1916;
+    --color-surface-raised: #27221c;
+    --color-ink-900: #f7f1e5;
+    --color-ink-700: #d8cdbb;
+    --color-ink-500: #b0a38f;
+    --color-line: #4a4238;
+
+    --color-yellow-soft: #3a2f12;
+    --color-coral: #ff7a5c;
+    --color-coral-dark: #ff9a85;
+    --color-cobalt: #8aa4ff;
+    --color-green: #4ade80;
+
+    --color-solid: #f7f1e5;
+    --color-on-solid: #171512;
+    --color-sidebar: #1c1916;
+    --color-sidebar-ink: #f7f1e5;
+    --color-sidebar-muted: rgba(247, 241, 229, 0.7);
+    --color-sidebar-hover: rgba(255, 255, 255, 0.07);
+    --color-sidebar-border: #4a4238;
+    --color-column: #211d18;
+    --color-accent-soft: rgba(247, 201, 72, 0.16);
+    --color-danger-soft: #3a1a16;
+    --color-warning-soft: #3a2f12;
+    --color-success-soft: #123328;
+    --color-info-soft: #18233f;
+    --color-shadow: #000000;
+    --color-tip-bg: #26211b;
+    --color-tip-text: #f7f1e5;
+    --color-tip-muted: rgba(247, 241, 229, 0.7);
+    --color-overlay: rgba(0, 0, 0, 0.6);
+
+    --tf-dot: rgba(247, 241, 229, 0.12);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -50,11 +145,21 @@
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
-    background-color: var(--color-bg);
+    background-color: var(--color-cream);
+    background-image: radial-gradient(var(--tf-dot) 0.7px, transparent 0.7px);
+    background-size: 18px 18px;
     color: var(--color-ink-900);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.035em;
   }
 
   button,
@@ -63,24 +168,13 @@
   }
 
   ::selection {
-    background-color: var(--color-brand-100);
-    color: var(--color-brand-700);
+    background-color: var(--color-yellow);
+    color: var(--color-on-accent);
   }
 }
 
 @layer components {
   .app-shell {
-    background:
-      radial-gradient(
-        circle at top left,
-        rgba(53, 99, 233, 0.09),
-        transparent 28rem
-      ),
-      radial-gradient(
-        circle at top right,
-        rgba(16, 185, 129, 0.06),
-        transparent 24rem
-      ),
-      var(--color-surface);
+    background: transparent;
   }
 }

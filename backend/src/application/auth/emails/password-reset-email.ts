@@ -26,19 +26,19 @@ export function buildPasswordResetEmail({
   ].join('\n');
 
   const content = `
-    <h1 style="margin:0 0 12px;font-size:24px;line-height:32px;color:#101828;">Redefinir sua senha</h1>
-    <p style="margin:0 0 8px;font-size:15px;line-height:24px;color:#344054;">
+    <h1 class="tf-heading" style="margin:0 0 12px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;font-size:26px;line-height:32px;font-weight:800;letter-spacing:-0.04em;color:#171512;">Redefinir sua senha</h1>
+    <p class="tf-text" style="margin:0 0 8px;font-size:15px;line-height:24px;color:#3f3a31;">
       Recebemos um pedido para redefinir a senha da sua conta no Trampo Flow.
     </p>
-    <p style="margin:0 0 0;font-size:15px;line-height:24px;color:#344054;">
-      Clique no botão abaixo para criar uma nova senha. O link expira em ${expiresInMinutes} minutos.
+    <p class="tf-text" style="margin:0 0 0;font-size:15px;line-height:24px;color:#3f3a31;">
+      Clica no botão abaixo para criar uma nova senha. O link expira em ${expiresInMinutes} minutos e só pode ser usado uma vez.
     </p>
     ${renderButton('Criar nova senha', link)}
-    <p style="margin:0;font-size:13px;line-height:20px;color:#667085;">
+    <p class="tf-muted" style="margin:0;font-size:13px;line-height:20px;color:#6d6457;">
       Se o botão não funcionar, copie e cole este link no navegador:<br />
-      <a href="${escapeHtml(link)}" style="color:#274dc4;word-break:break-all;">${escapeHtml(link)}</a>
+      <a href="${escapeHtml(link)}" style="color:#b42318;word-break:break-all;">${escapeHtml(link)}</a>
     </p>
-    <p style="margin:24px 0 0;font-size:13px;line-height:20px;color:#667085;">
+    <p class="tf-muted" style="margin:24px 0 0;font-size:13px;line-height:20px;color:#6d6457;">
       Se você não solicitou, ignore este e-mail. Sua senha continua a mesma.
     </p>
   `;

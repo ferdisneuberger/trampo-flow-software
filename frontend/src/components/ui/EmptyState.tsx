@@ -17,10 +17,10 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <Card className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span className="grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
-        <Icon className="size-7" aria-hidden="true" />
+      <span className="grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
+        <Icon className="size-8" aria-hidden="true" />
       </span>
-      <h2 className="mt-5 text-lg font-semibold tracking-tight text-ink-900">
+      <h2 className="mt-5 font-display text-2xl font-bold tracking-[-0.04em] text-ink-900">
         {title}
       </h2>
       <p className="mt-2 max-w-md text-sm leading-6 text-ink-500">

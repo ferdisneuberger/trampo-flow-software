@@ -73,7 +73,7 @@ describe('Board', () => {
       screen.getByRole('heading', { name: 'Aguardando' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Backend Engineer' }),
+      screen.getByRole('link', { name: /Backend Engineer/ }),
     ).toHaveAttribute('href', '/candidaturas/a');
   });
 
@@ -137,7 +137,7 @@ describe('Board', () => {
     );
 
     await userEvent.click(
-      screen.getByRole('link', { name: 'Backend Engineer' }),
+      screen.getByRole('link', { name: /Backend Engineer/ }),
     );
 
     expect(await screen.findByText('detalhe')).toBeInTheDocument();

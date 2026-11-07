@@ -44,10 +44,10 @@ export class ErrorBoundary extends Component<
 
     return (
       <Card className="mx-auto flex max-w-xl flex-col items-center px-6 py-12 text-center">
-        <span className="grid size-14 place-items-center rounded-2xl bg-rose-50 text-rose-600">
-          <AlertTriangle className="size-7" aria-hidden="true" />
+        <span className="grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-danger-soft text-coral-dark shadow-hard-sm">
+          <AlertTriangle className="size-8" aria-hidden="true" />
         </span>
-        <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">
+        <h1 className="mt-5 font-display text-2xl font-bold tracking-[-0.04em] text-ink-900">
           Algo deu errado
         </h1>
         <p className="mt-2 max-w-md text-sm leading-6 text-ink-500">

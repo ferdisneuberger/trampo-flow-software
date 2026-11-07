@@ -39,19 +39,19 @@ export function ForgotPasswordPage() {
     return (
       <AuthPageLayout>
         <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="size-7" aria-hidden="true" />
+          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-success-soft text-ink-900 shadow-hard-sm">
+            <CheckCircle2 className="size-8" aria-hidden="true" />
           </span>
-          <h2 className="mt-5 text-lg font-semibold tracking-tight text-ink-900">
+          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
             Verifique seu e-mail
-          </h2>
+          </h1>
           <p className="mt-2 text-sm leading-6 text-ink-500">
             Se houver uma conta com esse e-mail, enviaremos um link para
             redefinir a senha. Confira também a caixa de spam.
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block text-sm font-semibold text-brand-700 underline-offset-4 hover:underline"
+            className="mt-6 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
           >
             Voltar para o login
           </Link>
@@ -64,10 +64,13 @@ export function ForgotPasswordPage() {
     <AuthPageLayout tagline="Recupere o acesso à sua conta">
       <Card className="p-6 sm:p-8">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold tracking-tight text-ink-900">
+          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
+            <Send className="size-6" aria-hidden="true" />
+          </span>
+          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
             Esqueci minha senha
-          </h2>
-          <p className="mt-1 text-sm text-ink-500">
+          </h1>
+          <p className="mt-1 text-sm leading-6 text-ink-500">
             Informe seu e-mail para receber um link de redefinição.
           </p>
         </div>
@@ -114,7 +117,7 @@ export function ForgotPasswordPage() {
           Lembrou a senha?{' '}
           <Link
             to="/login"
-            className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+            className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
           >
             Entrar
           </Link>

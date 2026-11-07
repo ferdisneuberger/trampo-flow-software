@@ -83,29 +83,29 @@ export function DeleteApplicationDialog({
         </div>
       )}
 
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-rose-200 bg-white p-4 text-sm">
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-ink-900 bg-danger-soft p-4 text-sm shadow-hard-sm">
         <input
           type="checkbox"
-          className="mt-0.5 size-4 rounded border-line accent-rose-600"
+          className="mt-0.5 size-4 rounded border-2 border-ink-900 accent-coral"
           checked={isConfirmed}
           onChange={(event) => setIsConfirmed(event.target.checked)}
           disabled={isDeleting}
         />
         <span>
-          <span className="block font-semibold text-rose-700">
+          <span className="block font-bold text-coral-dark">
             Confirmo a exclusão
           </span>
-          <span className="mt-0.5 block text-xs leading-5 text-ink-500">
+          <span className="mt-0.5 block text-xs leading-5 text-ink-700">
             Entendo que a candidatura será removida do quadro e que esta ação
             exige confirmação explícita.
           </span>
         </span>
       </label>
 
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm">
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-ink-900 bg-surface p-4 text-sm shadow-hard-sm">
         <input
           type="checkbox"
-          className="mt-0.5 size-4 rounded border-line accent-rose-600"
+          className="mt-0.5 size-4 rounded border-2 border-ink-900 accent-coral"
           checked={mode === 'hard'}
           onChange={(event) => {
             setMode(event.target.checked ? 'hard' : 'soft');
@@ -114,7 +114,7 @@ export function DeleteApplicationDialog({
           disabled={isDeleting}
         />
         <span>
-          <span className="block font-medium text-ink-900">
+          <span className="block font-bold text-ink-900">
             Excluir permanentemente
           </span>
           <span className="mt-0.5 block text-xs leading-5 text-ink-500">

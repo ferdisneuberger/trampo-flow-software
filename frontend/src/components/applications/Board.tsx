@@ -91,12 +91,15 @@ export function Board({ board, search, onEdit, onDelete }: BoardProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {search ? (
-        <p className="text-xs text-ink-500">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-ink-500">
           Reordenação por arrastar desativada enquanto há busca ativa. Use o
           menu do card para mudar de coluna.
         </p>
       ) : place.isPending ? (
-        <p role="status" className="text-xs text-ink-500">
+        <p
+          role="status"
+          className="font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-ink-500"
+        >
           Sincronizando o quadro...
         </p>
       ) : null}

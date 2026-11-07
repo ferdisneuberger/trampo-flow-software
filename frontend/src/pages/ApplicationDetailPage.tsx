@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   Building2,
   CalendarDays,
+  Compass,
   ExternalLink,
   FileText,
   Pencil,
@@ -14,12 +15,12 @@ import { ApplicationStatusBadge } from '../components/applications/ApplicationSt
 import { DeleteApplicationDialog } from '../components/applications/DeleteApplicationDialog';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Modal } from '../components/ui/Modal';
 import { Skeleton } from '../components/ui/Skeleton';
 import { useApplication } from '../hooks/useApplication';
 import { useApplicationMutations } from '../hooks/useApplicationMutations';
+import { cn } from '../utils/cn';
 import { getErrorMessage } from '../utils/errors';
 import { formatDate } from '../utils/format';
 import { formatUrlHost, safeHttpUrl } from '../utils/url';
@@ -101,24 +102,27 @@ export function ApplicationDetailPage() {
   const jobUrl = safeHttpUrl(application.link);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-5">
       <Link
         to="/candidaturas"
-        className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition hover:text-ink-900"
+        className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-500 transition hover:text-ink-900"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Candidaturas
+        Meus trampos
       </Link>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-coral-dark">
+            Candidatura
+          </p>
           <h1
             title={application.title}
-            className="line-clamp-2 break-words text-2xl font-semibold tracking-tight text-ink-900"
+            className="mt-2 line-clamp-2 break-words font-display text-4xl font-extrabold leading-[0.95] tracking-[-0.06em] text-ink-900"
           >
             {application.title}
           </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-ink-700">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-ink-700">
             <span className="inline-flex items-center gap-1.5">
               <Building2 className="size-4" aria-hidden="true" />
               {companyUrl ? (
@@ -126,7 +130,7 @@ export function ApplicationDetailPage() {
                   href={companyUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 underline-offset-4 hover:text-brand-700 hover:underline"
+                  className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-cobalt"
                 >
                   {application.company}
                   <ExternalLink className="size-3" aria-hidden="true" />
@@ -159,7 +163,7 @@ export function ApplicationDetailPage() {
             Excluir
           </Button>
         </div>
-      </div>
+      </header>
 
       {feedback && (
         <Alert
@@ -178,96 +182,111 @@ export function ApplicationDetailPage() {
         />
       )}
 
-      <Card className="min-w-0 overflow-hidden p-0">
-        <dl className="grid grid-cols-1 gap-px bg-line sm:grid-cols-2">
-          <div className="bg-white px-5 py-4 sm:col-span-2">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Fase atual
-            </dt>
-            <dd className="mt-1 text-base font-medium text-ink-900">
-              {application.currentPhase}
-            </dd>
-          </div>
+      <dl className="grid grid-cols-1 overflow-hidden rounded-card border-2 border-ink-900 bg-surface shadow-hard sm:grid-cols-2">
+        <div className="border-b-2 border-ink-900 bg-accent-soft px-5 py-4 sm:col-span-2">
+          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
+            Fase atual
+          </dt>
+          <dd className="mt-1 font-display text-2xl font-bold tracking-[-0.04em] text-ink-900">
+            {application.currentPhase}
+          </dd>
+        </div>
 
-          <div
-            className={
-              companyUrl
-                ? 'bg-white px-5 py-4'
-                : 'bg-white px-5 py-4 sm:col-span-2'
-            }
-          >
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Link da vaga
+        <div
+          className={cn(
+            'border-b-2 border-ink-900 px-5 py-4',
+            companyUrl ? 'sm:border-r-2' : 'sm:col-span-2',
+          )}
+        >
+          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
+            Link da vaga
+          </dt>
+          <dd className="mt-1 min-w-0 text-sm">
+            {jobUrl ? (
+              <a
+                href={jobUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={application.link}
+                className="inline-flex max-w-full items-center gap-1.5 text-cobalt underline underline-offset-4 hover:text-ink-900"
+              >
+                <span className="truncate">{formatUrlHost(jobUrl)}</span>
+                <ExternalLink
+                  className="size-3.5 shrink-0"
+                  aria-hidden="true"
+                />
+              </a>
+            ) : (
+              <span className="break-all text-ink-700">{application.link}</span>
+            )}
+          </dd>
+        </div>
+
+        {companyUrl && (
+          <div className="border-b-2 border-ink-900 px-5 py-4">
+            <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
+              Site da empresa
             </dt>
             <dd className="mt-1 min-w-0 text-sm">
-              {jobUrl ? (
-                <a
-                  href={jobUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={application.link}
-                  className="inline-flex max-w-full items-center gap-1.5 text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
-                >
-                  <span className="truncate">{formatUrlHost(jobUrl)}</span>
-                  <ExternalLink
-                    className="size-3.5 shrink-0"
-                    aria-hidden="true"
-                  />
-                </a>
-              ) : (
-                <span className="break-all text-ink-700">
-                  {application.link}
-                </span>
-              )}
+              <a
+                href={companyUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={application.companyUrl ?? undefined}
+                className="inline-flex max-w-full items-center gap-1.5 text-cobalt underline underline-offset-4 hover:text-ink-900"
+              >
+                <span className="truncate">{formatUrlHost(companyUrl)}</span>
+                <ExternalLink
+                  className="size-3.5 shrink-0"
+                  aria-hidden="true"
+                />
+              </a>
             </dd>
           </div>
+        )}
 
-          {companyUrl && (
-            <div className="bg-white px-5 py-4">
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-                Site da empresa
-              </dt>
-              <dd className="mt-1 min-w-0 text-sm">
-                <a
-                  href={companyUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={application.companyUrl ?? undefined}
-                  className="inline-flex max-w-full items-center gap-1.5 text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline"
-                >
-                  <span className="truncate">{formatUrlHost(companyUrl)}</span>
-                  <ExternalLink
-                    className="size-3.5 shrink-0"
-                    aria-hidden="true"
-                  />
-                </a>
-              </dd>
-            </div>
+        <div
+          className={cn(
+            'border-b-2 border-ink-900 px-5 py-4 sm:border-b-0',
+            companyUrl && 'sm:border-r-2',
           )}
+        >
+          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
+            Criada em
+          </dt>
+          <dd className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink-900">
+            <CalendarDays
+              className="size-3.5 text-ink-500"
+              aria-hidden="true"
+            />
+            {formatDate(application.createdAt)}
+          </dd>
+        </div>
 
-          <div className="bg-white px-5 py-4">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Criada em
-            </dt>
-            <dd className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink-900">
-              <CalendarDays
-                className="size-3.5 text-ink-500"
-                aria-hidden="true"
-              />
-              {formatDate(application.createdAt)}
-            </dd>
-          </div>
+        <div className="px-5 py-4">
+          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
+            Atualizada em
+          </dt>
+          <dd className="mt-1 text-sm text-ink-900">
+            {formatDate(application.updatedAt)}
+          </dd>
+        </div>
+      </dl>
 
-          <div className="bg-white px-5 py-4">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              Atualizada em
-            </dt>
-            <dd className="mt-1 text-sm text-ink-900">
-              {formatDate(application.updatedAt)}
-            </dd>
-          </div>
-        </dl>
-      </Card>
+      <aside className="flex items-start gap-3 rounded-xl border-2 border-ink-900 bg-tip-bg p-5 text-tip-text shadow-hard">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg border-2 border-ink-900 bg-yellow text-on-accent">
+          <Compass className="size-5" aria-hidden="true" />
+        </span>
+        <div>
+          <h2 className="font-display text-lg font-bold tracking-[-0.02em]">
+            Mantém o ritmo
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-tip-muted">
+            Você está em {application.currentPhase}. Se a empresa não responder,
+            vale um follow-up curto e educado — sem drama.
+          </p>
+        </div>
+      </aside>
 
       <Modal
         isOpen={isEditing}

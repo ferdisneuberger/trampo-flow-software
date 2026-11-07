@@ -31,7 +31,7 @@ export function Select({
     <div className={cn('space-y-1.5', containerClassName)}>
       <label
         htmlFor={selectId}
-        className="block text-sm font-medium text-ink-700"
+        className="block font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-ink-700"
       >
         {label}
       </label>
@@ -41,9 +41,8 @@ export function Select({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? descriptionId : undefined}
           className={cn(
-            'block h-11 w-full appearance-none rounded-xl border border-line bg-white px-3.5 pr-10 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-surface',
-            error &&
-              'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10',
+            'block h-11 w-full appearance-none rounded-btn border-2 border-ink-900 bg-surface px-3.5 pr-10 text-sm text-ink-900 shadow-hard-sm outline-none transition focus:border-cobalt focus:ring-4 focus:ring-cobalt/15 disabled:cursor-not-allowed disabled:bg-cream/60',
+            error && 'border-coral focus:border-coral focus:ring-coral/15',
             className,
           )}
           {...props}
@@ -55,12 +54,12 @@ export function Select({
           ))}
         </select>
         <ChevronDown
-          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-500"
+          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-700"
           aria-hidden="true"
         />
       </div>
       {error ? (
-        <p id={descriptionId} className="text-xs font-medium text-rose-600">
+        <p id={descriptionId} className="text-xs font-semibold text-coral-dark">
           {error}
         </p>
       ) : null}
