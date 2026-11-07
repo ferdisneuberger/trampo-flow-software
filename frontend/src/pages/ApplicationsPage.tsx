@@ -300,7 +300,7 @@ export function ApplicationsPage() {
         }
       />
 
-      <div id="board-search-panel" className={cn(!isSearchOpen && 'hidden')}>
+      <div id="board-search-panel" className={cn(!isSearchOpen && 'sr-only')}>
         <Input
           id="board-search"
           label="Buscar"
@@ -308,6 +308,7 @@ export function ApplicationsPage() {
           placeholder="Título, empresa ou fase..."
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
+          onFocus={() => setIsSearchOpen(true)}
           leading={<Search className="size-4" aria-hidden="true" />}
           trailing={
             <kbd className="mr-1 hidden rounded border border-ink-900 bg-yellow px-1.5 py-0.5 font-mono text-[10px] font-bold text-on-accent sm:inline">
