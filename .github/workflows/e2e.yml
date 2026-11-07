@@ -67,6 +67,13 @@ jobs:
           docker compose logs
           exit 1
 
+      - name: Seed E2E user
+        run: |
+          docker compose exec -T \
+            -e E2E_EMAIL=e2e@example.com \
+            -e E2E_PASSWORD=E2e-super-secret-123 \
+            api node --input-type=module < backend/scripts/create-e2e-user.mjs
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24

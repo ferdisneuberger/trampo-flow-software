@@ -13,7 +13,8 @@ export default defineConfig({
   reporter: isCI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   snapshotPathTemplate: '{testDir}/__screenshots__/{arg}{ext}',
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:5173',
+    // Sem padrão de propósito: o E2E só roda contra um stack explícito.
+    baseURL: process.env.E2E_BASE_URL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
