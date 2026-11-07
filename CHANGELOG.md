@@ -1,134 +1,134 @@
 # Changelog
 
-Todas as mudanças relevantes do projeto. O formato segue Conventional Commits e o
-versionamento semântico.
+All notable changes to the project. The format follows Conventional Commits and
+semantic versioning.
 
 ## 2.0.4 — 2026-11-06
 
-### Adicionado
+### Added
 
-- Cadastro público com verificação de email, tokens com hash, limites de reenvio e
-  emails transacionais via SMTP (Mailpit no desenvolvimento).
-- Recuperação de senha com tokens de uso único, expiração padrão de 15 minutos e
-  revogação de todas as sessões após a troca.
-- Login com Google, com verificação do ID token, criação de conta já verificada e
-  vinculação apenas a emails verificados.
-- Endpoint administrativo `DELETE /admin/users/:email`, protegido por `x-api-key` e
-  limites de taxa, com cascata de dados e scripts de backup/restauração do dono.
-- Nome e sobrenome no cadastro e nas respostas de autenticação.
-- Workflow de publicação das imagens de backend e frontend no GHCR a cada push em
+- Public sign-up with email verification, hashed tokens, resend limits, and
+  transactional emails via SMTP (Mailpit in development).
+- Password recovery with single-use tokens, a default 15-minute expiration, and
+  revocation of all sessions after the change.
+- Google sign-in, with ID token verification, accounts created already verified, and
+  linking only to verified emails.
+- Administrative endpoint `DELETE /admin/users/:email`, protected by `x-api-key` and
+  rate limits, with cascading data deletion and owner backup/restore scripts.
+- First and last name on sign-up and in authentication responses.
+- Workflow that publishes the backend and frontend images to GHCR on every push to
   `main`.
 
-### Alterado
+### Changed
 
-- Login passa a usar email como identidade; o username fica opcional e o bootstrap de
-  usuário por variáveis de ambiente foi removido.
-- Política de senha passa a exigir no mínimo 8 caracteres, com feedback em tempo real e
-  alternância de visibilidade.
-- Links de redefinição de senha expiram em 15 minutos; o TTL de verificação de email e a
-  janela de rate limit do login foram reduzidos.
-- Usuários sem email verificado podem entrar, mas são direcionados à verificação e não
-  podem criar candidaturas até confirmar a conta.
-- Workspace passa a ser somente o quadro: dashboard, visão em lista e página de conta
-  foram removidos.
-- Quadro mantém as quatro colunas na horizontal em qualquer viewport, com rolagem
-  interna, e o detalhe da candidatura foi reorganizado.
-- Sessão e invalidação de cache foram consolidadas; upload e download de arquivos saíram
-  da interface.
-- Dockerfile da API passou a multi-stage, reduzindo a imagem de 1,27 GB para 818 MB.
-- Logs de SMTP mostram configuração mascarada e falhas de entrega com código e comando.
-- `backend/.env.example` alinhado aos defaults do Compose para JWT, refresh token,
-  janela de login e TTL de verificação de email.
+- Login now uses email as the identity; the username is optional and user bootstrap
+  through environment variables was removed.
+- The password policy now requires at least 8 characters, with real-time feedback and a
+  visibility toggle.
+- Password reset links expire in 15 minutes; the email verification TTL and the login
+  rate limit window were reduced.
+- Users without a verified email can sign in, but are directed to verification and
+  cannot create applications until they confirm the account.
+- The workspace is now board-only: the dashboard, list view, and account page were
+  removed.
+- The board keeps the four columns horizontal on any viewport, with internal scrolling,
+  and the application detail page was reorganized.
+- Session handling and cache invalidation were consolidated; file upload and download
+  were removed from the interface.
+- The API Dockerfile became multi-stage, reducing the image from 1.27 GB to 818 MB.
+- SMTP logs show a masked configuration and delivery failures with code and command.
+- `backend/.env.example` aligned with the Compose defaults for JWT, refresh token,
+  login window, and email verification TTL.
 
-### Corrigido
+### Fixed
 
-- Falhas de envio de email agora ficam registradas com contexto suficiente para
-  diagnóstico.
-- Cliques gerados pelo fim de um arraste não abrem mais o cartão por engano.
-- Criação de candidatura por usuário sem email verificado é bloqueada no cliente e na
-  API.
+- Email delivery failures are now logged with enough context for diagnosis.
+- Clicks generated at the end of a drag no longer open the card by mistake.
+- Application creation by users without a verified email is blocked on the client and
+  in the API.
 
-### Removido
+### Removed
 
-- Dashboard, listagem em tabela e página de conta.
-- Upload e download de arquivos pela interface.
-- Bootstrap de usuário por variáveis de ambiente.
+- Dashboard, table listing, and account page.
+- File upload and download through the interface.
+- User bootstrap through environment variables.
 
 ## 2.0.3 — 2026-11-02
 
-### Alterado
+### Changed
 
-- Cliente de storage migrado para o AWS SDK v3.
-- Overrides para `deepmerge-ts`, `glob` e `minimatch`.
-- Pipeline de e2e desabilitado até a revisão da versão.
+- Storage client migrated to AWS SDK v3.
+- Overrides for `deepmerge-ts`, `glob`, and `minimatch`.
+- E2E pipeline disabled until the release is reviewed.
 
-### Corrigido
+### Fixed
 
-- Vulnerabilidades zeradas nos três pacotes.
+- Vulnerabilities brought to zero across the three packages.
 
 ## 2.0.2 — 2026-11-02
 
-### Adicionado
+### Added
 
-- Verificação de e2e local no pre-push, com escape via `SKIP_E2E`.
-- Workflow de e2e com filtro de paths e cache de browser.
+- Local E2E check on pre-push, with an escape hatch via `SKIP_E2E`.
+- E2E workflow with path filters and browser caching.
 
-### Alterado
+### Changed
 
-- Fluxo de ponta a ponta passa a cobrir o reload da sessão.
+- The end-to-end flow now covers session reload.
 
 ## 2.0.1 — 2026-11-02
 
-### Corrigido
+### Fixed
 
-- Logout ao atualizar a página: o access token renovado passa a ser guardado antes de
-  buscar o perfil.
+- Logout on page refresh: the renewed access token is now stored before fetching the
+  profile.
 
 ## 2.0.0 — 2026-11-02
 
-### Adicionado
+### Added
 
-- Candidaturas passam a pertencer a um usuário (`user_id`), com filtro por dono em todas
-  as consultas e 404 para registros de outra conta.
-- Campos `company` e `companyUrl`, com validação no domínio.
-- Quadro kanban com colunas por status, arrastar e soltar e reordenação manual via
+- Applications now belong to a user (`user_id`), with owner filtering on every query
+  and 404 for records from another account.
+- `company` and `companyUrl` fields, validated in the domain.
+- Kanban board with columns per status, drag and drop, and manual reordering via
   `PATCH /applications/:id/placement`.
-- Posição persistida em múltiplos de 1000, com reindexação automática quando o intervalo
-  entre vizinhos acaba.
-- Busca por título, empresa e fase, com filtro por status e paginação por cursor em
+- Position persisted in multiples of 1000, with automatic reindexing when the gap
+  between neighbors runs out.
+- Search by title, company, and phase, with status filtering and cursor pagination in
   `GET /applications`.
-- `GET /applications/stats` com contadores por status.
-- `GET /applications/board` com as colunas ordenadas por posição.
-- `GET /applications/:id` para a tela de detalhe.
-- Upload real de arquivos em storage compatível com S3 (MinIO no Compose), limitado a
-  PDF e TXT, 5 MB por arquivo e 3 por candidatura. Validação por extensão e magic bytes.
-- Download autenticado e remoção de arquivo.
-- Refresh token em cookie `HttpOnly`, com rotação por família, detecção de reuso e janela
-  de tolerância para múltiplas abas.
-- `POST /auth/refresh` e `POST /auth/logout`.
-- Painel com contadores e candidaturas paradas há mais tempo.
-- Página de conta.
-- Testes de componente com Testing Library e fluxo de ponta a ponta com Playwright.
+- `GET /applications/stats` with counters per status.
+- `GET /applications/board` with columns ordered by position.
+- `GET /applications/:id` for the detail screen.
+- Real file upload to S3-compatible storage (MinIO in Compose), limited to PDF and TXT,
+  5 MB per file, and 3 per application. Validation by extension and magic bytes.
+- Authenticated file download and removal.
+- Refresh token in an `HttpOnly` cookie, with family rotation, reuse detection, and a
+  grace window for multiple tabs.
+- `POST /auth/refresh` and `POST /auth/logout`.
+- Dashboard with counters and the longest-idle applications.
+- Account page.
+- Component tests with Testing Library and an end-to-end flow with Playwright.
 
-### Alterado
+### Changed
 
-- Access token passa a viver em memória, com validade padrão de 5 minutos e renovação
-  automática no cliente.
-- `GET /applications` devolve `{ items, nextCursor, hasMore }` em vez de um array.
-- `sub` do JWT passa a ser o id do usuário, não o username.
-- Navegação migrou do header para uma sidebar, com layout desktop-first.
-- Superfícies usam borda em vez de sombra; raio de cartão padronizado em 12px.
-- Formulário de candidatura não gerencia mais anexos; upload acontece na tela de detalhe.
-- Arquivos antigos, que eram URLs, continuam disponíveis como link externo.
+- The access token now lives in memory, with a default 5-minute lifetime and automatic
+  renewal on the client.
+- `GET /applications` returns `{ items, nextCursor, hasMore }` instead of an array.
+- The JWT `sub` is now the user id, not the username.
+- Navigation moved from the header to a sidebar, with a desktop-first layout.
+- Surfaces use borders instead of shadows; card radius standardized at 12px.
+- The application form no longer manages attachments; upload happens on the detail
+  screen.
+- Old files, which were URLs, remain available as external links.
 
-### Corrigido
+### Fixed
 
-- Candidaturas novas nasciam com `position` zero e empatavam na ordenação do quadro.
-- A janela de tolerância do refresh aceitava tokens revogados por detecção de reuso.
-- `UserBootstrapService` criava o primeiro usuário sem verificar a política de senha.
+- New applications were created with `position` zero and tied in the board ordering.
+- The refresh grace window accepted tokens revoked by reuse detection.
+- `UserBootstrapService` created the first user without checking the password policy.
 
-### Removido
+### Removed
 
-- `ApplicationsContext` e o hook manual de carregamento, substituídos por TanStack Query.
-- Componentes de lista em cartões e o uploader baseado em metadados.
+- `ApplicationsContext` and the manual loading hook, replaced by TanStack Query.
+- Card-based list components and the metadata-based uploader.
 - `token-storage` (localStorage).

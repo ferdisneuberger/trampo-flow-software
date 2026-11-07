@@ -1,50 +1,50 @@
-# Política de segurança
+# Security policy
 
-## Versões suportadas
+## Supported versions
 
-Apenas a branch `main` recebe correções. Não há releases versionadas até o momento.
+Only the `main` branch, which carries the latest release, receives fixes. Older releases are not patched.
 
-## Como reportar uma vulnerabilidade
+## Reporting a vulnerability
 
-**Não abra issue pública.** Use a aba **Security** do repositório e selecione
-**Report a vulnerability**, que abre um aviso privado visível apenas para os
-mantenedores.
+**Do not open a public issue.** Use the repository's **Security** tab and select
+**Report a vulnerability**, which opens a private advisory visible only to the
+maintainers.
 
-Inclua, se possível:
+If possible, include:
 
-- versão ou commit afetado;
-- passos para reproduzir;
-- impacto esperado (vazamento de dados, bypass de autenticação, etc.);
-- sugestão de correção, se houver.
+- the affected version or commit;
+- steps to reproduce;
+- the expected impact (data leak, authentication bypass, etc.);
+- a suggested fix, if you have one.
 
-Retorno inicial em até 7 dias. Se o relato for aceito, a correção é publicada em
-`main` e o aviso é divulgado depois do deploy.
+Initial response within 7 days. If the report is accepted, the fix is published to
+`main` and the advisory is disclosed after deployment.
 
-## Escopo
+## Scope
 
-Fazem parte do escopo:
+In scope:
 
-- autenticação, emissão e validação do JWT (`/auth/*`);
-- autorização das rotas de `/applications`;
-- exposição de dados pela API;
-- configuração de CORS, cabeçalhos de segurança e proxy do ingress;
-- injeção de SQL, XSS e CSRF na aplicação web;
-- segredos versionados por engano.
+- authentication, JWT issuing and validation (`/auth/*`);
+- authorization of the `/applications` routes;
+- data exposure through the API;
+- CORS configuration, security headers, and the ingress proxy;
+- SQL injection, XSS, and CSRF in the web application;
+- secrets committed by mistake.
 
-Fora do escopo:
+Out of scope:
 
-- engenharia social e phishing;
-- negação de serviço e flood;
-- relatos gerados apenas por scanner, sem prova de impacto;
-- vulnerabilidades em dependências sem CVE aplicável ao uso do projeto;
-- más práticas já documentadas em "Decisões e limitações conhecidas" no README
-  (sessão no `localStorage`, rate limit em memória, ausência de paginação).
+- social engineering and phishing;
+- denial of service and flooding;
+- scanner-only reports without proof of impact;
+- vulnerabilities in dependencies without a CVE applicable to how the project uses them;
+- trade-offs already documented in "Decisions and known limitations" in the README
+  (in-memory login rate limit, no roles or account sharing, guard database lookup on every request).
 
-## Práticas adotadas
+## Practices in place
 
-- Senha comparada em tempo constante, com limite de tentativas por janela.
-- JWT assinado com HMAC-SHA256, `iss`/`aud` validados e TTL máximo de 30 dias.
-- `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`.
-- Cabeçalhos de segurança aplicados na API; CSP restritiva fora de `/docs`.
-- Porta do banco publicada apenas em `127.0.0.1`.
-- Dependabot e secret scanning habilitados no repositório.
+- Passwords compared in constant time, with a limit of attempts per window.
+- JWTs signed with HMAC-SHA256, with `iss`/`aud` validated and a maximum TTL of 30 days.
+- `ValidationPipe` with `whitelist` and `forbidNonWhitelisted`.
+- Security headers applied in the API; restrictive CSP outside `/docs`.
+- Database port published only on `127.0.0.1`.
+- Dependabot and secret scanning enabled in the repository.
