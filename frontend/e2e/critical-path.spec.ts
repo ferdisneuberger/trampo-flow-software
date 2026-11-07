@@ -42,11 +42,19 @@ test.describe('fluxo crítico do quadro', () => {
     await page.getByRole('button', { name: /entrar/i }).click();
 
     await expect(page).toHaveURL(/\/candidaturas$/);
-    await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /Menu da conta/ }),
+    ).toBeVisible();
 
+    // A sessão volta pelo cookie de refresh depois de recarregar.
     await page.reload();
     await expect(page).toHaveURL(/\/candidaturas$/);
-    await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /Menu da conta/ }),
+    ).toBeVisible();
+
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/candidaturas$/);
 
     await page.getByRole('button', { name: /nova candidatura/i }).click();
 
@@ -86,7 +94,7 @@ test.describe('fluxo crítico do quadro', () => {
     await expect(page.getByRole('link', { name: title })).toHaveCount(0);
   });
 
-  test('a rota inicial redireciona para o quadro', async ({ page }) => {
+  test('encerra a sessão pelo menu da conta', async ({ page }) => {
     await page.goto('/login');
 
     await page.getByLabel('E-mail').fill(email);
@@ -95,8 +103,11 @@ test.describe('fluxo crítico do quadro', () => {
 
     await expect(page).toHaveURL(/\/candidaturas$/);
 
-    await page.goto('/');
-    await expect(page).toHaveURL(/\/candidaturas$/);
+    await page.getByRole('button', { name: /Menu da conta/ }).click();
+    await expect(page.getByRole('menuitem', { name: 'Sair' })).toBeVisible();
+    await page.getByRole('menuitem', { name: 'Sair' }).click();
+
+    await expect(page).toHaveURL(/\/login$/);
   });
 });
 

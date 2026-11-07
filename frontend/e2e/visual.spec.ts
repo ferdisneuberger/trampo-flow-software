@@ -247,21 +247,5 @@ test.describe('regressão visual', () => {
         screenshotOptions,
       );
     });
-
-    test('drawer mobile', async ({ page }) => {
-      await setTheme(page, 'light');
-      await mockApi(page);
-      await page.goto('/candidaturas');
-      await page.getByRole('button', { name: 'Abrir menu' }).click();
-      await expect(
-        page.getByRole('navigation', { name: 'Principal' }),
-      ).toBeVisible();
-      await waitForFonts(page);
-
-      await expect(page).toHaveScreenshot(
-        'drawer-mobile.png',
-        screenshotOptions,
-      );
-    });
   });
 });

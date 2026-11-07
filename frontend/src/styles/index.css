@@ -42,11 +42,6 @@
 
   --color-solid: #171512;
   --color-on-solid: #fffaf0;
-  --color-sidebar: #f7c948;
-  --color-sidebar-ink: #171512;
-  --color-sidebar-muted: rgba(23, 21, 18, 0.75);
-  --color-sidebar-hover: rgba(255, 250, 240, 0.5);
-  --color-sidebar-border: #171512;
   --color-column: #fbf4e6;
   --color-accent-soft: rgba(247, 201, 72, 0.4);
   --color-on-accent: #171512;
@@ -107,11 +102,6 @@
 
     --color-solid: #f7f1e5;
     --color-on-solid: #171512;
-    --color-sidebar: #1c1916;
-    --color-sidebar-ink: #f7f1e5;
-    --color-sidebar-muted: rgba(247, 241, 229, 0.7);
-    --color-sidebar-hover: rgba(255, 255, 255, 0.07);
-    --color-sidebar-border: #4a4238;
     --color-column: #211d18;
     --color-accent-soft: rgba(247, 201, 72, 0.16);
     --color-danger-soft: #3a1a16;
