@@ -282,8 +282,8 @@ export function ApplicationDetailPage() {
             Mantém o ritmo
           </h2>
           <p className="mt-1 text-sm leading-6 text-tip-muted">
-            Você está em {application.currentPhase}. Se a empresa não responder,
-            vale um follow-up curto e educado — sem drama.
+            Nessa fase, se a empresa não responder, vale um follow-up curto e
+            educado — sem drama.
           </p>
         </div>
       </aside>
