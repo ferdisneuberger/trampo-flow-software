@@ -1,36 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Application } from '../../../domain/applications/entities/application.entity';
-import { ApplicationFile } from '../../../domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../../domain/applications/enums/application-status.enum';
-
-export class ApplicationFileHttpResponse {
-  @ApiProperty({ format: 'uuid' })
-  id!: string;
-
-  @ApiProperty({ example: 'curriculo.pdf' })
-  name!: string;
-
-  @ApiProperty({ example: 'application/pdf' })
-  mimeType!: string;
-
-  @ApiProperty({ example: 182_331 })
-  sizeInBytes!: number;
-
-  @ApiProperty({ format: 'date-time' })
-  uploadedAt!: string;
-
-  @ApiProperty({
-    nullable: true,
-    description: 'URL externa de arquivos anteriores ao upload.',
-  })
-  url!: string | null;
-
-  @ApiProperty({
-    nullable: true,
-    description: 'Rota autenticada de download para arquivos enviados.',
-  })
-  downloadUrl!: string | null;
-}
 
 export class ApplicationHttpResponse {
   @ApiProperty({ format: 'uuid' })
@@ -60,9 +30,6 @@ export class ApplicationHttpResponse {
   @ApiProperty({ example: 'Teste técnico' })
   currentPhase!: string;
 
-  @ApiProperty({ type: [ApplicationFileHttpResponse] })
-  files!: ApplicationFileHttpResponse[];
-
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 
@@ -88,29 +55,9 @@ export class ApplicationPresenter {
       position: application.position,
       status: application.status,
       currentPhase: application.currentPhase,
-      files: application.files.map((file) =>
-        ApplicationPresenter.fileToHTTP(file, application.id),
-      ),
       createdAt: application.createdAt.toISOString(),
       updatedAt: application.updatedAt.toISOString(),
       deletedAt: application.deletedAt?.toISOString() ?? null,
-    };
-  }
-
-  private static fileToHTTP(
-    file: ApplicationFile,
-    applicationId: string,
-  ): ApplicationFileHttpResponse {
-    return {
-      id: file.id,
-      name: file.name,
-      mimeType: file.mimeType,
-      sizeInBytes: file.sizeInBytes,
-      uploadedAt: file.uploadedAt.toISOString(),
-      url: file.legacyUrl,
-      downloadUrl: file.storageKey
-        ? `/applications/${applicationId}/files/${file.id}/download`
-        : null,
     };
   }
 }

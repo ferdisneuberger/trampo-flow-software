@@ -6,10 +6,6 @@ import {
   ApplicationStatus,
   isApplicationStatus,
 } from '../enums/application-status.enum';
-import {
-  ApplicationFile,
-  CreateApplicationFileInput,
-} from './application-file.entity';
 
 export const APPLICATION_TITLE_MAX_LENGTH = 120;
 export const APPLICATION_LINK_MAX_LENGTH = 2048;
@@ -18,8 +14,6 @@ export const APPLICATION_COMPANY_MIN_LENGTH = 2;
 export const APPLICATION_COMPANY_URL_MAX_LENGTH = 2048;
 export const APPLICATION_CURRENT_PHASE_MAX_LENGTH = 120;
 
-export type ApplicationFileInput = CreateApplicationFileInput | ApplicationFile;
-
 export type CreateApplicationProps = {
   title: string;
   link: string;
@@ -27,7 +21,6 @@ export type CreateApplicationProps = {
   companyUrl?: string | null;
   currentPhase: string;
   status?: ApplicationStatus;
-  files?: ApplicationFileInput[];
 };
 
 export type UpdateApplicationProps = {
@@ -47,7 +40,6 @@ type ApplicationProps = {
   position: number;
   status: ApplicationStatus;
   currentPhase: string;
-  files: ApplicationFile[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -99,10 +91,6 @@ export class Application {
       );
     }
 
-    const files = (input.files ?? []).map((file) =>
-      file instanceof ApplicationFile ? file : ApplicationFile.create(file),
-    );
-
     const now = new Date();
 
     return new Application(randomUUID(), {
@@ -113,7 +101,6 @@ export class Application {
       position: 0,
       status,
       currentPhase,
-      files,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -129,7 +116,6 @@ export class Application {
       position: input.position,
       status: input.status,
       currentPhase: input.currentPhase,
-      files: [...input.files],
       createdAt: new Date(input.createdAt),
       updatedAt: new Date(input.updatedAt),
       deletedAt: input.deletedAt ? new Date(input.deletedAt) : null,
@@ -166,10 +152,6 @@ export class Application {
 
   get currentPhase(): string {
     return this.props.currentPhase;
-  }
-
-  get files(): ApplicationFile[] {
-    return [...this.props.files];
   }
 
   get createdAt(): Date {
@@ -262,40 +244,6 @@ export class Application {
     this.props.companyUrl = companyUrl;
     this.props.currentPhase = currentPhase;
     this.props.status = status;
-    this.props.updatedAt = new Date();
-  }
-
-  addFiles(inputs: ApplicationFileInput[]): void {
-    this.ensureNotDeleted();
-
-    if (!Array.isArray(inputs) || inputs.length === 0) {
-      throw new DomainError(
-        'At least one file must be provided.',
-        'NO_FILES_PROVIDED',
-      );
-    }
-
-    const files = inputs.map((file) =>
-      file instanceof ApplicationFile ? file : ApplicationFile.create(file),
-    );
-
-    this.props.files.push(...files);
-    this.props.updatedAt = new Date();
-  }
-
-  removeFile(fileId: string): void {
-    this.ensureNotDeleted();
-
-    const index = this.props.files.findIndex((file) => file.id === fileId);
-
-    if (index < 0) {
-      throw new DomainError(
-        `File "${fileId}" was not found in this application.`,
-        'FILE_NOT_FOUND',
-      );
-    }
-
-    this.props.files.splice(index, 1);
     this.props.updatedAt = new Date();
   }
 

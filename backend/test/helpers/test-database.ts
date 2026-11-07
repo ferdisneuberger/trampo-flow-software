@@ -48,7 +48,7 @@ export async function truncateApplicationData(
   prisma: PrismaService,
 ): Promise<void> {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "application_files", "applications" RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE "applications" RESTART IDENTITY CASCADE',
   );
 }
 

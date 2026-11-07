@@ -1,6 +1,5 @@
 import { ValidationPipe } from '@nestjs/common';
 import fastifyCookie from '@fastify/cookie';
-import fastifyMultipart from '@fastify/multipart';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import {
@@ -59,9 +58,6 @@ async function bootstrap(): Promise<void> {
   );
 
   await app.register(fastifyCookie);
-  await app.register(fastifyMultipart, {
-    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
-  });
 
   const configService = app.get(ConfigService);
   const port = Number(configService.get<string>('PORT') ?? 3000);

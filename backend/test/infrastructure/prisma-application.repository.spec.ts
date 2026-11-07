@@ -1,12 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { Application } from '../../src/domain/applications/entities/application.entity';
-import { ApplicationFile } from '../../src/domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
 import { PrismaService } from '../../src/infrastructure/database/prisma/prisma.service';
 import { PrismaApplicationRepository } from '../../src/infrastructure/database/prisma/repositories/prisma-application.repository';
 import {
   makeApplication,
-  makeApplicationFile,
   makeRestoredApplication,
 } from '../factories/application.factory';
 import {
@@ -40,26 +37,6 @@ async function seedUsers(prisma: PrismaService): Promise<void> {
   }
 }
 
-function restoreWithFiles(
-  application: Application,
-  files: ApplicationFile[],
-): Application {
-  return Application.restore({
-    id: application.id,
-    title: application.title,
-    link: application.link,
-    company: application.company,
-    companyUrl: application.companyUrl,
-    position: application.position,
-    status: application.status,
-    currentPhase: application.currentPhase,
-    files,
-    createdAt: application.createdAt,
-    updatedAt: application.updatedAt,
-    deletedAt: application.deletedAt,
-  });
-}
-
 describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
   let prisma: PrismaService;
   let repository: PrismaApplicationRepository;
@@ -78,10 +55,9 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
     await truncateApplicationData(prisma);
   });
 
-  it('persiste e recupera a candidatura com arquivos', async () => {
+  it('persiste e recupera a candidatura', async () => {
     const application = makeApplication({
       status: ApplicationStatus.IN_PROGRESS,
-      files: [makeApplicationFile({ name: 'curriculo.pdf' })],
     });
 
     await repository.create(application, USER_ID);
@@ -90,9 +66,6 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
     expect(stored).not.toBeNull();
     expect(stored?.id).toBe(application.id);
     expect(stored?.status).toBe(ApplicationStatus.IN_PROGRESS);
-    expect(stored?.files).toHaveLength(1);
-    expect(stored?.files[0]?.name).toBe('curriculo.pdf');
-    expect(stored?.files[0]?.uploadedAt).toBeInstanceOf(Date);
   });
 
   it('devolve null para id inexistente', async () => {
@@ -144,68 +117,20 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
     expect(stored.map((item) => item.title)).toEqual(['Recente', 'Antiga']);
   });
 
-  it('adiciona arquivos no update sem duplicar os existentes', async () => {
-    const application = makeApplication({
-      files: [makeApplicationFile({ name: 'curriculo.pdf' })],
-    });
-
-    await repository.create(application, USER_ID);
-
-    const withNewFile = restoreWithFiles(application, [
-      ...application.files,
-      makeApplicationFile({ name: 'portfolio.pdf' }),
-    ]);
-
-    await repository.update(withNewFile, USER_ID);
-
-    const stored = await repository.findById(application.id, USER_ID);
-
-    expect(stored?.files.map((file) => file.name).sort()).toEqual([
-      'curriculo.pdf',
-      'portfolio.pdf',
-    ]);
-    expect(await prisma.applicationFile.count()).toBe(2);
-  });
-
-  it('remove da tabela os arquivos que saíram da entidade', async () => {
-    const application = makeApplication({
-      files: [
-        makeApplicationFile({ name: 'curriculo.pdf' }),
-        makeApplicationFile({ name: 'portfolio.pdf' }),
-      ],
-    });
-
-    await repository.create(application, USER_ID);
-
-    const remaining = application.files.filter(
-      (file) => file.name === 'curriculo.pdf',
-    );
-
-    await repository.update(restoreWithFiles(application, remaining), USER_ID);
-
-    const stored = await repository.findById(application.id, USER_ID);
-
-    expect(stored?.files.map((file) => file.name)).toEqual(['curriculo.pdf']);
-    expect(await prisma.applicationFile.count()).toBe(1);
-  });
-
   it('propaga o erro quando a candidatura não existe', async () => {
     const missing = makeRestoredApplication();
 
     await expect(repository.update(missing, USER_ID)).rejects.toThrow();
   });
 
-  it('remove fisicamente a candidatura e seus arquivos', async () => {
-    const application = makeApplication({
-      files: [makeApplicationFile()],
-    });
+  it('remove fisicamente a candidatura', async () => {
+    const application = makeApplication();
 
     await repository.create(application, USER_ID);
     await repository.delete(application, USER_ID);
 
     expect(await repository.findById(application.id, USER_ID)).toBeNull();
     expect(await prisma.application.count()).toBe(0);
-    expect(await prisma.applicationFile.count()).toBe(0);
   });
 
   it('preserva createdAt ao atualizar e altera updatedAt', async () => {
@@ -217,7 +142,7 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
 
     await repository.create(application, USER_ID);
 
-    const updated = restoreWithFiles(application, []);
+    const updated = application;
     updated.updateDetails({ currentPhase: 'Entrevista final' });
 
     await repository.update(updated, USER_ID);
@@ -240,7 +165,7 @@ describe.skipIf(!TEST_DATABASE_URL)('PrismaApplicationRepository', () => {
       repository.findPage(OTHER_USER_ID, { limit: 10, sort: 'recent' }),
     ).resolves.toEqual([]);
     await expect(
-      repository.update(restoreWithFiles(application, []), OTHER_USER_ID),
+      repository.update(application, OTHER_USER_ID),
     ).rejects.toThrow();
     await expect(
       repository.delete(application, OTHER_USER_ID),
