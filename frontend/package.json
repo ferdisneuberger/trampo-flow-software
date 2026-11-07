@@ -11,8 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "typecheck": "tsc -b",
+    "test:e2e": "playwright test --project=chromium",
+    "test:visual": "bash scripts/visual-test.sh",
+    "test:visual:update": "bash scripts/visual-test.sh --update-snapshots",
+    "typecheck": "tsc -b && tsc -p tsconfig.e2e.json",
     "check:bundle": "node scripts/check-bundle.mjs",
     "preview": "vite preview"
   },

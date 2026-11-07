@@ -73,4 +73,4 @@ E2E_EMAIL="$E2E_EMAIL" \
 E2E_MAILPIT_URL="http://127.0.0.1:${MAILPIT_PORT}" \
 E2E_PASSWORD="$E2E_PASSWORD" \
 E2E_BASE_URL="$BASE_URL" \
-npx playwright test "$@"
+npx playwright test --project=chromium "$@"
