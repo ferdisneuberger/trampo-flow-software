@@ -1,65 +1,65 @@
 # Trampo Flow — Frontend
 
-Interface web para acompanhar candidaturas de emprego em um quadro Kanban. Construída com React, Vite e TypeScript, consome a API NestJS do diretório `../backend`.
+Web interface for tracking job applications on a Kanban board. Built with React, Vite, and TypeScript, it consumes the NestJS API in the `../backend` directory.
 
 ## Stack
 
-- **React 19** com **TypeScript 6**
-- **Vite 8** para desenvolvimento e build
-- **Nginx** (imagem unprivileged) para servir o build de produção
-- **Tailwind CSS 4** via `@tailwindcss/vite` (configuração CSS-first)
-- **React Router 7** com rotas lazy
-- **TanStack Query 5** para cache, invalidação e mutations
-- **dnd-kit** para arrastar e soltar os cards
-- **Axios** em uma camada de serviço isolada
-- **Lucide React** para ícones
+- **React 19** with **TypeScript 6**
+- **Vite 8** for development and builds
+- **Nginx** (unprivileged image) to serve the production build
+- **Tailwind CSS 4** via `@tailwindcss/vite` (CSS-first configuration)
+- **React Router 7** with lazy routes
+- **TanStack Query 5** for caching, invalidation, and mutations
+- **dnd-kit** for dragging and dropping cards
+- **Axios** in an isolated service layer
+- **Lucide React** for icons
 
-## Arquitetura
+## Architecture
 
-A aplicação é organizada por responsabilidade, com o quadro como tela principal:
+The application is organized by responsibility, with the board as the main screen:
 
 ```text
-Página (pages/ApplicationsPage)
-  -> Quadro (components/applications/Board)
-    -> Hook de dados (hooks/useBoard)
-      -> Serviço HTTP (services/api/applications.service)
-        -> Cliente Axios (services/api/client)
-          -> API NestJS
+Page (pages/ApplicationsPage)
+  -> Board (components/applications/Board)
+    -> Data hook (hooks/useBoard)
+      -> HTTP service (services/api/applications.service)
+        -> Axios client (services/api/client)
+          -> NestJS API
 
-Página (pages/ApplicationDetailPage)
-  -> Hook de mutations (hooks/useApplicationMutations)
-    -> Serviço HTTP
+Page (pages/ApplicationDetailPage)
+  -> Mutations hook (hooks/useApplicationMutations)
+    -> HTTP service
 ```
 
-| Camada                    | Responsabilidade                                                                                    |
-| ------------------------- | --------------------------------------------------------------------------------------------------- |
-| `components/ui`           | Design system base: botões, inputs, cards, modais, menu, badges, alertas, skeleton e error boundary |
-| `components/auth`         | Rota protegida e tela de carregamento da sessão                                                     |
-| `components/layout`       | Estrutura global (navegação, conteúdo, logout e skip link)                                          |
-| `components/applications` | Quadro, colunas, cards, formulário e diálogo de exclusão                                            |
-| `pages`                   | Composição das telas                                                                                |
-| `hooks`                   | Query/mutations, formulário, debounce, disclosure e logout                                          |
-| `contexts`                | Sessão autenticada e evento de unauthorized                                                         |
-| `services`                | Tipos do domínio e chamadas HTTP isoladas                                                           |
-| `lib`                     | Query client, query keys e invalidação centralizada                                                 |
-| `config`                  | Configurações derivadas de variáveis de ambiente                                                    |
-| `utils`                   | Funções puras de formatação, validação, URLs seguras e download                                     |
+| Layer                     | Responsibility                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `components/ui`           | Base design system: buttons, inputs, cards, modals, menu, badges, alerts, skeleton, and error boundary |
+| `components/auth`         | Protected route and session loading screen                                                             |
+| `components/layout`       | Global structure (navigation, content, logout, and skip link)                                          |
+| `components/applications` | Board, columns, cards, form, and deletion dialog                                                       |
+| `pages`                   | Screen composition                                                                                     |
+| `hooks`                   | Queries/mutations, form, debounce, disclosure, and logout                                              |
+| `contexts`                | Authenticated session, theme, and the unauthorized event                                               |
+| `services`                | Domain types and isolated HTTP calls                                                                   |
+| `lib`                     | Query client, query keys, and centralized invalidation                                                 |
+| `config`                  | Settings derived from environment variables                                                            |
+| `utils`                   | Pure functions for formatting, validation, safe URLs, and downloads                                    |
 
-### Decisões de design
+### Design decisions
 
-- **Somente quadro:** a tela inicial é `/candidaturas`; não existe visão de lista nem painel de estatísticas. A rota `/` redireciona para o quadro.
-- **Cache centralizado:** `src/lib/query-keys.ts` concentra as chaves e `src/lib/invalidate.ts` invalida o quadro e o detalhe de uma candidatura. Qualquer mutation passa por esse helper.
-- **Mutations reutilizáveis:** `useApplicationMutations` é a única porta para criar, atualizar e excluir candidaturas. `ApplicationForm` recebe as ações por props, sem disparar queries escondidas.
-- **Otimismo com rollback:** mover um card atualiza ordem e totais das colunas imediatamente; se a API falhar, o quadro anterior é restaurado e um alerta é exibido.
-- **Sessão JWT:** o access token fica apenas em memória; o refresh token fica em cookie `httpOnly` + `SameSite=strict`. `refreshAccessToken` deduplica refreshes concorrentes. Logout e `401` limpam o cache de queries.
-- **Erros normalizados:** o interceptor converte falhas de rede e respostas da API em `ApiError`. Um retry com erro 500 **não** derruba a sessão.
-- **Segurança de URLs:** links externos passam por `safeHttpUrl`. O interceptor não envia o token para outra origem.
-- **Exclusão com confirmação explícita:** o diálogo exige checkbox de confirmação e oferece exclusão lógica (padrão) ou física.
-- **Acessibilidade:** modais com focus trap e restauração de foco, menus com teclado, skip link, `aria-busy` em botões e respeito a `prefers-reduced-motion`.
-- **Tema:** claro, escuro ou sistema, com padrão claro. A preferência fica salva na conta (`PATCH /auth/me/theme`) e uma cópia em `localStorage` evita flash antes do React. Os tokens semânticos ficam em `src/styles/index.css`.
-- **Regressão visual:** snapshots Playwright com API mockada em `e2e/visual.spec.ts`; as baselines são geradas em Linux e atualizadas só de forma consciente.
+- **Board only:** the home screen is `/candidaturas`; there is no list view or statistics panel. The `/` route redirects to the board.
+- **Centralized cache:** `src/lib/query-keys.ts` holds the keys and `src/lib/invalidate.ts` invalidates the board and an application's detail. Every mutation goes through this helper.
+- **Reusable mutations:** `useApplicationMutations` is the single entry point for creating, updating, and deleting applications. `ApplicationForm` receives the actions through props, without firing hidden queries.
+- **Optimistic updates with rollback:** moving a card updates the order and column totals immediately; if the API fails, the previous board is restored and an alert is shown.
+- **JWT session:** the access token lives only in memory; the refresh token lives in an `httpOnly` + `SameSite=strict` cookie. `refreshAccessToken` deduplicates concurrent refreshes. Logout and `401` clear the query cache.
+- **Normalized errors:** the interceptor converts network failures and API responses into `ApiError`. A retry that fails with a 500 does **not** end the session.
+- **URL safety:** external links go through `safeHttpUrl`. The interceptor never sends the token to another origin.
+- **Deletion with explicit confirmation:** the dialog requires a confirmation checkbox and offers soft (default) or hard deletion.
+- **Accessibility:** modals with focus trap and focus restoration, keyboard-navigable menus, skip link, `aria-busy` on buttons, and support for `prefers-reduced-motion`.
+- **Theme:** light, dark, or system, defaulting to light. The preference is saved to the account (`PATCH /auth/me/theme`), and a copy in `localStorage` prevents a flash before React loads. Semantic tokens live in `src/styles/index.css`.
+- **Visual regression:** Playwright snapshots with a mocked API in `e2e/visual.spec.ts`; baselines are generated on Linux and only updated deliberately.
 
-## Estrutura de diretórios
+## Directory structure
 
 ```text
 frontend/
@@ -105,8 +105,13 @@ frontend/
 │   ├── pages/
 │   │   ├── ApplicationDetailPage.tsx
 │   │   ├── ApplicationsPage.tsx
+│   │   ├── ForgotPasswordPage.tsx
 │   │   ├── LoginPage.tsx
-│   │   └── NotFoundPage.tsx
+│   │   ├── NotFoundPage.tsx
+│   │   ├── RegisterPage.tsx
+│   │   ├── ResetPasswordPage.tsx
+│   │   ├── TermsPage.tsx
+│   │   └── VerifyEmailPage.tsx
 │   ├── services/
 │   │   ├── api/
 │   │   │   ├── access-token.ts
@@ -128,19 +133,19 @@ frontend/
 └── vite.config.ts
 ```
 
-## Como executar
+## Running
 
-### Com Docker
+### With Docker
 
-Na raiz do projeto:
+From the project root:
 
 ```bash
 docker compose up -d --build
 ```
 
-O serviço `web` serve o build de produção com Nginx. O acesso fica em `http://localhost:5173` pelo serviço `ingress`, que encaminha `/` para o frontend e `/api` para `http://api:3000`.
+The `web` service serves the production build with Nginx. Access is at `http://localhost:5173` through the `ingress` service, which forwards `/` to the frontend and `/api` to `http://api:3000`.
 
-### Instalação local
+### Local installation
 
 ```bash
 cd frontend
@@ -149,68 +154,80 @@ cp .env.example .env
 npm run dev
 ```
 
-A aplicação fica disponível em `http://localhost:5173`. O Vite encaminha `/api/*` para `http://localhost:3000`, removendo o prefixo `/api`.
+The application is available at `http://localhost:5173`. Vite forwards `/api/*` to `http://localhost:3000`, stripping the `/api` prefix.
 
 ### Scripts
 
-| Script                       | Descrição                                     |
+| Script                       | Description                                   |
 | ---------------------------- | --------------------------------------------- |
-| `npm run dev`                | Inicia o Vite em modo desenvolvimento         |
-| `npm run build`              | Executa o typecheck e gera o build em `dist/` |
-| `npm run typecheck`          | Valida os tipos sem gerar arquivos            |
-| `npm run lint`               | ESLint com regras type-aware                  |
-| `npm run test`               | Testes unitários e de componentes (Vitest)    |
-| `npm run test:cov`           | Testes com cobertura e thresholds             |
-| `npm run test:e2e`           | Playwright (requer stack e credenciais)       |
-| `npm run test:visual`        | Regressão visual; usa Docker no macOS         |
-| `npm run test:visual:update` | Atualiza as baselines visuais                 |
-| `npm run check:bundle`       | Falha se o JS gzip passar de 250 KB           |
-| `npm run preview`            | Serve o build de produção localmente          |
+| `npm run dev`                | Starts Vite in development mode               |
+| `npm run build`              | Runs the typecheck and builds to `dist/`      |
+| `npm run typecheck`          | Type-checks without emitting files            |
+| `npm run lint`               | ESLint with type-aware rules                  |
+| `npm run test`               | Unit and component tests (Vitest)             |
+| `npm run test:cov`           | Tests with coverage and thresholds            |
+| `npm run test:e2e`           | Playwright (requires a stack and credentials) |
+| `npm run test:visual`        | Visual regression; uses Docker on macOS       |
+| `npm run test:visual:update` | Updates the visual baselines                  |
+| `npm run check:bundle`       | Fails if the gzipped JS exceeds 250 KB        |
+| `npm run preview`            | Serves the production build locally           |
 
-## Variáveis de ambiente
+## Environment variables
 
-| Variável                | Padrão                  | Descrição                                                                                     |
-| ----------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
-| `VITE_API_URL`          | `/api`                  | URL base usada pelo cliente Axios. Prefira `/api` para manter o cookie de refresh same-origin |
-| `VITE_APP_NAME`         | `Trampo Flow`           | Nome exibido na interface                                                                     |
-| `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Destino do proxy `/api` apenas no Vite local                                                  |
+| Variable                | Default                 | Description                                                                             |
+| ----------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| `VITE_API_URL`          | `/api`                  | Base URL used by the Axios client. Prefer `/api` to keep the refresh cookie same-origin |
+| `VITE_APP_NAME`         | `Trampo Flow`           | Name displayed in the interface                                                         |
+| `VITE_API_PROXY_TARGET` | `http://localhost:3000` | `/api` proxy target, only for local Vite                                                |
+| `VITE_GOOGLE_CLIENT_ID` | —                       | Google Client ID used by the Google sign-in button (read at build time)                 |
 
-## Rotas
+## Routes
 
-| Rota                | Tela                             |
-| ------------------- | -------------------------------- |
-| `/login`            | Login                            |
-| `/`                 | Redireciona para `/candidaturas` |
-| `/candidaturas`     | Quadro Kanban (tela inicial)     |
-| `/candidaturas/:id` | Detalhe, edição e exclusão       |
-| `*`                 | 404                              |
+| Route               | Screen                        |
+| ------------------- | ----------------------------- |
+| `/login`            | Login                         |
+| `/cadastro`         | Sign-up                       |
+| `/verificar-email`  | Email verification            |
+| `/esqueci-senha`    | Forgot password               |
+| `/redefinir-senha`  | Password reset                |
+| `/termos`           | Terms of use                  |
+| `/`                 | Redirects to `/candidaturas`  |
+| `/candidaturas`     | Kanban board (home screen)    |
+| `/candidaturas/:id` | Detail, editing, and deletion |
+| `*`                 | 404                           |
 
-## Integração com a API
+## API integration
 
-| Operação       | Método   | Endpoint                            |
-| -------------- | -------- | ----------------------------------- |
-| Login          | `POST`   | `/auth/login`                       |
-| Renovar sessão | `POST`   | `/auth/refresh`                     |
-| Logout         | `POST`   | `/auth/logout`                      |
-| Perfil atual   | `GET`    | `/auth/me`                          |
-| Tema da conta  | `PATCH`  | `/auth/me/theme`                    |
-| Quadro         | `GET`    | `/applications/board?search=`       |
-| Mover card     | `PATCH`  | `/applications/:id/placement`       |
-| Detalhe        | `GET`    | `/applications/:id`                 |
-| Criar          | `POST`   | `/applications`                     |
-| Atualizar      | `PATCH`  | `/applications/:id`                 |
-| Excluir        | `DELETE` | `/applications/:id?mode=soft\|hard` |
+| Operation           | Method   | Endpoint                            |
+| ------------------- | -------- | ----------------------------------- |
+| Login               | `POST`   | `/auth/login`                       |
+| Google sign-in      | `POST`   | `/auth/google`                      |
+| Sign-up             | `POST`   | `/auth/register`                    |
+| Confirm email       | `POST`   | `/auth/verification/confirm`        |
+| Resend verification | `POST`   | `/auth/verification/resend`         |
+| Forgot password     | `POST`   | `/auth/password/forgot`             |
+| Reset password      | `POST`   | `/auth/password/reset`              |
+| Refresh session     | `POST`   | `/auth/refresh`                     |
+| Logout              | `POST`   | `/auth/logout`                      |
+| Current profile     | `GET`    | `/auth/me`                          |
+| Account theme       | `PATCH`  | `/auth/me/theme`                    |
+| Board               | `GET`    | `/applications/board?search=`       |
+| Move card           | `PATCH`  | `/applications/:id/placement`       |
+| Detail              | `GET`    | `/applications/:id`                 |
+| Create              | `POST`   | `/applications`                     |
+| Update              | `PATCH`  | `/applications/:id`                 |
+| Delete              | `DELETE` | `/applications/:id?mode=soft\|hard` |
 
-## Qualidade
+## Quality
 
-- `npm run lint`, `npm run typecheck` e `npm run test:cov` rodam no CI.
-- Cobertura global mínima: 80% statements/lines, 75% branches/functions.
-- Playwright cobre login, criação, busca, detalhe e exclusão; o workflow roda em PRs e sob demanda.
-- A regressão visual roda em um workflow separado, com snapshots gerados em Linux.
-- O CI falha se o bundle JS gzip ultrapassar 250 KB.
+- `npm run lint`, `npm run typecheck`, and `npm run test:cov` run in CI.
+- Minimum global coverage: 80% statements/lines, 75% branches/functions.
+- Playwright covers login, creation, search, detail, and deletion; the workflow runs on PRs and on demand.
+- Visual regression runs in a separate workflow, with snapshots generated on Linux.
+- CI fails if the gzipped JS bundle exceeds 250 KB.
 
-## Deploy
+## Deployment
 
-O `Dockerfile` usa build multi-stage, instala dependências e compila como usuário `node`, e serve o `dist/` com `nginxinc/nginx-unprivileged:alpine`. O `nginx.conf` aplica CSP, headers de segurança, cache longo para `/assets/` e fallback de SPA para `index.html`. O proxy `/api` fica no ingress.
+The `Dockerfile` uses a multi-stage build, installs dependencies and compiles as the `node` user, and serves `dist/` with `nginxinc/nginx-unprivileged:alpine`. `nginx.conf` applies a CSP, security headers, long-lived caching for `/assets/`, and an SPA fallback to `index.html`. The `/api` proxy lives in the ingress.
 
-> O cookie de refresh é `SameSite=strict`. Mantenha frontend e API na mesma origem (via `/api`) ou ajuste a configuração do backend antes de usar `VITE_API_URL` absoluto.
+> The refresh cookie is `SameSite=strict`. Keep the frontend and the API on the same origin (via `/api`) or adjust the backend configuration before using an absolute `VITE_API_URL`.
