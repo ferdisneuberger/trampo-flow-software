@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { DomainError } from '../../shared/errors/domain.error';
+import {
+  DEFAULT_THEME_PREFERENCE,
+  isThemePreference,
+  ThemePreference,
+} from '../enums/theme-preference.enum';
 
 export const EMAIL_MAX_LENGTH = 254;
 export const USERNAME_MIN_LENGTH = 3;
@@ -23,6 +28,7 @@ type UserProps = {
   username: string | null;
   googleId: string | null;
   passwordHash: string | null;
+  themePreference: ThemePreference;
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -37,10 +43,12 @@ export type CreateUserProps = {
   emailVerifiedAt?: Date | null;
   termsAcceptedAt?: Date | null;
   termsVersion?: string | null;
+  themePreference?: ThemePreference;
 };
 
-export type RestoreUserProps = UserProps & {
+export type RestoreUserProps = Omit<UserProps, 'themePreference'> & {
   id: string;
+  themePreference?: ThemePreference;
 };
 
 export type PersonNameField = 'firstName' | 'lastName';
@@ -144,6 +152,23 @@ function assertTermsVersion(termsVersion: string | null): void {
   }
 }
 
+function normalizeThemePreference(
+  value: ThemePreference | undefined,
+): ThemePreference {
+  if (value === undefined) {
+    return DEFAULT_THEME_PREFERENCE;
+  }
+
+  if (!isThemePreference(value)) {
+    throw new DomainError(
+      'A preferência de tema deve ser light, dark ou system.',
+      'INVALID_THEME_PREFERENCE',
+    );
+  }
+
+  return value;
+}
+
 export class User {
   private constructor(
     private readonly _id: string,
@@ -177,6 +202,7 @@ export class User {
       username: null,
       googleId: input.googleId ?? null,
       passwordHash: input.passwordHash ?? null,
+      themePreference: normalizeThemePreference(input.themePreference),
       lastLoginAt: null,
       createdAt: now,
       updatedAt: now,
@@ -210,6 +236,7 @@ export class User {
       username: input.username ? normalizeUsername(input.username) : null,
       googleId: input.googleId,
       passwordHash: input.passwordHash,
+      themePreference: normalizeThemePreference(input.themePreference),
       lastLoginAt: input.lastLoginAt ? new Date(input.lastLoginAt) : null,
       createdAt: new Date(input.createdAt),
       updatedAt: new Date(input.updatedAt),
@@ -270,6 +297,10 @@ export class User {
     return this.props.passwordHash;
   }
 
+  get themePreference(): ThemePreference {
+    return this.props.themePreference;
+  }
+
   get lastLoginAt(): Date | null {
     return this.props.lastLoginAt ? new Date(this.props.lastLoginAt) : null;
   }
@@ -280,6 +311,11 @@ export class User {
 
   get updatedAt(): Date {
     return new Date(this.props.updatedAt);
+  }
+
+  changeThemePreference(themePreference: ThemePreference): void {
+    this.props.themePreference = normalizeThemePreference(themePreference);
+    this.props.updatedAt = new Date();
   }
 
   registerLogin(at: Date): void {

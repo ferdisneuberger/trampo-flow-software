@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AddApplicationFilesUseCase } from '../../application/applications/use-cases/add-application-files.use-case';
 import { CreateApplicationUseCase } from '../../application/applications/use-cases/create-application.use-case';
-import { DownloadApplicationFileUseCase } from '../../application/applications/use-cases/download-application-file.use-case';
-import { RemoveApplicationFileUseCase } from '../../application/applications/use-cases/remove-application-file.use-case';
-import { UploadApplicationFileUseCase } from '../../application/applications/use-cases/upload-application-file.use-case';
 import { DeleteApplicationUseCase } from '../../application/applications/use-cases/delete-application.use-case';
 import { GetApplicationStatsUseCase } from '../../application/applications/use-cases/get-application-stats.use-case';
 import { GetApplicationUseCase } from '../../application/applications/use-cases/get-application.use-case';
@@ -28,10 +24,6 @@ import { ApplicationsController } from '../http/controllers/applications.control
     PlaceApplicationUseCase,
     UpdateApplicationUseCase,
     DeleteApplicationUseCase,
-    AddApplicationFilesUseCase,
-    UploadApplicationFileUseCase,
-    DownloadApplicationFileUseCase,
-    RemoveApplicationFileUseCase,
     {
       provide: ApplicationRepository,
       useClass: PrismaApplicationRepository,

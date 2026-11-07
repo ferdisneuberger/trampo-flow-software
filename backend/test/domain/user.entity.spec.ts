@@ -5,6 +5,7 @@ import {
   normalizeUsername,
   User,
 } from '../../src/domain/users/entities/user.entity';
+import { ThemePreference } from '../../src/domain/users/enums/theme-preference.enum';
 import { DomainError } from '../../src/domain/shared/errors/domain.error';
 
 const PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdA==$a2V5';
@@ -126,6 +127,22 @@ describe('User', () => {
     expect(user.lastLoginAt).toBeNull();
     expect(user.createdAt).toBeInstanceOf(Date);
     expect(user.updatedAt).toEqual(user.createdAt);
+  });
+
+  it('começa com tema claro e permite trocar a preferência', () => {
+    const user = User.create({
+      email: 'pessoa@exemplo.com',
+      passwordHash: PASSWORD_HASH,
+    });
+
+    expect(user.themePreference).toBe(ThemePreference.LIGHT);
+
+    user.changeThemePreference(ThemePreference.DARK);
+
+    expect(user.themePreference).toBe(ThemePreference.DARK);
+    expect(user.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      user.createdAt.getTime(),
+    );
   });
 
   it('cria já verificado quando solicitado', () => {

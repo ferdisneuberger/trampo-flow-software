@@ -116,15 +116,15 @@ export function RegisterPage() {
     return (
       <AuthPageLayout>
         <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="size-7" aria-hidden="true" />
+          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-success-soft text-ink-900 shadow-hard-sm">
+            <CheckCircle2 className="size-8" aria-hidden="true" />
           </span>
-          <h2 className="mt-5 text-lg font-semibold tracking-tight text-ink-900">
+          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
             Cadastro recebido
-          </h2>
+          </h1>
           <p className="mt-2 text-sm leading-6 text-ink-500">
             Enviamos um código de verificação para{' '}
-            <strong className="text-ink-700">
+            <strong className="text-ink-900">
               {email.trim().toLowerCase()}
             </strong>
             . Confira também a caixa de spam.
@@ -135,7 +135,7 @@ export function RegisterPage() {
             </ButtonLink>
             <Link
               to="/login"
-              className="text-sm font-semibold text-brand-700 underline-offset-4 hover:underline"
+              className="font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
             >
               Voltar para o login
             </Link>
@@ -149,11 +149,14 @@ export function RegisterPage() {
     <AuthPageLayout tagline="Crie sua conta para começar">
       <Card className="p-6 sm:p-8">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold tracking-tight text-ink-900">
+          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
+            <UserPlus className="size-6" aria-hidden="true" />
+          </span>
+          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
             Criar conta
-          </h2>
-          <p className="mt-1 text-sm text-ink-500">
-            Cadastre-se com seu e-mail e confirme o código recebido.
+          </h1>
+          <p className="mt-1 text-sm leading-6 text-ink-500">
+            Cadastra seus dados e confirma o código que chega no e-mail.
           </p>
         </div>
 
@@ -267,10 +270,10 @@ export function RegisterPage() {
           />
 
           <div>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm text-ink-700">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-ink-900 bg-surface p-4 text-sm text-ink-700 shadow-hard-sm">
               <input
                 type="checkbox"
-                className="mt-0.5 size-4 rounded border-line accent-brand-600"
+                className="mt-0.5 size-4 rounded border-2 border-ink-900 accent-coral"
                 checked={termsAccepted}
                 onChange={(event) => {
                   setTermsAccepted(event.target.checked);
@@ -285,7 +288,7 @@ export function RegisterPage() {
                 Li e aceito os{' '}
                 <Link
                   to="/termos"
-                  className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+                  className="font-bold text-ink-900 underline underline-offset-4"
                 >
                   termos de uso
                 </Link>
@@ -293,7 +296,7 @@ export function RegisterPage() {
               </span>
             </label>
             {errors.terms && (
-              <p className="mt-1.5 text-xs font-medium text-rose-600">
+              <p className="mt-1.5 text-xs font-semibold text-coral-dark">
                 {errors.terms}
               </p>
             )}
@@ -317,7 +320,7 @@ export function RegisterPage() {
           Já tem conta?{' '}
           <Link
             to="/login"
-            className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+            className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
           >
             Entrar
           </Link>

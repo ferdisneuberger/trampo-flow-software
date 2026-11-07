@@ -61,13 +61,18 @@ export function LoginPage() {
     <AuthPageLayout>
       <Card className="p-6 sm:p-8">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold tracking-tight text-ink-900">
-            Entrar na sua conta
-          </h2>
-          <p className="mt-1 text-sm text-ink-500">
-            Entre com seu e-mail e senha.
+          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
+            <LogIn className="size-6" aria-hidden="true" />
+          </span>
+          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+            Entrar na conta
+          </h1>
+          <p className="mt-1 text-sm leading-6 text-ink-500">
+            Entre com seu e-mail e senha para voltar aos seus trampos.
           </p>
         </div>
+
+        <GoogleSignInButton />
 
         <form
           className="space-y-5"
@@ -104,7 +109,7 @@ export function LoginPage() {
           <div className="flex justify-end">
             <Link
               to="/esqueci-senha"
-              className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline"
+              className="font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
             >
               Esqueci minha senha
             </Link>
@@ -129,13 +134,11 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <GoogleSignInButton />
-
         <p className="mt-6 text-center text-sm text-ink-500">
           Ainda não tem conta?{' '}
           <Link
             to="/cadastro"
-            className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+            className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
           >
             Criar conta
           </Link>

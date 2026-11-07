@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCallback,
+  useRef,
   useEffect,
   useMemo,
   useState,
@@ -13,16 +14,62 @@ import {
 } from '../services/api/access-token';
 import { refreshAccessToken } from '../services/api/session';
 import type {
+  AuthThemePreference,
   AuthUser,
   GoogleLoginInput,
   LoginInput,
 } from '../services/auth.types';
-import { AuthContext, type AuthContextValue } from './auth-context';
+import { AuthContext, useAuth, type AuthContextValue } from './auth-context';
+import { DEFAULT_THEME_PREFERENCE, useTheme } from './theme-context';
+
+/**
+ * Envia para a conta só o tema escolhido nesta aba (`origin === 'local'`).
+ * Mudanças vindas do servidor ou de outra aba não são reenviadas, para que um
+ * logout ou uma troca em outra aba não sobrescreva a preferência salva.
+ */
+function ThemePreferenceSync() {
+  const { user, updateThemePreference } = useAuth();
+  const { theme, origin, setTheme } = useTheme();
+  const latestThemeRef = useRef(theme);
+
+  useEffect(() => {
+    latestThemeRef.current = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    if (!user || origin !== 'local' || theme === user.themePreference) {
+      return;
+    }
+
+    const savedTheme = user.themePreference;
+
+    void updateThemePreference(theme).catch(() => {
+      // Só desfaz se o usuário não escolheu outro tema enquanto isso.
+      if (latestThemeRef.current === theme) {
+        setTheme(savedTheme, { origin: 'external' });
+      }
+    });
+  }, [theme, origin, user, updateThemePreference, setTheme]);
+
+  return null;
+}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+  const { setTheme } = useTheme();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const applyProfile = useCallback(
+    (profile: AuthUser | null) => {
+      setUser(profile);
+
+      if (profile) {
+        setTheme(profile.themePreference, { origin: 'external' });
+      }
+    },
+    [setTheme],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -34,13 +81,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const profile = await authService.me();
 
         if (isActive) {
-          setUser(profile);
+          applyProfile(profile);
         }
       } catch {
         accessTokenStore.clear();
 
         if (isActive) {
-          setUser(null);
+          applyProfile(null);
         }
       } finally {
         if (isActive) {
@@ -54,13 +101,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [applyProfile]);
 
   useEffect(() => {
     const handleUnauthorized = () => {
       accessTokenStore.clear();
       queryClient.clear();
-      setUser(null);
+      applyProfile(null);
+      setTheme(DEFAULT_THEME_PREFERENCE, { origin: 'external' });
       setIsLoading(false);
     };
 
@@ -69,7 +117,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     };
-  }, [queryClient]);
+  }, [queryClient, applyProfile, setTheme]);
 
   const login = useCallback(
     async (input: LoginInput) => {
@@ -86,10 +134,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         profile = response.user;
       }
 
-      setUser(profile);
+      applyProfile(profile);
       setIsLoading(false);
     },
-    [queryClient],
+    [queryClient, applyProfile],
   );
 
   const loginWithGoogle = useCallback(
@@ -107,17 +155,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
         profile = response.user;
       }
 
-      setUser(profile);
+      applyProfile(profile);
       setIsLoading(false);
     },
-    [queryClient],
+    [queryClient, applyProfile],
   );
 
   const refreshProfile = useCallback(async () => {
     const profile = await authService.me();
 
-    setUser(profile);
-  }, []);
+    applyProfile(profile);
+  }, [applyProfile]);
 
   const logout = useCallback(async () => {
     try {
@@ -127,10 +175,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } finally {
       accessTokenStore.clear();
       queryClient.clear();
-      setUser(null);
+      applyProfile(null);
+      setTheme(DEFAULT_THEME_PREFERENCE, { origin: 'external' });
       setIsLoading(false);
     }
-  }, [queryClient]);
+  }, [queryClient, applyProfile, setTheme]);
+
+  const updateThemePreference = useCallback(
+    async (themePreference: AuthThemePreference) => {
+      const profile = await authService.updateThemePreference({
+        themePreference,
+      });
+
+      // Atualiza só o tema salvo: a resposta pode chegar depois de uma escolha
+      // mais nova, e o resto do perfil (como o cooldown de reenvio) não muda.
+      setUser((current) =>
+        current
+          ? { ...current, themePreference: profile.themePreference }
+          : current,
+      );
+    },
+    [],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -141,9 +207,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
       loginWithGoogle,
       logout,
       refreshProfile,
+      updateThemePreference,
     }),
-    [user, isLoading, login, loginWithGoogle, logout, refreshProfile],
+    [
+      user,
+      isLoading,
+      login,
+      loginWithGoogle,
+      logout,
+      refreshProfile,
+      updateThemePreference,
+    ],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      <ThemePreferenceSync />
+      {children}
+    </AuthContext.Provider>
+  );
 }

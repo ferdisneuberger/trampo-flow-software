@@ -23,6 +23,7 @@ function renderShell() {
       emailVerified: true,
       hasPassword: true,
       termsAccepted: true,
+      themePreference: 'light',
       verificationResendAvailableAt: null,
     },
     isAuthenticated: true,
@@ -31,6 +32,7 @@ function renderShell() {
     loginWithGoogle: vi.fn(),
     logout,
     refreshProfile: vi.fn(),
+    updateThemePreference: vi.fn(),
   });
 
   return renderWithProviders(

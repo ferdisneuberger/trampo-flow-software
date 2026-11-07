@@ -1,5 +1,5 @@
 import { Briefcase, Plus, RefreshCw, Search, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApplicationForm } from '../components/applications/ApplicationForm';
 import { Board } from '../components/applications/Board';
@@ -10,6 +10,7 @@ import {
 import { DeleteApplicationDialog } from '../components/applications/DeleteApplicationDialog';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -24,6 +25,25 @@ import type {
   Application,
   DeleteApplicationMode,
 } from '../services/applications.types';
+import { cn } from '../utils/cn';
+
+const emptySteps = [
+  {
+    number: '01',
+    title: 'Cria a candidatura',
+    description: 'Cola o link da vaga, a empresa e a fase atual.',
+  },
+  {
+    number: '02',
+    title: 'Move pelo funil',
+    description: 'Arrasta o card conforme a conversa avança.',
+  },
+  {
+    number: '03',
+    title: 'Fecha o ciclo',
+    description: 'Registra a proposta ou o feedback e segue pro próximo.',
+  },
+];
 
 function BoardSkeleton() {
   return (
@@ -49,7 +69,6 @@ export function ApplicationsPage() {
   const board = useBoard(search || undefined);
   const { user } = useAuth();
   const canCreate = user?.emailVerified ?? false;
-  const firstName = user?.firstName?.trim();
   const { createApplication, updateApplication } = useApplicationMutations();
 
   const {
@@ -68,6 +87,50 @@ export function ApplicationsPage() {
   const [deletingApplication, setDeletingApplication] =
     useState<Application | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(() =>
+    Boolean(searchParams.get('q') || searchParams.get('focus') === 'search'),
+  );
+  const shouldFocusSearchRef = useRef(false);
+
+  const openSearch = useCallback(() => {
+    if (isSearchOpen) {
+      const input = document.getElementById('board-search');
+
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+        input.select();
+      }
+
+      return;
+    }
+
+    shouldFocusSearchRef.current = true;
+    setIsSearchOpen(true);
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!isSearchOpen || !shouldFocusSearchRef.current) {
+      return;
+    }
+
+    const input = document.getElementById('board-search');
+
+    if (input instanceof HTMLInputElement) {
+      input.focus();
+      input.select();
+    }
+
+    shouldFocusSearchRef.current = false;
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    const handleFocusSearch = () => openSearch();
+
+    window.addEventListener('trampo-flow:focus-search', handleFocusSearch);
+
+    return () =>
+      window.removeEventListener('trampo-flow:focus-search', handleFocusSearch);
+  }, [openSearch]);
 
   useEffect(() => {
     setSearchParams(
@@ -85,6 +148,29 @@ export function ApplicationsPage() {
       { replace: true },
     );
   }, [search, setSearchParams]);
+
+  useEffect(() => {
+    if (searchParams.get('focus') !== 'search') {
+      return;
+    }
+
+    const input = document.getElementById('board-search');
+
+    if (input instanceof HTMLInputElement) {
+      input.focus();
+      input.select();
+    }
+
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('focus');
+
+        return next;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
 
   const openCreate = useCallback(() => {
     setEditingApplication(null);
@@ -145,6 +231,7 @@ export function ApplicationsPage() {
       (current) => {
         const next = new URLSearchParams(current);
         next.delete('q');
+
         return next;
       },
       { replace: true },
@@ -153,17 +240,23 @@ export function ApplicationsPage() {
 
   const total =
     board.data?.columns.reduce((sum, column) => sum + column.total, 0) ?? 0;
+  const inProgress =
+    board.data?.columns.find((column) => column.status === 'IN_PROGRESS')
+      ?.total ?? 0;
   const hasItems =
     board.data?.columns.some((column) => column.items.length > 0) ?? false;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
       <PageHeader
-        title="Candidaturas"
-        description={
-          firstName
-            ? `${firstName}, arraste os cards para acompanhar cada processo seletivo pelo funil.`
-            : 'Arraste os cards para acompanhar cada processo seletivo pelo funil.'
+        eyebrow="Quadro"
+        title="Meus trampos"
+        meta={
+          <>
+            {total} candidaturas
+            <span className="mx-2 text-ink-900/30">·</span>
+            <strong className="text-ink-900">{inProgress} em andamento</strong>
+          </>
         }
         actions={
           <>
@@ -172,12 +265,23 @@ export function ApplicationsPage() {
               variant="secondary"
               onClick={() => void board.refetch()}
               disabled={board.isFetching}
+              aria-label="Atualizar quadro"
             >
               <RefreshCw
                 className={board.isFetching ? 'size-4 animate-spin' : 'size-4'}
                 aria-hidden="true"
               />
-              Atualizar
+              <span className="hidden sm:inline">Atualizar</span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={openSearch}
+              aria-expanded={isSearchOpen}
+              aria-controls="board-search-panel"
+            >
+              <Search className="size-4" aria-hidden="true" />
+              Filtros
             </Button>
             <Button
               type="button"
@@ -195,6 +299,25 @@ export function ApplicationsPage() {
           </>
         }
       />
+
+      <div id="board-search-panel" className={cn(!isSearchOpen && 'sr-only')}>
+        <Input
+          id="board-search"
+          label="Buscar"
+          hideLabel
+          placeholder="Título, empresa ou fase..."
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          onFocus={() => setIsSearchOpen(true)}
+          leading={<Search className="size-4" aria-hidden="true" />}
+          trailing={
+            <kbd className="mr-1 hidden rounded border border-ink-900 bg-yellow px-1.5 py-0.5 font-mono text-[10px] font-bold text-on-accent sm:inline">
+              /
+            </kbd>
+          }
+          containerClassName="w-full max-w-2xl"
+        />
+      </div>
 
       {board.isError && (
         <Alert
@@ -232,34 +355,62 @@ export function ApplicationsPage() {
         />
       )}
 
-      <Input
-        label="Buscar"
-        placeholder="Título, empresa ou fase..."
-        value={searchInput}
-        onChange={(event) => setSearchInput(event.target.value)}
-        containerClassName="w-full lg:max-w-sm"
-      />
-
       <div className="flex min-h-0 flex-1 flex-col">
         {board.isPending && !board.data ? (
           <BoardSkeleton />
         ) : board.isError && !board.data ? null : total === 0 && !search ? (
-          <EmptyState
-            icon={Briefcase}
-            title="Comece seu quadro de candidaturas"
-            description="Cadastre a primeira vaga para acompanhar fases, status e documentos em um único lugar."
-            action={
-              <Button type="button" onClick={openCreate} disabled={!canCreate}>
-                <Plus className="size-4" aria-hidden="true" />
-                Criar primeira candidatura
-              </Button>
-            }
-          />
+          <Card className="flex flex-col items-center px-6 py-12 text-center">
+            <span className="grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
+              <Briefcase className="size-8" aria-hidden="true" />
+            </span>
+            <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-coral-dark">
+              Primeiro passo
+            </p>
+            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+              Comece seu quadro de candidaturas
+            </h2>
+            <p className="mt-2 max-w-md text-sm leading-6 text-ink-500">
+              A primeira vaga é o começo. Cadastra a primeira candidatura e
+              acompanha cada fase em um só lugar. O quadro se organiza sozinho
+              conforme você avança.
+            </p>
+            <Button
+              type="button"
+              onClick={openCreate}
+              disabled={!canCreate}
+              className="mt-6"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Criar primeira candidatura
+            </Button>
+            <p className="mt-3 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-ink-500">
+              Leva menos de um minuto · sem planilha
+            </p>
+
+            <div className="mt-8 grid w-full max-w-3xl gap-3 text-left sm:grid-cols-3">
+              {emptySteps.map((step) => (
+                <div
+                  key={step.number}
+                  className="rounded-xl border-2 border-ink-900 bg-surface p-4 shadow-hard-sm"
+                >
+                  <span className="font-mono text-[10px] font-bold text-coral-dark">
+                    {step.number}
+                  </span>
+                  <h3 className="mt-2 font-display text-base font-bold tracking-[-0.02em] text-ink-900">
+                    {step.title}
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-ink-500">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
         ) : !hasItems ? (
           <EmptyState
             icon={Search}
-            title="Nenhum resultado encontrado"
-            description="Não há candidaturas que correspondam à busca atual. Ajuste o termo ou limpe a busca."
+            title="Nada por aqui com esses filtros"
+            description="Não há candidaturas que correspondam à busca atual. Tenta limpar ou mudar a busca."
             action={
               <Button type="button" variant="secondary" onClick={clearSearch}>
                 Limpar busca

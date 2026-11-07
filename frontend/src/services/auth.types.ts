@@ -1,3 +1,5 @@
+export type AuthThemePreference = 'light' | 'dark' | 'system';
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -6,6 +8,7 @@ export type AuthUser = {
   emailVerified: boolean;
   hasPassword: boolean;
   termsAccepted: boolean;
+  themePreference: AuthThemePreference;
   verificationResendAvailableAt: string | null;
 };
 
@@ -20,6 +23,10 @@ export type RegisterInput = {
   lastName: string;
   password: string;
   termsAccepted: boolean;
+};
+
+export type UpdateThemePreferenceInput = {
+  themePreference: AuthThemePreference;
 };
 
 export type VerifyEmailInput = {

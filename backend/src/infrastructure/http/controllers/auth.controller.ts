@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
@@ -25,6 +26,7 @@ import { ForgotPasswordDto } from '../../../application/auth/dtos/forgot-passwor
 import { GoogleSignInDto } from '../../../application/auth/dtos/google-sign-in.dto';
 import { LoginDto } from '../../../application/auth/dtos/login.dto';
 import { ResetPasswordDto } from '../../../application/auth/dtos/reset-password.dto';
+import { UpdateThemePreferenceDto } from '../../../application/auth/dtos/update-theme-preference.dto';
 import { RegisterUserDto } from '../../../application/auth/dtos/register-user.dto';
 import { VerifyEmailDto } from '../../../application/auth/dtos/verify-email.dto';
 import { AuthenticateUserUseCase } from '../../../application/auth/use-cases/authenticate-user.use-case';
@@ -37,6 +39,7 @@ import { RefreshSessionUseCase } from '../../../application/auth/use-cases/refre
 import { RegisterUserUseCase } from '../../../application/auth/use-cases/register-user.use-case';
 import { ResendVerificationUseCase } from '../../../application/auth/use-cases/resend-verification.use-case';
 import { ResetPasswordUseCase } from '../../../application/auth/use-cases/reset-password.use-case';
+import { UpdateThemePreferenceUseCase } from '../../../application/auth/use-cases/update-theme-preference.use-case';
 import { VerifyEmailUseCase } from '../../../application/auth/use-cases/verify-email.use-case';
 import { UnauthorizedError } from '../../../application/shared/errors/unauthorized.error';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
@@ -69,6 +72,7 @@ export class AuthController {
     private readonly resendVerification: ResendVerificationUseCase,
     private readonly forgotPassword: ForgotPasswordUseCase,
     private readonly resetPassword: ResetPasswordUseCase,
+    private readonly updateThemePreference: UpdateThemePreferenceUseCase,
     private readonly googleSignIn: GoogleSignInUseCase,
     private readonly rateLimiter: RateLimiterService,
     private readonly tokenService: TokenService,
@@ -333,6 +337,35 @@ export class AuthController {
     const { user, verificationResendAvailableAt } =
       await this.getUserProfile.execute(userId);
 
+    return this.toAuthenticatedUser(user, verificationResendAvailableAt);
+  }
+
+  @Patch('me/theme')
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Atualiza a preferência de tema do usuário' })
+  @ApiOkResponse({ type: AuthenticatedUserResponse })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  async updateTheme(
+    @CurrentUserId() userId: string,
+    @Body() dto: UpdateThemePreferenceDto,
+  ) {
+    await this.updateThemePreference.execute({
+      userId,
+      themePreference: dto.themePreference,
+    });
+
+    // Reaproveita o perfil completo para devolver o cooldown real de reenvio,
+    // e não um `null` que faria o botão de reenvio parecer liberado.
+    const { user, verificationResendAvailableAt } =
+      await this.getUserProfile.execute(userId);
+
+    return this.toAuthenticatedUser(user, verificationResendAvailableAt);
+  }
+
+  private toAuthenticatedUser(
+    user: User,
+    verificationResendAvailableAt: Date | null,
+  ) {
     return {
       id: user.id,
       email: user.email ?? '',
@@ -341,6 +374,7 @@ export class AuthController {
       emailVerified: user.isEmailVerified,
       hasPassword: user.passwordHash !== null,
       termsAccepted: user.termsAcceptedAt !== null,
+      themePreference: user.themePreference,
       verificationResendAvailableAt:
         verificationResendAvailableAt?.toISOString() ?? null,
     };
@@ -365,16 +399,7 @@ export class AuthController {
       tokenType: 'Bearer' as const,
       expiresIn: this.tokenService.expiresInSeconds,
       expiresAt,
-      user: {
-        id: user.id,
-        email: user.email ?? '',
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailVerified: user.isEmailVerified,
-        hasPassword: user.passwordHash !== null,
-        termsAccepted: user.termsAcceptedAt !== null,
-        verificationResendAvailableAt: null,
-      },
+      user: this.toAuthenticatedUser(user, null),
     };
   }
 

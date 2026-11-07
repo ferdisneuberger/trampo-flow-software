@@ -111,7 +111,7 @@ export function ApplicationForm({
         />
       </div>
 
-      <div className="flex items-center justify-end gap-3 border-t border-line pt-4">
+      <div className="flex items-center justify-end gap-3 border-t-2 border-dashed border-ink-900/20 pt-4">
         <Button
           type="button"
           variant="secondary"

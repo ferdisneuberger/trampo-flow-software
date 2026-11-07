@@ -40,6 +40,7 @@ function toUserData(user) {
     username: user.username,
     googleId: user.googleId,
     passwordHash: user.passwordHash,
+    themePreference: user.themePreference ?? 'light',
     lastLoginAt: toDate(user.lastLoginAt),
     createdAt: new Date(user.createdAt),
     updatedAt: new Date(user.updatedAt),
@@ -63,20 +64,6 @@ function toApplicationData(application) {
   };
 }
 
-function toFileData(file) {
-  return {
-    id: file.id,
-    applicationId: file.applicationId,
-    name: file.name,
-    storageKey: file.storageKey,
-    legacyUrl: file.legacyUrl,
-    mimeType: file.mimeType,
-    sizeInBytes: file.sizeInBytes,
-    checksum: file.checksum,
-    uploadedAt: new Date(file.uploadedAt),
-  };
-}
-
 async function main() {
   const file = findBackupFile();
   const snapshot = JSON.parse(readFileSync(file, 'utf8'));
@@ -92,16 +79,10 @@ async function main() {
         data: toApplicationData(application),
       });
     }
-
-    for (const storedFile of snapshot.files) {
-      await transaction.applicationFile.create({
-        data: toFileData(storedFile),
-      });
-    }
   });
 
   console.log(
-    `Restaurado ${snapshot.user.email}: ${snapshot.applications.length} candidatura(s), ${snapshot.files.length} arquivo(s).`,
+    `Restaurado ${snapshot.user.email}: ${snapshot.applications.length} candidatura(s).`,
   );
   console.log(file);
 }

@@ -114,6 +114,7 @@ function makeAuthUser(verified = true) {
       emailVerified: verified,
       hasPassword: true,
       termsAccepted: true,
+      themePreference: 'light',
       verificationResendAvailableAt: null,
     },
     isAuthenticated: true,
@@ -122,6 +123,7 @@ function makeAuthUser(verified = true) {
     loginWithGoogle: vi.fn(),
     logout: vi.fn(),
     refreshProfile: vi.fn(),
+    updateThemePreference: vi.fn(),
   };
 }
 

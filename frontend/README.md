@@ -56,15 +56,21 @@ Página (pages/ApplicationDetailPage)
 - **Segurança de URLs:** links externos passam por `safeHttpUrl`. O interceptor não envia o token para outra origem.
 - **Exclusão com confirmação explícita:** o diálogo exige checkbox de confirmação e oferece exclusão lógica (padrão) ou física.
 - **Acessibilidade:** modais com focus trap e restauração de foco, menus com teclado, skip link, `aria-busy` em botões e respeito a `prefers-reduced-motion`.
+- **Tema:** claro, escuro ou sistema, com padrão claro. A preferência fica salva na conta (`PATCH /auth/me/theme`) e uma cópia em `localStorage` evita flash antes do React. Os tokens semânticos ficam em `src/styles/index.css`.
+- **Regressão visual:** snapshots Playwright com API mockada em `e2e/visual.spec.ts`; as baselines são geradas em Linux e atualizadas só de forma consciente.
 
 ## Estrutura de diretórios
 
 ```text
 frontend/
 ├── e2e/
-│   └── critical-path.spec.ts
+│   ├── __screenshots__/
+│   ├── critical-path.spec.ts
+│   ├── fixtures.ts
+│   └── visual.spec.ts
 ├── scripts/
-│   └── check-bundle.mjs
+│   ├── check-bundle.mjs
+│   └── visual-test.sh
 ├── src/
 │   ├── components/
 │   │   ├── applications/
@@ -75,12 +81,15 @@ frontend/
 │   │   │   ├── BoardColumn.tsx
 │   │   │   ├── DeleteApplicationDialog.tsx
 │   │   ├── auth/
+│   │   ├── brand/
 │   │   ├── layout/
 │   │   └── ui/
 │   ├── config/env.ts
 │   ├── contexts/
 │   │   ├── AuthContext.tsx
-│   │   └── auth-context.ts
+│   │   ├── ThemeContext.tsx
+│   │   ├── auth-context.ts
+│   │   └── theme-context.ts
 │   ├── hooks/
 │   │   ├── useApplication.ts
 │   │   ├── useApplicationForm.ts
@@ -88,7 +97,8 @@ frontend/
 │   │   ├── useBoard.ts
 │   │   ├── useDebouncedValue.ts
 │   │   ├── useDisclosure.ts
-│   │   └── useLogout.ts
+│   │   ├── useLogout.ts
+│   │   └── useMediaQuery.ts
 │   ├── lib/
 │   │   ├── invalidate.ts
 │   │   ├── query-client.ts
@@ -144,17 +154,19 @@ A aplicação fica disponível em `http://localhost:5173`. O Vite encaminha `/ap
 
 ### Scripts
 
-| Script                 | Descrição                                     |
-| ---------------------- | --------------------------------------------- |
-| `npm run dev`          | Inicia o Vite em modo desenvolvimento         |
-| `npm run build`        | Executa o typecheck e gera o build em `dist/` |
-| `npm run typecheck`    | Valida os tipos sem gerar arquivos            |
-| `npm run lint`         | ESLint com regras type-aware                  |
-| `npm run test`         | Testes unitários e de componentes (Vitest)    |
-| `npm run test:cov`     | Testes com cobertura e thresholds             |
-| `npm run test:e2e`     | Playwright (requer stack e credenciais)       |
-| `npm run check:bundle` | Falha se o JS gzip passar de 250 KB           |
-| `npm run preview`      | Serve o build de produção localmente          |
+| Script                       | Descrição                                     |
+| ---------------------------- | --------------------------------------------- |
+| `npm run dev`                | Inicia o Vite em modo desenvolvimento         |
+| `npm run build`              | Executa o typecheck e gera o build em `dist/` |
+| `npm run typecheck`          | Valida os tipos sem gerar arquivos            |
+| `npm run lint`               | ESLint com regras type-aware                  |
+| `npm run test`               | Testes unitários e de componentes (Vitest)    |
+| `npm run test:cov`           | Testes com cobertura e thresholds             |
+| `npm run test:e2e`           | Playwright (requer stack e credenciais)       |
+| `npm run test:visual`        | Regressão visual; usa Docker no macOS         |
+| `npm run test:visual:update` | Atualiza as baselines visuais                 |
+| `npm run check:bundle`       | Falha se o JS gzip passar de 250 KB           |
+| `npm run preview`            | Serve o build de produção localmente          |
 
 ## Variáveis de ambiente
 
@@ -182,6 +194,7 @@ A aplicação fica disponível em `http://localhost:5173`. O Vite encaminha `/ap
 | Renovar sessão | `POST`   | `/auth/refresh`                     |
 | Logout         | `POST`   | `/auth/logout`                      |
 | Perfil atual   | `GET`    | `/auth/me`                          |
+| Tema da conta  | `PATCH`  | `/auth/me/theme`                    |
 | Quadro         | `GET`    | `/applications/board?search=`       |
 | Mover card     | `PATCH`  | `/applications/:id/placement`       |
 | Detalhe        | `GET`    | `/applications/:id`                 |
@@ -194,6 +207,7 @@ A aplicação fica disponível em `http://localhost:5173`. O Vite encaminha `/ap
 - `npm run lint`, `npm run typecheck` e `npm run test:cov` rodam no CI.
 - Cobertura global mínima: 80% statements/lines, 75% branches/functions.
 - Playwright cobre login, criação, busca, detalhe e exclusão; o workflow roda em PRs e sob demanda.
+- A regressão visual roda em um workflow separado, com snapshots gerados em Linux.
 - O CI falha se o bundle JS gzip ultrapassar 250 KB.
 
 ## Deploy

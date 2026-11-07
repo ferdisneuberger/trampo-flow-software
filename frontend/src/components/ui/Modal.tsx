@@ -123,7 +123,7 @@ export function Modal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-overlay backdrop-blur-sm"
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
@@ -135,15 +135,15 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-line bg-white outline-none',
+          'relative max-h-[90vh] w-full overflow-y-auto rounded-2xl border-2 border-ink-900 bg-surface shadow-hard-lg outline-none',
           size === 'lg' ? 'max-w-3xl' : 'max-w-lg',
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b-2 border-ink-900 px-6 py-5">
           <div>
             <h2
               id={titleId}
-              className="text-lg font-semibold tracking-tight text-ink-900"
+              className="font-display text-xl font-bold tracking-[-0.04em] text-ink-900"
             >
               {title}
             </h2>
@@ -162,6 +162,7 @@ export function Modal({
             size="sm"
             onClick={onClose}
             aria-label="Fechar modal"
+            className="size-9 shrink-0 p-0"
           >
             <X className="size-4" aria-hidden="true" />
           </Button>

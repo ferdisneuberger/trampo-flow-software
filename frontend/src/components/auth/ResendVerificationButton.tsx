@@ -82,10 +82,10 @@ export function ResendVerificationButton({
           : 'Reenviar e-mail de verificação'}
       </Button>
       {message && (
-        <p className="mt-2 text-sm font-medium text-emerald-700">{message}</p>
+        <p className="mt-2 text-sm font-semibold text-green">{message}</p>
       )}
       {error && (
-        <p className="mt-2 text-sm font-medium text-rose-600">{error}</p>
+        <p className="mt-2 text-sm font-semibold text-coral-dark">{error}</p>
       )}
     </div>
   );

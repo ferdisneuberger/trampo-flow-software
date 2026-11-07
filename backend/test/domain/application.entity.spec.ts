@@ -9,7 +9,6 @@ import { ApplicationStatus } from '../../src/domain/applications/enums/applicati
 import { DomainError } from '../../src/domain/shared/errors/domain.error';
 import {
   makeApplication,
-  makeApplicationFile,
   makeRestoredApplication,
 } from '../factories/application.factory';
 import { expectDomainError } from '../helpers/expect-domain-error';
@@ -37,7 +36,6 @@ describe('Application', () => {
     expect(application.link).toBe('https://example.com/jobs/backend-engineer');
     expect(application.currentPhase).toBe('Entrevista com RH');
     expect(application.status).toBe(ApplicationStatus.PENDING);
-    expect(application.files).toEqual([]);
     expect(application.isDeleted).toBe(false);
     expect(application.deletedAt).toBeNull();
     expect(application.createdAt).toBeInstanceOf(Date);
@@ -46,25 +44,13 @@ describe('Application', () => {
     );
   });
 
-  it('creates an application with an explicit status and multiple files', () => {
+  it('creates an application with an explicit status', () => {
     const application = Application.create({
       ...validCreateInput,
       status: ApplicationStatus.IN_PROGRESS,
-      files: [
-        makeApplicationFile({ name: 'resume.pdf' }),
-        makeApplicationFile({
-          name: 'portfolio.pdf',
-          url: 'https://storage.example.com/portfolio.pdf',
-          sizeInBytes: 2048,
-        }),
-      ],
     });
 
     expect(application.status).toBe(ApplicationStatus.IN_PROGRESS);
-    expect(application.files).toHaveLength(2);
-    expect(application.files[0].name).toBe('resume.pdf');
-    expect(application.files[1].name).toBe('portfolio.pdf');
-    expect(application.files[0].id).not.toBe(application.files[1].id);
   });
 
   it('updates editable fields and refreshes updatedAt', () => {
@@ -84,16 +70,6 @@ describe('Application', () => {
     expect(application.updatedAt.getTime()).toBeGreaterThan(
       application.createdAt.getTime(),
     );
-  });
-
-  it('keeps files when editing details', () => {
-    const file = makeApplicationFile();
-    const application = makeRestoredApplication({ files: [file] });
-
-    application.updateDetails({ currentPhase: 'Entrevista técnica' });
-
-    expect(application.files).toHaveLength(1);
-    expect(application.files[0].id).toBe(file.id);
   });
 
   it('rejects an update without any fields', () => {
@@ -121,49 +97,6 @@ describe('Application', () => {
     expect(application.link).toBe('https://example.com/jobs/backend-engineer');
   });
 
-  it('adds multiple files and refreshes updatedAt', () => {
-    const application = makeRestoredApplication();
-
-    application.addFiles([
-      makeApplicationFile({ name: 'resume.pdf' }),
-      makeApplicationFile({
-        name: 'cover-letter.pdf',
-        url: 'https://storage.example.com/cover-letter.pdf',
-        sizeInBytes: 512,
-      }),
-    ]);
-
-    expect(application.files).toHaveLength(2);
-    expect(application.files.map((file) => file.name)).toEqual([
-      'resume.pdf',
-      'cover-letter.pdf',
-    ]);
-    expect(application.updatedAt.getTime()).toBeGreaterThan(
-      application.createdAt.getTime(),
-    );
-  });
-
-  it('does not append files when one of them is invalid', () => {
-    const application = makeRestoredApplication();
-
-    expectDomainError(
-      () =>
-        application.addFiles([
-          makeApplicationFile({ name: 'resume.pdf' }),
-          makeApplicationFile({ name: '   ' }),
-        ]),
-      'FILE_NAME_REQUIRED',
-    );
-
-    expect(application.files).toHaveLength(0);
-  });
-
-  it('rejects an empty file list', () => {
-    const application = makeRestoredApplication();
-
-    expectDomainError(() => application.addFiles([]), 'NO_FILES_PROVIDED');
-  });
-
   it('soft deletes an application and updates timestamps', () => {
     const application = makeRestoredApplication();
 
@@ -186,7 +119,7 @@ describe('Application', () => {
     );
   });
 
-  it('rejects edits and new files after soft delete', () => {
+  it('rejects edits after soft delete', () => {
     const application = makeRestoredApplication();
     application.softDelete();
 
@@ -194,14 +127,9 @@ describe('Application', () => {
       () => application.updateDetails({ title: 'New title' }),
       'APPLICATION_DELETED',
     );
-    expectDomainError(
-      () => application.addFiles([makeApplicationFile()]),
-      'APPLICATION_DELETED',
-    );
   });
 
   it('restores a persisted application', () => {
-    const file = makeApplicationFile();
     const createdAt = new Date('2025-12-01T00:00:00.000Z');
     const updatedAt = new Date('2026-01-01T00:00:00.000Z');
     const deletedAt = new Date('2026-02-01T00:00:00.000Z');
@@ -215,7 +143,6 @@ describe('Application', () => {
       position: 0,
       status: ApplicationStatus.REJECTED,
       currentPhase: 'Feedback final',
-      files: [file],
       createdAt,
       updatedAt,
       deletedAt,
@@ -224,23 +151,10 @@ describe('Application', () => {
     expect(application.id).toBe('7f0f8f3e-4e1a-4e5d-9d4c-2f8a1b7c9d01');
     expect(application.status).toBe(ApplicationStatus.REJECTED);
     expect(application.currentPhase).toBe('Feedback final');
-    expect(application.files).toHaveLength(1);
-    expect(application.files[0].id).toBe(file.id);
     expect(application.createdAt.toISOString()).toBe(createdAt.toISOString());
     expect(application.updatedAt.toISOString()).toBe(updatedAt.toISOString());
     expect(application.deletedAt?.toISOString()).toBe(deletedAt.toISOString());
     expect(application.isDeleted).toBe(true);
-  });
-
-  it('returns a defensive copy of the files list', () => {
-    const application = makeRestoredApplication({
-      files: [makeApplicationFile()],
-    });
-
-    const files = application.files;
-    files.pop();
-
-    expect(application.files).toHaveLength(1);
   });
 
   it.each([

@@ -5,13 +5,9 @@ import {
   UpdateApplicationUseCase,
 } from '../../src/application/applications/use-cases/update-application.use-case';
 import { Application } from '../../src/domain/applications/entities/application.entity';
-import { ApplicationFile } from '../../src/domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
 import { InMemoryApplicationRepository } from '../repositories/in-memory-application.repository';
-import {
-  makeApplicationFile,
-  makeRestoredApplication,
-} from '../factories/application.factory';
+import { makeRestoredApplication } from '../factories/application.factory';
 
 const USER_ID = '6d0f3f7e-6f1f-4c1e-9a0e-2b6a4f5c8d10';
 
@@ -19,18 +15,16 @@ describe('UpdateApplicationUseCase', () => {
   let repository: InMemoryApplicationRepository;
   let useCase: UpdateApplicationUseCase;
   let application: Application;
-  let file: ApplicationFile;
 
   beforeEach(async () => {
     repository = new InMemoryApplicationRepository();
     useCase = new UpdateApplicationUseCase(repository);
-    file = makeApplicationFile();
-    application = makeRestoredApplication({ files: [file] });
+    application = makeRestoredApplication();
 
     await repository.create(application, USER_ID);
   });
 
-  it('updates the title and preserves the other fields and files', async () => {
+  it('updates the title and preserves the other fields', async () => {
     const updated = await useCase.execute({
       userId: USER_ID,
       id: application.id,
@@ -42,8 +36,6 @@ describe('UpdateApplicationUseCase', () => {
     expect(updated.link).toBe(application.link);
     expect(updated.currentPhase).toBe(application.currentPhase);
     expect(updated.status).toBe(application.status);
-    expect(updated.files).toHaveLength(1);
-    expect(updated.files[0].id).toBe(file.id);
     expect(updated.createdAt.toISOString()).toBe(
       application.createdAt.toISOString(),
     );
@@ -103,7 +95,6 @@ describe('UpdateApplicationUseCase', () => {
     expect(updated.link).toBe('https://example.com/jobs/engineering-manager');
     expect(updated.currentPhase).toBe('Proposta');
     expect(updated.status).toBe(ApplicationStatus.COMPLETED);
-    expect(updated.files[0].id).toBe(file.id);
   });
 
   it('persists the updated application in the repository', async () => {
@@ -120,8 +111,6 @@ describe('UpdateApplicationUseCase', () => {
     expect(stored?.title).toBe('Staff Engineer');
     expect(stored?.currentPhase).toBe('Proposta');
     expect(stored?.status).toBe(ApplicationStatus.COMPLETED);
-    expect(stored?.files).toHaveLength(1);
-    expect(stored?.files[0].id).toBe(file.id);
   });
 
   it('rejects an update for a non-existent application', async () => {

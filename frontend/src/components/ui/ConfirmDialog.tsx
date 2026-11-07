@@ -36,8 +36,11 @@ export function ConfirmDialog({
       closeOnBackdrop={!isLoading}
       closeOnEscape={!isLoading}
     >
-      <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm leading-6 text-rose-700">
-        <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+      <div className="flex items-start gap-3 rounded-xl border-2 border-ink-900 bg-danger-soft p-4 text-sm leading-6 text-ink-900 shadow-hard-sm">
+        <AlertTriangle
+          className="mt-0.5 size-5 shrink-0 text-coral-dark"
+          aria-hidden="true"
+        />
         <p>{description}</p>
       </div>
       {children}

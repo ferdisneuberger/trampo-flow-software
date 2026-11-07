@@ -4,29 +4,7 @@ import {
   CreateApplicationProps,
   RestoreApplicationProps,
 } from '../../src/domain/applications/entities/application.entity';
-import {
-  ApplicationFile,
-  CreateApplicationFileInput,
-} from '../../src/domain/applications/entities/application-file.entity';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
-
-export function makeApplicationFileInput(
-  overrides: Partial<CreateApplicationFileInput> = {},
-): CreateApplicationFileInput {
-  return {
-    name: 'resume.pdf',
-    url: 'https://storage.example.com/resume.pdf',
-    mimeType: 'application/pdf',
-    sizeInBytes: 1024,
-    ...overrides,
-  };
-}
-
-export function makeApplicationFile(
-  overrides: Partial<CreateApplicationFileInput> = {},
-): ApplicationFile {
-  return ApplicationFile.create(makeApplicationFileInput(overrides));
-}
 
 export function makeApplication(
   overrides: Partial<CreateApplicationProps> = {},
@@ -54,7 +32,6 @@ export function makeRestoredApplication(
     position: 0,
     status: ApplicationStatus.PENDING,
     currentPhase: 'Triagem',
-    files: [],
     createdAt,
     updatedAt: createdAt,
     deletedAt: null,

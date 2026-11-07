@@ -9,7 +9,7 @@
  * própria rolagem vertical.
  */
 export const BOARD_GRID_CLASSES =
-  'grid h-full auto-rows-fr grid-flow-col auto-cols-[minmax(18rem,1fr)] gap-4 xl:min-w-[78rem] xl:grid-cols-4';
+  'grid h-full auto-rows-fr grid-flow-col auto-cols-[minmax(266px,1fr)] gap-4 xl:min-w-[1106px] xl:grid-cols-4';
 
 export const BOARD_SCROLL_CLASSES =
   'flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-hidden pb-1';

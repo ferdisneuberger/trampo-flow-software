@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
 import { ApplicationPresenter } from '../../src/infrastructure/http/presenters/application.presenter';
-import {
-  makeApplicationFile,
-  makeRestoredApplication,
-} from '../factories/application.factory';
+import { makeRestoredApplication } from '../factories/application.factory';
 
 describe('ApplicationPresenter', () => {
   it('serializa datas como ISO e mantém os campos do domínio', () => {
@@ -26,6 +23,7 @@ describe('ApplicationPresenter', () => {
       deletedAt: null,
     });
     expect(typeof response.createdAt).toBe('string');
+    expect(response).not.toHaveProperty('files');
   });
 
   it('serializa deletedAt quando a candidatura foi excluída', () => {
@@ -35,30 +33,5 @@ describe('ApplicationPresenter', () => {
     expect(ApplicationPresenter.toHTTP(application).deletedAt).toBe(
       '2026-03-01T10:30:00.000Z',
     );
-  });
-
-  it('serializa os arquivos com uploadedAt em ISO', () => {
-    const application = makeRestoredApplication({
-      files: [makeApplicationFile({ name: 'curriculo.pdf' })],
-    });
-
-    const [file] = ApplicationPresenter.toHTTP(application).files;
-
-    expect(file).toMatchObject({
-      name: 'curriculo.pdf',
-      url: 'https://storage.example.com/resume.pdf',
-      downloadUrl: null,
-      mimeType: 'application/pdf',
-      sizeInBytes: 1024,
-    });
-    expect(typeof file?.id).toBe('string');
-    expect(typeof file?.uploadedAt).toBe('string');
-    expect(file?.uploadedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-  });
-
-  it('devolve lista vazia quando não há arquivos', () => {
-    expect(
-      ApplicationPresenter.toHTTP(makeRestoredApplication()).files,
-    ).toEqual([]);
   });
 });
