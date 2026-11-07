@@ -3,6 +3,50 @@
 All notable changes to the project. The format follows Conventional Commits and
 semantic versioning.
 
+## 3.0.0 — 2026-11-07
+
+### Added
+
+- Trampo Brasil visual identity across the board, authentication pages, and
+  transactional emails, with self-hosted Bricolage Grotesque, DM Sans, and Space
+  Mono fonts.
+- Light, dark, and system themes, with light as the default. The preference is
+  stored per user in `users.theme_preference`, exposed by `PATCH /auth/me/theme`,
+  and cached locally to avoid a flash before React loads.
+- Horizontal top header with brand, search, theme toggle, and an account menu
+  containing logout.
+- Playwright visual regression suite with Linux baselines and a dedicated
+  workflow.
+- Seed script and workflow step that create a verified E2E user without going
+  through sign-up or email.
+
+### Changed
+
+- The board shell moved from the yellow sidebar to a horizontal header; the
+  mobile drawer and the helper tip were removed.
+- The E2E critical path no longer depends on sign-up or email; public sign-up
+  remains the only mail-dependent flow.
+- E2E runs require an explicit `E2E_BASE_URL` to avoid pointing at the
+  development stack.
+- The favicon URL is versioned to bypass browser icon caches.
+- `GET /auth/me` and login responses include the user's theme preference.
+
+### Removed
+
+- File upload/download, the `application_files` table, S3/MinIO storage,
+  Adminer, and their dependencies and configuration.
+- The yellow sidebar, mobile drawer, navigation helper tip, and notification
+  icon.
+
+### Fixed
+
+- Theme synchronization no longer overwrites the saved account preference when
+  the value comes from the server or another tab.
+- `PATCH /auth/me/theme` now returns the full profile, including the verification
+  resend cooldown.
+- The board search field remains accessible to the existing E2E flow.
+- The application detail tip no longer duplicates the current phase text.
+
 ## 2.0.4 — 2026-11-06
 
 ### Added

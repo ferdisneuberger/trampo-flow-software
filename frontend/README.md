@@ -35,7 +35,7 @@ Page (pages/ApplicationDetailPage)
 | ------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `components/ui`           | Base design system: buttons, inputs, cards, modals, menu, badges, alerts, skeleton, and error boundary |
 | `components/auth`         | Protected route and session loading screen                                                             |
-| `components/layout`       | Global structure (navigation, content, logout, and skip link)                                          |
+| `components/layout`       | Global header (brand, search, theme, account menu/logout, and skip link)                               |
 | `components/applications` | Board, columns, cards, form, and deletion dialog                                                       |
 | `pages`                   | Screen composition                                                                                     |
 | `hooks`                   | Queries/mutations, form, debounce, disclosure, and logout                                              |
@@ -48,6 +48,7 @@ Page (pages/ApplicationDetailPage)
 ### Design decisions
 
 - **Board only:** the home screen is `/candidaturas`; there is no list view or statistics panel. The `/` route redirects to the board.
+- **Horizontal header:** brand, search, theme toggle, and account menu live in a single top bar. The initials open the account menu with logout; there is no sidebar.
 - **Centralized cache:** `src/lib/query-keys.ts` holds the keys and `src/lib/invalidate.ts` invalidates the board and an application's detail. Every mutation goes through this helper.
 - **Reusable mutations:** `useApplicationMutations` is the single entry point for creating, updating, and deleting applications. `ApplicationForm` receives the actions through props, without firing hidden queries.
 - **Optimistic updates with rollback:** moving a card updates the order and column totals immediately; if the API fails, the previous board is restored and an alert is shown.

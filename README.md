@@ -4,15 +4,21 @@
 
 Full-stack application for tracking job applications. The backend is a Node.js API built with NestJS, Fastify, Prisma, and PostgreSQL, organized in layers following DDD and SOLID principles. The frontend is a React SPA built with Vite, TypeScript, and Tailwind CSS, structured into components, hooks, and services.
 
-## Highlights of 2.0
+## Highlights of 3.0
 
 - Per-user applications, with company and company website.
 - Kanban board with drag and drop and persisted manual ordering.
 - Server-side search, with the Kanban board as the home screen.
-- Session with a short-lived access token in memory and a refresh token in an `HttpOnly` cookie.
+- Horizontal header with search, theme toggle, and an account menu with logout.
+- Light, dark, and system themes, with light as the default and the preference
+  saved per user.
+- Trampo Brasil visual identity across the app and transactional emails.
+- Session with a short-lived access token in memory and a refresh token in an
+  `HttpOnly` cookie.
 - Application detail page with editing and deletion.
+- Playwright visual regression with Linux baselines.
 
-The full history is in [CHANGELOG.md](CHANGELOG.md).
+**Current version:** 3.0.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Stack
 
