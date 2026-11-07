@@ -17,8 +17,9 @@ type MenuProps = {
   items: MenuItem[];
   className?: string;
   trigger?: ReactNode;
-  triggerVariant?: 'default' | 'sidebar' | 'toolbar';
+  triggerVariant?: 'default' | 'toolbar' | 'avatar';
   menuClassName?: string;
+  header?: ReactNode;
 };
 
 export function Menu({
@@ -28,6 +29,7 @@ export function Menu({
   trigger,
   triggerVariant = 'default',
   menuClassName,
+  header,
 }: MenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuId = useId();
@@ -81,12 +83,12 @@ export function Menu({
         aria-label={label}
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
-          'grid cursor-pointer list-none place-items-center rounded-md border-2 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cobalt/20',
-          triggerVariant === 'sidebar'
-            ? 'size-8 border-sidebar-border bg-sidebar-hover text-sidebar-ink hover:bg-surface/20'
+          'grid cursor-pointer list-none place-items-center border-2 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cobalt/20',
+          triggerVariant === 'avatar'
+            ? 'size-10 rounded-full border-ink-900 bg-coral font-display text-xs font-bold text-on-coral shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard'
             : triggerVariant === 'toolbar'
-              ? 'size-10 border-ink-900 bg-surface text-ink-900 shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-surface-raised hover:shadow-hard'
-              : 'size-7 border-transparent text-ink-500 hover:border-ink-900 hover:bg-surface hover:text-ink-900',
+              ? 'size-10 rounded-md border-ink-900 bg-surface text-ink-900 shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-surface-raised hover:shadow-hard'
+              : 'size-7 rounded-md border-transparent text-ink-500 hover:border-ink-900 hover:bg-surface hover:text-ink-900',
         )}
       >
         {trigger ?? (
@@ -107,6 +109,12 @@ export function Menu({
             menuClassName,
           )}
         >
+          {header && (
+            <div className="border-b-2 border-ink-900/20 px-2 py-1.5">
+              {header}
+            </div>
+          )}
+
           {items.map((item) => {
             const Icon = item.icon;
 

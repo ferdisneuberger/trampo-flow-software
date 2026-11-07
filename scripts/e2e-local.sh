@@ -62,6 +62,13 @@ if ! curl -fsS "${BASE_URL}/api/health" > /dev/null 2>&1; then
   exit 1
 fi
 
+echo "e2e-local: criando o usuário de teste"
+
+COMPOSE_PROJECT_NAME="$PROJECT" docker compose exec -T \
+  -e E2E_EMAIL="$E2E_EMAIL" \
+  -e E2E_PASSWORD="$E2E_PASSWORD" \
+  api node --input-type=module < backend/scripts/create-e2e-user.mjs
+
 cd frontend
 
 if [ ! -d "$HOME/.cache/ms-playwright" ]; then

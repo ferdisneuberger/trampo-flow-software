@@ -17,7 +17,7 @@ const themeIcons: Record<ThemePreference, LucideIcon> = {
 const themeOrder: ThemePreference[] = ['light', 'dark', 'system'];
 
 type ThemeToggleProps = {
-  variant?: 'default' | 'sidebar' | 'toolbar';
+  variant?: 'default' | 'toolbar';
 };
 
 export function ThemeToggle({ variant = 'default' }: ThemeToggleProps) {

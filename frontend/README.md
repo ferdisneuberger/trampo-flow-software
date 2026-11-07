@@ -97,8 +97,7 @@ frontend/
 │   │   ├── useBoard.ts
 │   │   ├── useDebouncedValue.ts
 │   │   ├── useDisclosure.ts
-│   │   ├── useLogout.ts
-│   │   └── useMediaQuery.ts
+│   │   └── useLogout.ts
 │   ├── lib/
 │   │   ├── invalidate.ts
 │   │   ├── query-client.ts
