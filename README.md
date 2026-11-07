@@ -367,24 +367,19 @@ A cobertura é medida em `src/**` inteiro, mas o threshold é aplicado apenas on
 
 ### Testes de ponta a ponta
 
-O fluxo crítico (login → criar → buscar → detalhe → excluir) roda com **Playwright** contra o ambiente do Compose.
-
-```bash
-docker compose up -d
-cd frontend
-npx playwright install chromium
-E2E_EMAIL=... E2E_PASSWORD=... E2E_MAILPIT_URL=http://127.0.0.1:8025 npm run test:e2e
-```
-
-Sem `E2E_EMAIL`, `E2E_PASSWORD` e `E2E_MAILPIT_URL`, o teste é pulado. No CI, o workflow `E2E` sobe o Compose, cria um usuário de teste pelo bootstrap e roda o fluxo em um Chromium.
-
-Para rodar localmente sem tocar no seu banco, use o script de stack isolado:
+O E2E roda com **Playwright** contra um stack isolado, nunca contra o seu ambiente do Compose:
 
 ```bash
 npm run test:e2e:local
 ```
 
-Ele sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio, e derruba tudo no final. O workflow de E2E roda em pull requests que tocam frontend/backend/infra, sob demanda (`workflow_dispatch`) e em schedule noturno.
+O script sobe um projeto Compose separado (`trampo-e2e`) em `http://127.0.0.1:6173`, com banco próprio e SMTP apontando para o Mailpit, e derruba tudo no final. A suíte cobre:
+
+- acessibilidade do login (axe, WCAG A/AA);
+- o fluxo crítico (login, sessão após recarregar, redirecionamento da raiz, criar, buscar, detalhe e excluir), com um usuário criado já verificado por `backend/scripts/create-e2e-user.mjs`, sem e-mail;
+- o cadastro público com verificação, único teste que depende de e-mail; o código é lido do Mailpit.
+
+Sem `E2E_BASE_URL`, todos os testes são pulados. Não aponte o E2E para o stack de desenvolvimento: ele usa o SMTP real e o banco de verdade, e o teste de cadastro enviaria e-mails de verdade. O workflow de E2E roda em pull requests que tocam frontend/backend/infra, sob demanda (`workflow_dispatch`) e em schedule noturno.
 
 ### Regressão visual
 

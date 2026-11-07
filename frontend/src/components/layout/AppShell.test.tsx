@@ -51,24 +51,36 @@ describe('AppShell', () => {
     vi.clearAllMocks();
   });
 
-  it('mostra navegação, usuário e link de pular conteúdo', () => {
+  it('mostra header, busca e link de pular conteúdo', () => {
     renderShell();
 
     expect(
       screen.getByRole('link', { name: 'Pular para o conteúdo' }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('link', { name: 'Candidaturas' }).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByText('Fernando')).toBeInTheDocument();
-    expect(screen.getByText('fernando@example.com')).toBeInTheDocument();
+      screen.getByRole('link', { name: 'Trampo Flow' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Abrir busca' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Tema:/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Menu da conta de Fernando/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText('conteúdo do quadro')).toBeInTheDocument();
   });
 
-  it('encerra a sessão pelo botão do menu', async () => {
+  it('abre o menu da conta e encerra a sessão', async () => {
     renderShell();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /Menu da conta de Fernando/ }),
+    );
+
+    expect(screen.getByText('Fernando')).toBeInTheDocument();
+    expect(screen.getByText('fernando@example.com')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Sair' }));
 
     expect(logout).toHaveBeenCalledOnce();
   });
