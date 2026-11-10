@@ -7,6 +7,8 @@ import type { GetBoardUseCase } from '../../src/application/applications/use-cas
 import { encodeCursor } from '../../src/application/applications/types/application-cursor';
 import type { ListApplicationsUseCase } from '../../src/application/applications/use-cases/list-applications.use-case';
 import type { PlaceApplicationUseCase } from '../../src/application/applications/use-cases/place-application.use-case';
+import type { PreviewJobPostingUseCase } from '../../src/application/applications/use-cases/preview-job-posting.use-case';
+import type { RateLimiterService } from '../../src/infrastructure/auth/rate-limiter.service';
 import type { UpdateApplicationUseCase } from '../../src/application/applications/use-cases/update-application.use-case';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
 import { ApplicationsController } from '../../src/infrastructure/http/controllers/applications.controller';
@@ -26,6 +28,8 @@ function createController() {
   const board = vi.fn();
   const findOne = vi.fn();
   const place = vi.fn();
+  const preview = vi.fn();
+  const consume = vi.fn();
 
   const controller = new ApplicationsController(
     { execute: create } as unknown as CreateApplicationUseCase,
@@ -36,6 +40,8 @@ function createController() {
     { execute: update } as unknown as UpdateApplicationUseCase,
     { execute: place } as unknown as PlaceApplicationUseCase,
     { execute: remove } as unknown as DeleteApplicationUseCase,
+    { execute: preview } as unknown as PreviewJobPostingUseCase,
+    { consume } as unknown as RateLimiterService,
   );
 
   return {
@@ -48,6 +54,8 @@ function createController() {
     stats,
     board,
     findOne,
+    preview,
+    consume,
   };
 }
 
@@ -273,5 +281,40 @@ describe('ApplicationsController', () => {
       userId: USER_ID,
     });
     expect(response.id).toBe(application.id);
+  });
+
+  it('busca os dados da vaga pelo link, com limite de buscas por usuário', async () => {
+    const { controller, preview, consume } = createController();
+    const result = {
+      title: 'Dev Backend',
+      company: 'Acme',
+      companyUrl: 'https://acme.com',
+      status: 'found' as const,
+    };
+
+    preview.mockResolvedValue(result);
+
+    await expect(
+      controller.preview({ link: 'https://acme.com/vaga' }, USER_ID),
+    ).resolves.toEqual(result);
+    expect(consume).toHaveBeenCalledWith(
+      `preview:user:${USER_ID}`,
+      20,
+      60 * 1000,
+    );
+    expect(preview).toHaveBeenCalledWith('https://acme.com/vaga');
+  });
+
+  it('não busca a página quando o limite de buscas estoura', async () => {
+    const { controller, preview, consume } = createController();
+
+    consume.mockImplementation(() => {
+      throw new Error('RATE_LIMITED');
+    });
+
+    await expect(
+      controller.preview({ link: 'https://acme.com/vaga' }, USER_ID),
+    ).rejects.toThrow('RATE_LIMITED');
+    expect(preview).not.toHaveBeenCalled();
   });
 });
