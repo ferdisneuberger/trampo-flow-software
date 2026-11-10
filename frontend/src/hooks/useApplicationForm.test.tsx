@@ -283,4 +283,24 @@ describe('useApplicationForm', () => {
     expect(result.current.errors.title).toBeUndefined();
     expect(result.current.errors.company).toBe('Informe a empresa.');
   });
+
+  it('marca os campos vindos da página e desmarca quando a pessoa edita', () => {
+    const { result } = setup();
+
+    act(() => {
+      result.current.applyPrefill({
+        title: 'Backend Engineer',
+        company: 'Acme',
+        link: 'https://example.com/jobs/1',
+      });
+    });
+
+    expect([...result.current.prefilledFields]).toEqual(['title', 'company']);
+
+    act(() => {
+      result.current.setField('title', 'Backend Engineer Pleno');
+    });
+
+    expect([...result.current.prefilledFields]).toEqual(['company']);
+  });
 });

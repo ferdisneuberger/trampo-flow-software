@@ -89,6 +89,7 @@ export function ApplicationForm({
           value={form.values.title}
           onChange={(event) => form.setField('title', event.target.value)}
           error={form.errors.title}
+          tag={form.prefilledFields.has('title') ? 'do link' : undefined}
           required
           maxLength={120}
           containerClassName="sm:col-span-2"
@@ -99,6 +100,7 @@ export function ApplicationForm({
           value={form.values.company}
           onChange={(event) => form.setField('company', event.target.value)}
           error={form.errors.company}
+          tag={form.prefilledFields.has('company') ? 'do link' : undefined}
           required
           maxLength={120}
         />
@@ -109,6 +111,7 @@ export function ApplicationForm({
           value={form.values.companyUrl}
           onChange={(event) => form.setField('companyUrl', event.target.value)}
           error={form.errors.companyUrl}
+          tag={form.prefilledFields.has('companyUrl') ? 'do link' : undefined}
           hint="Opcional. URL HTTP ou HTTPS."
           maxLength={2048}
         />

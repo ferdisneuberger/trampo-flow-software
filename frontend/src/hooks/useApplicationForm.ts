@@ -132,6 +132,10 @@ export function useApplicationForm({
   );
   const [errors, setErrors] = useState<ApplicationFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Campos com valor vindo da página da vaga e ainda não editados. */
+  const [prefilledFields, setPrefilledFields] = useState<
+    ReadonlySet<ApplicationPrefillField>
+  >(() => new Set());
   const currentApplicationId = application?.id ?? null;
   const lastApplicationId = useRef(currentApplicationId);
 
@@ -156,6 +160,17 @@ export function useApplicationForm({
         [field]: undefined,
         form: undefined,
       }));
+      // Editou o campo: o valor passa a ser da pessoa, não mais do link.
+      setPrefilledFields((current) => {
+        if (!current.has(field as ApplicationPrefillField)) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.delete(field as ApplicationPrefillField);
+
+        return next;
+      });
     },
     [],
   );
@@ -176,6 +191,13 @@ export function useApplicationForm({
           next[field] = suggestion;
           filled.push(field);
         }
+      }
+
+      // O link foi colado pela própria pessoa; só marca o que veio da página.
+      const fromPage = filled.filter((field) => field !== 'link');
+
+      if (fromPage.length > 0) {
+        setPrefilledFields((current) => new Set([...current, ...fromPage]));
       }
 
       if (filled.length > 0) {
@@ -244,6 +266,7 @@ export function useApplicationForm({
     values,
     errors,
     isSubmitting,
+    prefilledFields,
     setField,
     applyPrefill,
     handleSubmit,

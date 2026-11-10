@@ -1,3 +1,4 @@
+import { Sparkles } from 'lucide-react';
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../../utils/cn';
 
@@ -11,6 +12,8 @@ export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   leading?: ReactNode;
   trailing?: ReactNode;
   hideLabel?: boolean;
+  /** Etiqueta discreta ao lado do rótulo, por exemplo "do link". */
+  tag?: string;
 };
 
 export function Input({
@@ -25,29 +28,43 @@ export function Input({
   leading,
   trailing,
   hideLabel = false,
+  tag,
   'aria-describedby': ariaDescribedBy,
   ...props
 }: InputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descriptionId = `${inputId}-description`;
+  const tagId = `${inputId}-tag`;
   const showValidMessage = valid && !error && validMessage;
   const describedBy =
-    [error || showValidMessage || hint ? descriptionId : null, ariaDescribedBy]
+    [
+      tag && !hideLabel ? tagId : null,
+      error || showValidMessage || hint ? descriptionId : null,
+      ariaDescribedBy,
+    ]
       .filter(Boolean)
       .join(' ') || undefined;
 
   return (
     <div className={cn('space-y-1.5', containerClassName)}>
-      <label
-        htmlFor={inputId}
-        className={cn(
-          'block text-[13px] font-medium text-muted',
-          hideLabel && 'sr-only',
-        )}
-      >
-        {label}
-      </label>
+      <div className={cn('flex items-center gap-2', hideLabel && 'sr-only')}>
+        <label
+          htmlFor={inputId}
+          className="block text-[13px] font-medium text-muted"
+        >
+          {label}
+        </label>
+        {tag && !hideLabel ? (
+          <span
+            id={tagId}
+            className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-px text-[11px] font-medium text-fg-soft dark:bg-canvas"
+          >
+            <Sparkles className="size-3" aria-hidden="true" />
+            {tag}
+          </span>
+        ) : null}
+      </div>
       <div className="relative">
         {leading ? (
           <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">

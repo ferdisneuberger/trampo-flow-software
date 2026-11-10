@@ -139,4 +139,39 @@ describe('ApplicationForm', () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Empresa')).toHaveValue('Já digitada');
   });
+
+  it('destaca os campos preenchidos pelo link até a pessoa editar', async () => {
+    mocks.preview.mockResolvedValue({
+      title: 'Backend Engineer',
+      company: 'Acme',
+      companyUrl: null,
+      status: 'found',
+    });
+    renderForm();
+
+    await userEvent.type(
+      screen.getByLabelText(LINK_LABEL),
+      'https://acme.gupy.io/jobs/1',
+    );
+    await userEvent.click(screen.getByRole('button', { name: /^Preencher$/ }));
+    await screen.findByDisplayValue('Backend Engineer');
+
+    expect(screen.getAllByText('do link')).toHaveLength(2);
+    expect(
+      screen.getByLabelText('Título da candidatura'),
+    ).toHaveAccessibleDescription('do link');
+    expect(
+      screen.getByLabelText('Link da vaga'),
+    ).not.toHaveAccessibleDescription(/do link/);
+
+    await userEvent.type(
+      screen.getByLabelText('Título da candidatura'),
+      ' Pleno',
+    );
+
+    expect(screen.getAllByText('do link')).toHaveLength(1);
+    expect(screen.getByLabelText('Empresa')).toHaveAccessibleDescription(
+      'do link',
+    );
+  });
 });
