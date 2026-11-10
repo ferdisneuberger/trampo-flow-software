@@ -145,3 +145,30 @@ export class ErrorResponse {
   @ApiProperty({ example: 'Candidatura não encontrada.' })
   message!: string;
 }
+
+export class JobPostingPreviewResponse {
+  @ApiProperty({
+    example: 'Desenvolvedor Backend Pleno',
+    nullable: true,
+    type: String,
+  })
+  title!: string | null;
+
+  @ApiProperty({ example: 'Acme', nullable: true, type: String })
+  company!: string | null;
+
+  @ApiProperty({
+    example: 'https://acme.com.br',
+    nullable: true,
+    type: String,
+  })
+  companyUrl!: string | null;
+
+  @ApiProperty({
+    enum: ['found', 'no_data', 'blocked', 'timeout', 'not_html', 'unreachable'],
+    description:
+      'found: algo foi encontrado; no_data: página lida sem dados úteis; os demais: a página não pôde ser lida.',
+  })
+  status!:
+    'found' | 'no_data' | 'blocked' | 'timeout' | 'not_html' | 'unreachable';
+}

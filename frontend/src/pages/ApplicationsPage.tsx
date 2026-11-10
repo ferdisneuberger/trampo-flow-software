@@ -437,7 +437,7 @@ export function ApplicationsPage() {
         description={
           editingApplication
             ? 'Atualize os dados do processo seletivo.'
-            : 'Preencha os dados da vaga para começar a acompanhar o processo seletivo.'
+            : 'Cole o link da vaga para preencher automaticamente, ou preencha à mão.'
         }
         size="lg"
       >

@@ -12,6 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
+import { RateLimiterService } from '../../auth/rate-limiter.service';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -28,6 +29,7 @@ import { DeleteApplicationQueryDto } from '../../../application/applications/dto
 import { BoardQueryDto } from '../../../application/applications/dtos/board-query.dto';
 import { ListApplicationsQueryDto } from '../../../application/applications/dtos/list-applications-query.dto';
 import { PlaceApplicationDto } from '../../../application/applications/dtos/place-application.dto';
+import { PreviewJobPostingDto } from '../../../application/applications/dtos/preview-job-posting.dto';
 import { UpdateApplicationDto } from '../../../application/applications/dtos/update-application.dto';
 import { CreateApplicationUseCase } from '../../../application/applications/use-cases/create-application.use-case';
 import { DeleteApplicationUseCase } from '../../../application/applications/use-cases/delete-application.use-case';
@@ -36,6 +38,7 @@ import { GetApplicationUseCase } from '../../../application/applications/use-cas
 import { GetBoardUseCase } from '../../../application/applications/use-cases/get-board.use-case';
 import { ListApplicationsUseCase } from '../../../application/applications/use-cases/list-applications.use-case';
 import { PlaceApplicationUseCase } from '../../../application/applications/use-cases/place-application.use-case';
+import { PreviewJobPostingUseCase } from '../../../application/applications/use-cases/preview-job-posting.use-case';
 import {
   decodeCursorPayload,
   encodeCursor,
@@ -50,6 +53,7 @@ import {
   ApplicationStatsResponse,
   BoardResponse,
   ErrorResponse,
+  JobPostingPreviewResponse,
   PaginatedApplicationsResponse,
 } from '../schemas/http.schemas';
 
@@ -66,6 +70,8 @@ export class ApplicationsController {
     private readonly updateApplicationUseCase: UpdateApplicationUseCase,
     private readonly placeApplicationUseCase: PlaceApplicationUseCase,
     private readonly deleteApplicationUseCase: DeleteApplicationUseCase,
+    private readonly previewJobPostingUseCase: PreviewJobPostingUseCase,
+    private readonly rateLimiter: RateLimiterService,
   ) {}
 
   @Post()
@@ -92,6 +98,30 @@ export class ApplicationsController {
     });
 
     return ApplicationPresenter.toHTTP(application);
+  }
+
+  @Post('preview')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Busca título, empresa e site a partir do link da vaga',
+    description:
+      'Não grava nada. Se a página não puder ser lida, responde 200 com os campos nulos e o motivo em `status`.',
+  })
+  @ApiOkResponse({ type: JobPostingPreviewResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Link inválido.',
+    type: ErrorResponse,
+  })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({ status: 429, description: 'Muitas buscas em pouco tempo.' })
+  async preview(
+    @Body() dto: PreviewJobPostingDto,
+    @CurrentUserId() userId: string,
+  ): Promise<JobPostingPreviewResponse> {
+    this.rateLimiter.consume(`preview:user:${userId}`, 20, 60 * 1000);
+
+    return this.previewJobPostingUseCase.execute(dto.link);
   }
 
   @Get()

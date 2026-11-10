@@ -37,14 +37,25 @@ type UseApplicationFormOptions = {
   onSuccess: () => void;
 };
 
+/** Fase sugerida ao criar: é o caso mais comum logo após se candidatar. */
+export const DEFAULT_CURRENT_PHASE = 'Candidatura enviada';
+
 const emptyValues: ApplicationFormValues = {
   title: '',
   link: '',
   company: '',
   companyUrl: '',
-  currentPhase: '',
+  currentPhase: DEFAULT_CURRENT_PHASE,
   status: 'PENDING',
 };
+
+/** Campos que o preenchimento pelo link pode sugerir. */
+export type ApplicationPrefillField =
+  'title' | 'company' | 'companyUrl' | 'link';
+
+export type ApplicationPrefill = Partial<
+  Record<ApplicationPrefillField, string | null>
+>;
 
 function toValues(application?: Application | null): ApplicationFormValues {
   if (!application) {
@@ -149,6 +160,42 @@ export function useApplicationForm({
     [],
   );
 
+  /**
+   * Aplica valores sugeridos só nos campos vazios e devolve quais foram
+   * preenchidos. O que a pessoa já digitou nunca é sobrescrito.
+   */
+  const applyPrefill = useCallback(
+    (prefill: ApplicationPrefill): ApplicationPrefillField[] => {
+      const filled: ApplicationPrefillField[] = [];
+      const next = { ...values };
+
+      for (const field of ['title', 'company', 'companyUrl', 'link'] as const) {
+        const suggestion = prefill[field]?.trim();
+
+        if (suggestion && !next[field].trim()) {
+          next[field] = suggestion;
+          filled.push(field);
+        }
+      }
+
+      if (filled.length > 0) {
+        setValues(next);
+        setErrors((current) => {
+          const cleared = { ...current, form: undefined };
+
+          for (const field of filled) {
+            cleared[field] = undefined;
+          }
+
+          return cleared;
+        });
+      }
+
+      return filled;
+    },
+    [values],
+  );
+
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -198,6 +245,7 @@ export function useApplicationForm({
     errors,
     isSubmitting,
     setField,
+    applyPrefill,
     handleSubmit,
   };
 }
