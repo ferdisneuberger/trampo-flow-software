@@ -11,6 +11,7 @@ import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
+import { JobLinkPrefill } from './JobLinkPrefill';
 
 export type ApplicationFormProps = {
   application?: Application | null;
@@ -34,7 +35,7 @@ export function ApplicationForm({
     onSuccess,
   });
 
-  return (
+  const formElement = (
     <form
       className="space-y-6"
       onSubmit={(event) => void form.handleSubmit(event)}
@@ -127,5 +128,24 @@ export function ApplicationForm({
         </Button>
       </div>
     </form>
+  );
+
+  // Na edição o modal mostra só o formulário.
+  if (application) {
+    return formElement;
+  }
+
+  return (
+    <div>
+      <JobLinkPrefill onPrefill={form.applyPrefill} />
+
+      <div className="my-6 flex items-center gap-3" role="separator">
+        <span className="h-px flex-1 bg-line" />
+        <span className="text-[13px] text-muted">ou preencha</span>
+        <span className="h-px flex-1 bg-line" />
+      </div>
+
+      {formElement}
+    </div>
   );
 }

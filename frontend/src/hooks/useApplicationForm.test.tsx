@@ -57,7 +57,7 @@ const storedApplication: Application = {
 };
 
 describe('useApplicationForm', () => {
-  it('começa vazio com status PENDING', () => {
+  it('começa vazio, com status PENDING e a fase sugerida', () => {
     const { result } = setup();
 
     expect(result.current.values).toEqual({
@@ -65,7 +65,7 @@ describe('useApplicationForm', () => {
       link: '',
       company: '',
       companyUrl: '',
-      currentPhase: '',
+      currentPhase: 'Candidatura enviada',
       status: 'PENDING',
     });
     expect(result.current.isSubmitting).toBe(false);
@@ -74,6 +74,9 @@ describe('useApplicationForm', () => {
   it('bloqueia o envio quando os campos obrigatórios estão vazios', async () => {
     const { result, onCreate, onSuccess } = setup();
 
+    act(() => {
+      result.current.setField('currentPhase', '');
+    });
     await submit(result.current);
 
     expect(result.current.errors).toMatchObject({
@@ -238,5 +241,46 @@ describe('useApplicationForm', () => {
     });
 
     expect(result.current.values.currentPhase).toBe('Digitado mas não salvo');
+  });
+
+  it('aplica sugestões só nos campos vazios e informa quais preencheu', () => {
+    const { result } = setup();
+    let filled: string[] = [];
+
+    act(() => {
+      result.current.setField('company', 'Digitada');
+    });
+    act(() => {
+      filled = result.current.applyPrefill({
+        title: '  Backend Engineer  ',
+        company: 'Sugerida',
+        companyUrl: null,
+        link: 'https://example.com/jobs/1',
+      });
+    });
+
+    expect(filled).toEqual(['title', 'link']);
+    expect(result.current.values).toMatchObject({
+      title: 'Backend Engineer',
+      company: 'Digitada',
+      companyUrl: '',
+      link: 'https://example.com/jobs/1',
+    });
+  });
+
+  it('limpa os erros dos campos preenchidos pela sugestão', async () => {
+    const { result } = setup();
+
+    await submit(result.current);
+    expect(result.current.errors.title).toBe(
+      'Informe o título da candidatura.',
+    );
+
+    act(() => {
+      result.current.applyPrefill({ title: 'Backend Engineer' });
+    });
+
+    expect(result.current.errors.title).toBeUndefined();
+    expect(result.current.errors.company).toBe('Informe a empresa.');
   });
 });

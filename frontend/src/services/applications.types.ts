@@ -53,6 +53,17 @@ export type UpdateApplicationInput = {
 
 export type DeleteApplicationMode = 'soft' | 'hard';
 
+export type JobPostingPreviewStatus =
+  'found' | 'no_data' | 'blocked' | 'timeout' | 'not_html' | 'unreachable';
+
+/** Dados que o servidor conseguiu ler da página da vaga. */
+export type JobPostingPreview = {
+  title: string | null;
+  company: string | null;
+  companyUrl: string | null;
+  status: JobPostingPreviewStatus;
+};
+
 export type BoardColumn = {
   status: ApplicationStatus;
   total: number;

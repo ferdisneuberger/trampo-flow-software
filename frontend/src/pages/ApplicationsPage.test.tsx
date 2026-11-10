@@ -214,6 +214,7 @@ describe('ApplicationsPage', () => {
       screen.getByLabelText('Link da vaga'),
       'https://example.com/front',
     );
+    await userEvent.clear(screen.getByLabelText('Fase atual'));
     await userEvent.type(screen.getByLabelText('Fase atual'), 'Triagem');
     await userEvent.click(
       screen.getByRole('button', { name: /Criar candidatura/ }),
