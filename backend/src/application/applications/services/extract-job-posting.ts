@@ -151,7 +151,7 @@ export function extractJobPosting(
     : null;
 
   const company =
-    cleanCompany(organization?.name) ?? cleanCompany(meta.get('og:site_name'));
+    cleanCompany(organization?.name) ?? cleanCompany(siteNameAsCompany(meta));
 
   const linkedIn = parseLinkedInTitle(meta.get('og:title'));
 
@@ -216,7 +216,12 @@ function parseJson(raw: string | undefined): unknown {
   try {
     return JSON.parse(cleaned) as unknown;
   } catch {
-    return undefined;
+    // A Gupy, por exemplo, escapa o JSON-LD como HTML (&quot; no lugar de ").
+    try {
+      return JSON.parse(decodeEntities(cleaned)) as unknown;
+    } catch {
+      return undefined;
+    }
   }
 }
 
@@ -322,6 +327,25 @@ function readAttributes(tag: string): Map<string, string> {
   return attributes;
 }
 
+/**
+ * `og:site_name` costuma ser o nome da empresa, mas algumas plataformas (a
+ * Gupy, por exemplo) repetem nele o título da vaga. Nesse caso, ignora.
+ */
+function siteNameAsCompany(meta: Map<string, string>): string | null {
+  const siteName = cleanText(meta.get('og:site_name'));
+  const ogTitle = cleanText(meta.get('og:title'));
+
+  if (!siteName) {
+    return null;
+  }
+
+  if (ogTitle && siteName.toLowerCase() === ogTitle.toLowerCase()) {
+    return null;
+  }
+
+  return siteName;
+}
+
 function readTitleTag(html: string): string | null {
   const match = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html);
 
@@ -386,22 +410,28 @@ function cleanTitle(
     return null;
   }
 
-  const separators = /\s+[|\-–—·•:]\s+/;
-  const parts = text.split(separators);
+  // Corta do fim para o começo, mantendo o texto original (e os separadores)
+  // de tudo que fica.
   const companyKey = company?.toLowerCase();
+  let result = text;
 
-  while (parts.length > 1) {
-    const last = (parts[parts.length - 1] ?? '').trim().toLowerCase();
+  for (;;) {
+    const match = /\s+[|\-–—·•:]\s+([^|\-–—·•:]+?)\s*$/.exec(result);
 
-    if (isPlatformName(last) || (companyKey && last === companyKey)) {
-      parts.pop();
-      continue;
+    if (!match?.[1]) {
+      break;
     }
 
-    break;
+    const last = match[1].trim().toLowerCase();
+
+    if (!isPlatformName(last) && last !== companyKey) {
+      break;
+    }
+
+    result = result.slice(0, match.index);
   }
 
-  return cleanText(parts.join(' - '));
+  return cleanText(result);
 }
 
 function cleanCompany(value: string | null | undefined): string | null {

@@ -167,4 +167,47 @@ describe('extractJobPosting', () => {
       null,
     );
   });
+
+  it('lê uma vaga real da Gupy, com JSON-LD escapado como HTML', () => {
+    // Trecho reduzido de https://aurum.gupy.io/jobs/12859071 (nov/2026).
+    const html = `<html><head>
+      <title>Job Page | Pessoa Desenvolvedora Full Stack Pleno | Remoto</title>
+      <meta content="Em primeiro lugar, queremos te contar um pouco mais sobre quem somos" name="description"/>
+      <meta content="Pessoa Desenvolvedora Full Stack Pleno | Remoto" property="og:title"/>
+      <meta content="Pessoa Desenvolvedora Full Stack Pleno | Remoto" property="og:site_name"/>
+      <script type="application/ld+json">{&quot;@context&quot;:&quot;http://schema.org&quot;,&quot;@type&quot;:&quot;JobPosting&quot;,&quot;datePosted&quot;:&quot;2026-11-09&quot;,&quot;description&quot;:&quot;&lt;p class=\\&quot;ql-align-justify\\&quot;&gt;Muito prazer, nós somos a Aurum! &amp;amp; mais&lt;/p&gt;&quot;,&quot;employmentType&quot;:&quot;FULL_TIME&quot;,&quot;hiringOrganization&quot;:{&quot;@type&quot;:&quot;Organization&quot;,&quot;name&quot;:&quot;Aurum&quot;,&quot;sameAs&quot;:&quot;&quot;,&quot;logo&quot;:&quot;https://attachments.gupy.io/logo.png&quot;},&quot;title&quot;:&quot;Pessoa Desenvolvedora Full Stack Pleno | Remoto&quot;,&quot;validThrough&quot;:&quot;2026-12-15&quot;}</script>
+    </head></html>`;
+
+    expect(
+      extractJobPosting(
+        html,
+        'https://aurum.gupy.io/jobs/12859071?jobBoardSource=gupy_public_page',
+      ),
+    ).toEqual({
+      title: 'Pessoa Desenvolvedora Full Stack Pleno | Remoto',
+      company: 'Aurum',
+      companyUrl: null,
+    });
+  });
+
+  it('não usa og:site_name como empresa quando ele repete o título', () => {
+    const html = `
+      <meta property="og:title" content="Analista de Dados | Remoto">
+      <meta property="og:site_name" content="Analista de Dados | Remoto">`;
+
+    expect(extractJobPosting(html, 'https://empresa.gupy.io/jobs/1')).toEqual({
+      title: 'Analista de Dados | Remoto',
+      company: null,
+      companyUrl: null,
+    });
+  });
+
+  it('remove vários sufixos de site preservando os separadores do título', () => {
+    const html = `<title>Dev Backend | Acme | Gupy</title>
+      <meta property="og:site_name" content="Acme">`;
+
+    expect(extractJobPosting(html, 'https://acme.com/vaga/1').title).toBe(
+      'Dev Backend',
+    );
+  });
 });
