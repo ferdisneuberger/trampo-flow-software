@@ -102,10 +102,10 @@ export function ApplicationDetailPage() {
   const jobUrl = safeHttpUrl(application.link);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="max-w-5xl space-y-6">
       <Link
         to="/candidaturas"
-        className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-500 transition hover:text-ink-900"
+        className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Meus trampos
@@ -113,16 +113,14 @@ export function ApplicationDetailPage() {
 
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-coral-dark">
-            Candidatura
-          </p>
+          <p className="text-[13px] font-medium text-muted">Candidatura</p>
           <h1
             title={application.title}
-            className="mt-2 line-clamp-2 break-words font-display text-4xl font-extrabold leading-[0.95] tracking-[-0.06em] text-ink-900"
+            className="mt-1 line-clamp-2 break-words font-display text-[28px] font-semibold leading-tight text-fg sm:text-[30px]"
           >
             {application.title}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-ink-700">
+          <div className="mt-2.5 flex flex-wrap items-center gap-3 text-sm text-muted">
             <span className="inline-flex items-center gap-1.5">
               <Building2 className="size-4" aria-hidden="true" />
               {companyUrl ? (
@@ -130,7 +128,7 @@ export function ApplicationDetailPage() {
                   href={companyUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-cobalt"
+                  className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-fg"
                 >
                   {application.company}
                   <ExternalLink className="size-3" aria-hidden="true" />
@@ -182,25 +180,21 @@ export function ApplicationDetailPage() {
         />
       )}
 
-      <dl className="grid grid-cols-1 overflow-hidden rounded-card border-2 border-ink-900 bg-surface shadow-hard sm:grid-cols-2">
-        <div className="border-b-2 border-ink-900 bg-accent-soft px-5 py-4 sm:col-span-2">
-          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
-            Fase atual
-          </dt>
-          <dd className="mt-1 font-display text-2xl font-bold tracking-[-0.04em] text-ink-900">
+      <dl className="grid grid-cols-1 overflow-hidden rounded-card border border-line bg-surface sm:grid-cols-2">
+        <div className="border-b border-line px-5 py-4 sm:col-span-2">
+          <dt className="text-[13px] text-muted">Fase atual</dt>
+          <dd className="mt-1 font-display text-xl font-semibold text-fg">
             {application.currentPhase}
           </dd>
         </div>
 
         <div
           className={cn(
-            'border-b-2 border-ink-900 px-5 py-4',
-            companyUrl ? 'sm:border-r-2' : 'sm:col-span-2',
+            'border-b border-line px-5 py-4',
+            companyUrl ? 'sm:border-r' : 'sm:col-span-2',
           )}
         >
-          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
-            Link da vaga
-          </dt>
+          <dt className="text-[13px] text-muted">Link da vaga</dt>
           <dd className="mt-1 min-w-0 text-sm">
             {jobUrl ? (
               <a
@@ -208,7 +202,7 @@ export function ApplicationDetailPage() {
                 target="_blank"
                 rel="noreferrer"
                 title={application.link}
-                className="inline-flex max-w-full items-center gap-1.5 text-cobalt underline underline-offset-4 hover:text-ink-900"
+                className="inline-flex max-w-full items-center gap-1.5 text-fg underline decoration-line-strong underline-offset-4 hover:decoration-fg"
               >
                 <span className="truncate">{formatUrlHost(jobUrl)}</span>
                 <ExternalLink
@@ -217,23 +211,21 @@ export function ApplicationDetailPage() {
                 />
               </a>
             ) : (
-              <span className="break-all text-ink-700">{application.link}</span>
+              <span className="break-all text-fg-soft">{application.link}</span>
             )}
           </dd>
         </div>
 
         {companyUrl && (
-          <div className="border-b-2 border-ink-900 px-5 py-4">
-            <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
-              Site da empresa
-            </dt>
+          <div className="border-b border-line px-5 py-4">
+            <dt className="text-[13px] text-muted">Site da empresa</dt>
             <dd className="mt-1 min-w-0 text-sm">
               <a
                 href={companyUrl}
                 target="_blank"
                 rel="noreferrer"
                 title={application.companyUrl ?? undefined}
-                className="inline-flex max-w-full items-center gap-1.5 text-cobalt underline underline-offset-4 hover:text-ink-900"
+                className="inline-flex max-w-full items-center gap-1.5 text-fg underline decoration-line-strong underline-offset-4 hover:decoration-fg"
               >
                 <span className="truncate">{formatUrlHost(companyUrl)}</span>
                 <ExternalLink
@@ -247,41 +239,34 @@ export function ApplicationDetailPage() {
 
         <div
           className={cn(
-            'border-b-2 border-ink-900 px-5 py-4 sm:border-b-0',
-            companyUrl && 'sm:border-r-2',
+            'border-b border-line px-5 py-4 sm:border-b-0',
+            companyUrl && 'sm:border-r',
           )}
         >
-          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
-            Criada em
-          </dt>
-          <dd className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink-900">
-            <CalendarDays
-              className="size-3.5 text-ink-500"
-              aria-hidden="true"
-            />
+          <dt className="text-[13px] text-muted">Criada em</dt>
+          <dd className="mt-1 inline-flex items-center gap-1.5 text-sm text-fg">
+            <CalendarDays className="size-3.5 text-muted" aria-hidden="true" />
             {formatDate(application.createdAt)}
           </dd>
         </div>
 
         <div className="px-5 py-4">
-          <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink-500">
-            Atualizada em
-          </dt>
-          <dd className="mt-1 text-sm text-ink-900">
+          <dt className="text-[13px] text-muted">Atualizada em</dt>
+          <dd className="mt-1 text-sm text-fg">
             {formatDate(application.updatedAt)}
           </dd>
         </div>
       </dl>
 
-      <aside className="flex items-start gap-3 rounded-xl border-2 border-ink-900 bg-tip-bg p-5 text-tip-text shadow-hard">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg border-2 border-ink-900 bg-yellow text-on-accent">
+      <aside className="flex items-start gap-3 rounded-card border border-line bg-surface-2 p-5 text-fg">
+        <span className="grid size-9 shrink-0 place-items-center rounded-btn bg-surface text-fg-soft">
           <Compass className="size-5" aria-hidden="true" />
         </span>
         <div>
-          <h2 className="font-display text-lg font-bold tracking-[-0.02em]">
+          <h2 className="font-display text-base font-semibold text-fg">
             Mantém o ritmo
           </h2>
-          <p className="mt-1 text-sm leading-6 text-tip-muted">
+          <p className="mt-1 text-sm leading-6 text-muted">
             Nessa fase, se a empresa não responder, vale um follow-up curto e
             educado — sem drama.
           </p>
