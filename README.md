@@ -18,6 +18,18 @@ Full-stack application for tracking job applications. The backend is a Node.js A
 - Application detail page with editing and deletion.
 - Playwright visual regression with Linux baselines.
 
+## Since 3.0 (unreleased)
+
+- **Grafite theme:** neutral graphite palette in light and dark, Hanken
+  Grotesk, and a split-screen sign-in with the official Google button.
+- **Sidebar navigation:** on large screens the header became a sidebar that
+  starts collapsed and can be expanded with an arrow; mobile keeps a compact
+  top bar.
+- **Prefill from the job link:** the create modal opens with just a link
+  field. The API reads title, company, and company website from the job page
+  (`POST /applications/preview`), and the form shows up already filled in,
+  with the fields that came from the page tagged "do link".
+
 **Current version:** 3.0.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Stack
@@ -410,7 +422,9 @@ The `Visual` workflow runs on PRs touching `frontend/**` and publishes the diffs
 - Light, dark, or automatic theme, with the preference saved to the account and the browser. The default is light.
 - Cards with a clickable title, company, current phase, and date.
 - Server-side search by title, company, or phase; searching temporarily disables dragging.
-- Creating and editing applications with title, link, phase, and status.
+- Collapsible sidebar on large screens (starts collapsed) and a compact top bar on mobile.
+- Creating and editing applications with title, company, company website, link, phase, and status.
+- Prefilling a new application from the job link: the modal opens with just the link, fills title, company, and website from the job page, tags those fields "do link" until edited, and offers a "Preencher à mão" option. New applications start with the phase "Candidatura enviada".
 - Soft (default) or hard deletion, with a critical warning and explicit checkbox confirmation.
 - Loading states, errors with retry, success confirmation, 404, and error boundary.
 - Public sign-up with email verification by code, terms of use, and creation blocked until confirmation.
@@ -464,6 +478,41 @@ Accepted fields:
 | `companyUrl`   | string | no       | valid HTTP/HTTPS URL, up to 2048 characters                                 |
 | `currentPhase` | string | yes      | up to 120 characters                                                        |
 | `status`       | enum   | no       | `PENDING`, `IN_PROGRESS`, `COMPLETED`, or `REJECTED`; defaults to `PENDING` |
+
+### Preview a job posting from its link
+
+Reads the public job page and returns what it can use to fill a new
+application. **Nothing is stored.**
+
+```bash
+curl -X POST http://localhost:5173/api/applications/preview \
+  -H 'content-type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{ "link": "https://aurum.gupy.io/jobs/12859071" }'
+```
+
+```json
+{
+  "title": "Pessoa Desenvolvedora Full Stack Pleno | Remoto",
+  "company": "Aurum",
+  "companyUrl": null,
+  "status": "found"
+}
+```
+
+- **Sources, in order:** JSON-LD `JobPosting` (also when escaped as HTML, as
+  Gupy does), Open Graph tags, and the page `<title>`, plus the public
+  LinkedIn job title format. Job board domains (Gupy, LinkedIn, Greenhouse,
+  Lever…) are never returned as `companyUrl`.
+- **Failures are not HTTP errors.** Fields come back `null` and `status`
+  explains why: `found`, `no_data`, `blocked`, `timeout`, `not_html`, or
+  `unreachable`. An invalid `link` responds `400`.
+- **Rate limit:** 20 previews per minute per user (`429 RATE_LIMITED`).
+- **SSRF protection:** only `http`/`https` on ports 80/443, without
+  credentials in the URL. Every resolved IP is validated at connection time,
+  including after redirects, so loopback, private, link-local, cloud
+  metadata, CGNAT, and multicast addresses are refused. At most 3 redirects,
+  a 5-second total timeout, a 1.5 MB read cap, and HTML only.
 
 ### List applications
 
@@ -538,7 +587,7 @@ curl -X PATCH http://localhost:5173/api/applications/<id> \
   }'
 ```
 
-All fields are optional, but at least one must be sent. Accepted fields: `title`, `link`, `currentPhase`, and `status`.
+All fields are optional, but at least one must be sent. Accepted fields: `title`, `link`, `company`, `companyUrl`, `currentPhase`, and `status`.
 
 ### Delete an application
 
@@ -689,7 +738,8 @@ backend/test/
 │   │   │       ├── entities/
 │   │   │       │   └── application.entity.ts
 │   │   │       ├── enums/application-status.enum.ts
-│   │   │       └── repositories/application.repository.ts
+│   │   │       ├── repositories/application.repository.ts
+│   │   │       └── services/job-page-fetcher.ts
 │   │   │   └── users/
 │   │   │       ├── entities/user.entity.ts
 │   │   │       ├── repositories/user.repository.ts
@@ -701,6 +751,7 @@ backend/test/
 │   │   │   └── applications/
 │   │   │       ├── dtos/
 │   │   │       ├── errors/
+│   │   │       ├── services/extract-job-posting.ts
 │   │   │       ├── types/
 │   │   │       └── use-cases/
 │   │   ├── infrastructure/
@@ -718,6 +769,9 @@ backend/test/
 │   │   │   │   ├── controllers/auth.controller.ts
 │   │   │   │   ├── controllers/health.controller.ts
 │   │   │   │   ├── filters/domain-exception.filter.ts
+│   │   │   │   ├── job-page/
+│   │   │   │   │   ├── public-address.ts
+│   │   │   │   │   └── safe-http-job-page-fetcher.ts
 │   │   │   │   └── presenters/application.presenter.ts
 │   │   │   ├── auth/
 │   │   │   │   ├── jwt-auth.guard.ts
@@ -942,6 +996,7 @@ This section makes explicit what the project does **not** do, and why. None of t
 - **Browser session.** The access token lives only in memory; the refresh token lives in an `HttpOnly` + `SameSite=strict` cookie. The refresh is rotated and deduplicated on the client. Logout and `401` clear the query cache. To switch to another transport, review CORS/CSRF and the cookie configuration.
 - **Logout.** The frontend calls `POST /auth/logout` before clearing local state; if the API is unavailable, the local logout still happens and the cookie may remain valid until it expires.
 - **Login rate limit.** In memory, global, and fixed-window; it resets on restart and is not shared across replicas. To change it: a counter in Postgres (or Redis) per email + IP, with a sliding window.
+- **Job link preview.** It only reads what the public page serves without JavaScript: pages behind a login (LinkedIn shows only part of the job to visitors) or rendered only on the client may return `no_data`, and the form falls back to manual input. The preview rate limit is in memory, like the login one. To change it: a headless browser or per-platform APIs, and a shared rate limiter.
 - **Listing.** The interface uses the board (`GET /applications/board`); the API keeps the paginated listing endpoint for integrations and statistics.
 - **Users.** Public sign-up is available behind `REGISTRATION_ENABLED`, with email verification, Google sign-in, and password recovery by email. There is no password change from inside the interface: passwords are changed through the recovery flow. To change it: an authenticated password change endpoint that revokes the other sessions.
 - **Roles and permissions.** Each user sees only their own applications, but there are no roles (admin, viewer) or sharing between accounts. To change it: a roles model and per-resource authorization rules.

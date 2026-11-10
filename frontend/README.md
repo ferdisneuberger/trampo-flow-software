@@ -31,24 +31,25 @@ Page (pages/ApplicationDetailPage)
     -> HTTP service
 ```
 
-| Layer                     | Responsibility                                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `components/ui`           | Base design system: buttons, inputs, cards, modals, menu, badges, alerts, skeleton, and error boundary |
-| `components/auth`         | Protected route and session loading screen                                                             |
-| `components/layout`       | Global header (brand, search, theme, account menu/logout, and skip link)                               |
-| `components/applications` | Board, columns, cards, form, and deletion dialog                                                       |
-| `pages`                   | Screen composition                                                                                     |
-| `hooks`                   | Queries/mutations, form, debounce, disclosure, and logout                                              |
-| `contexts`                | Authenticated session, theme, and the unauthorized event                                               |
-| `services`                | Domain types and isolated HTTP calls                                                                   |
-| `lib`                     | Query client, query keys, and centralized invalidation                                                 |
-| `config`                  | Settings derived from environment variables                                                            |
-| `utils`                   | Pure functions for formatting, validation, safe URLs, and downloads                                    |
+| Layer                     | Responsibility                                                                                                                           |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `components/ui`           | Base design system: buttons, inputs, cards, modals, menu, badges, alerts, skeleton, and error boundary                                   |
+| `components/auth`         | Protected route and session loading screen                                                                                               |
+| `components/layout`       | Global shell: collapsible sidebar on large screens, compact top bar on mobile (brand, search, theme, account menu/logout, and skip link) |
+| `components/applications` | Board, columns, cards, form with prefill from the job link, and deletion dialog                                                          |
+| `pages`                   | Screen composition                                                                                                                       |
+| `hooks`                   | Queries/mutations, form, debounce, disclosure, and logout                                                                                |
+| `contexts`                | Authenticated session, theme, and the unauthorized event                                                                                 |
+| `services`                | Domain types and isolated HTTP calls                                                                                                     |
+| `lib`                     | Query client, query keys, and centralized invalidation                                                                                   |
+| `config`                  | Settings derived from environment variables                                                                                              |
+| `utils`                   | Pure functions for formatting, validation, safe URLs, and downloads                                                                      |
 
 ### Design decisions
 
 - **Board only:** the home screen is `/candidaturas`; there is no list view or statistics panel. The `/` route redirects to the board.
-- **Horizontal header:** brand, search, theme toggle, and account menu live in a single top bar. The initials open the account menu with logout; there is no sidebar.
+- **Sidebar:** on large screens the shell is a sidebar with the brand, search (`/` shortcut), a Candidaturas link, theme, and the account menu. It starts collapsed (icons only) on every visit and expands with an arrow; its menus open upwards. Below `lg` it becomes a compact top bar.
+- **Prefill from the job link:** the create modal opens with just `JobLinkPrefill` and a "Preencher à mão" option. After a search (`POST /applications/preview`) the form is revealed, focusing the first empty required field, and the link collapses into a line with "Trocar link". `useApplicationForm.applyPrefill` only fills empty fields, and the fields that came from the page show a "do link" tag (the `tag` prop of `Input`, also the field's accessible description) until edited. Edit mode shows only the form.
 - **Centralized cache:** `src/lib/query-keys.ts` holds the keys and `src/lib/invalidate.ts` invalidates the board and an application's detail. Every mutation goes through this helper.
 - **Reusable mutations:** `useApplicationMutations` is the single entry point for creating, updating, and deleting applications. `ApplicationForm` receives the actions through props, without firing hidden queries.
 - **Optimistic updates with rollback:** moving a card updates the order and column totals immediately; if the API fails, the previous board is restored and an alert is shown.
@@ -57,7 +58,8 @@ Page (pages/ApplicationDetailPage)
 - **URL safety:** external links go through `safeHttpUrl`. The interceptor never sends the token to another origin.
 - **Deletion with explicit confirmation:** the dialog requires a confirmation checkbox and offers soft (default) or hard deletion.
 - **Accessibility:** modals with focus trap and focus restoration, keyboard-navigable menus, skip link, `aria-busy` on buttons, and support for `prefers-reduced-motion`.
-- **Theme:** light, dark, or system, defaulting to light. The preference is saved to the account (`PATCH /auth/me/theme`), and a copy in `localStorage` prevents a flash before React loads. Semantic tokens live in `src/styles/index.css`.
+- **Theme:** Grafite, in light, dark, or system, defaulting to light. The preference is saved to the account (`PATCH /auth/me/theme`), and a copy in `localStorage` prevents a flash before React loads. Semantic tokens (`canvas`, `surface`, `fg`, `muted`, `accent`, `status-*`…) live in `src/styles/index.css`; the font is Hanken Grotesk, self-hosted through `@fontsource-variable` because the CSP only allows local fonts.
+- **Google sign-in:** the official Google button (iframe from `renderButton`) is rendered visibly, without any overlay, in the light `outline` theme and in Portuguese (`hl=pt-BR`).
 - **Visual regression:** Playwright snapshots with a mocked API in `e2e/visual.spec.ts`; baselines are generated on Linux and only updated deliberately.
 
 ## Directory structure
@@ -81,6 +83,7 @@ frontend/
 │   │   │   ├── BoardCard.tsx
 │   │   │   ├── BoardColumn.tsx
 │   │   │   ├── DeleteApplicationDialog.tsx
+│   │   │   ├── JobLinkPrefill.tsx
 │   │   ├── auth/
 │   │   ├── brand/
 │   │   ├── layout/
@@ -215,6 +218,7 @@ The application is available at `http://localhost:5173`. Vite forwards `/api/*` 
 | Board               | `GET`    | `/applications/board?search=`       |
 | Move card           | `PATCH`  | `/applications/:id/placement`       |
 | Detail              | `GET`    | `/applications/:id`                 |
+| Preview from link   | `POST`   | `/applications/preview`             |
 | Create              | `POST`   | `/applications`                     |
 | Update              | `PATCH`  | `/applications/:id`                 |
 | Delete              | `DELETE` | `/applications/:id?mode=soft\|hard` |
