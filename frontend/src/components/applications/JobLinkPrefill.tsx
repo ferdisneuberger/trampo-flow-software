@@ -1,4 +1,4 @@
-import { Loader2, Wand2 } from 'lucide-react';
+import { Link2, Loader2, Wand2 } from 'lucide-react';
 import {
   useEffect,
   useRef,
@@ -20,6 +20,8 @@ import { Input } from '../ui/Input';
 type JobLinkPrefillProps = {
   /** Aplica as sugestões no formulário e devolve os campos preenchidos. */
   onPrefill: (prefill: ApplicationPrefill) => ApplicationPrefillField[];
+  /** Chamado ao fim de toda busca, com ou sem dados, para mostrar o formulário. */
+  onFinished?: () => void;
 };
 
 type Feedback = {
@@ -33,6 +35,17 @@ const fieldLabels: Record<ApplicationPrefillField, string> = {
   companyUrl: 'site da empresa',
   link: 'link da vaga',
 };
+
+/** "https://aurum.gupy.io/jobs/1?x=y" vira "aurum.gupy.io/jobs/1". */
+function shortLink(link: string): string {
+  try {
+    const url = new URL(link);
+
+    return `${url.host}${url.pathname === '/' ? '' : url.pathname}`;
+  } catch {
+    return link;
+  }
+}
 
 function joinLabels(fields: ApplicationPrefillField[]): string {
   const labels = fields.map((field) => fieldLabels[field]);
@@ -49,17 +62,21 @@ function joinLabels(fields: ApplicationPrefillField[]): string {
  * os campos vazios do formulário abaixo são preenchidos com o que o servidor
  * conseguir ler da página. O formulário continua sempre editável.
  */
-export function JobLinkPrefill({ onPrefill }: JobLinkPrefillProps) {
+export function JobLinkPrefill({ onPrefill, onFinished }: JobLinkPrefillProps) {
   const [link, setLink] = useState('');
+  /** Link já buscado: a seção vira uma linha compacta com "Trocar link". */
+  const [searchedLink, setSearchedLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | undefined>();
   const controllerRef = useRef<AbortController | null>(null);
   const onPrefillRef = useRef(onPrefill);
+  const onFinishedRef = useRef(onFinished);
 
   useEffect(() => {
     onPrefillRef.current = onPrefill;
-  }, [onPrefill]);
+    onFinishedRef.current = onFinished;
+  }, [onPrefill, onFinished]);
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
@@ -115,6 +132,9 @@ export function JobLinkPrefill({ onPrefill }: JobLinkPrefillProps) {
             'Os campos já estavam preenchidos, então não alteramos nada.',
         });
       }
+
+      setSearchedLink(target);
+      onFinishedRef.current?.();
     } catch (requestError) {
       if (controller.signal.aborted) {
         return;
@@ -125,6 +145,8 @@ export function JobLinkPrefill({ onPrefill }: JobLinkPrefillProps) {
         tone: 'error',
         message: `${getErrorMessage(requestError)} Preencha os campos abaixo.`,
       });
+      // Em erro (rede, limite de buscas) o campo continua aberto para tentar de novo.
+      onFinishedRef.current?.();
     } finally {
       if (controllerRef.current === controller) {
         setIsLoading(false);
@@ -149,18 +171,67 @@ export function JobLinkPrefill({ onPrefill }: JobLinkPrefillProps) {
     void runPrefill(pasted);
   }
 
+  const feedbackElement = (
+    <div aria-live="polite">
+      {isLoading ? (
+        <p
+          role="status"
+          className="mt-2 flex items-center gap-1.5 text-[13px] text-muted"
+        >
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+          Buscando dados da vaga…
+        </p>
+      ) : feedback ? (
+        <p
+          role="status"
+          className={cn(
+            'mt-2 text-[13px]',
+            feedback.tone === 'success' && 'text-success',
+            feedback.tone === 'neutral' && 'text-muted',
+            feedback.tone === 'error' && 'text-danger',
+          )}
+        >
+          {feedback.message}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  if (searchedLink && !isLoading) {
+    return (
+      <section aria-label="Link da vaga usado no preenchimento">
+        <div className="flex items-center gap-2 rounded-btn border border-line bg-surface-2/60 px-3 py-2">
+          <Link2 className="size-4 shrink-0 text-muted" aria-hidden="true" />
+          <span
+            className="min-w-0 flex-1 truncate text-sm text-fg-soft"
+            title={searchedLink}
+          >
+            {shortLink(searchedLink)}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchedLink(null);
+              setFeedback(null);
+            }}
+            className="shrink-0 rounded-md px-1.5 py-0.5 text-[13px] font-medium text-fg underline underline-offset-4 hover:text-fg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
+          >
+            Trocar link
+          </button>
+        </div>
+        {feedbackElement}
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="job-link-prefill-title">
       <p id="job-link-prefill-title" className="text-sm font-semibold text-fg">
         Preencher pelo link da vaga
       </p>
-      <p className="mt-0.5 text-[13px] text-muted">
-        Cole o link e buscamos título, empresa e site. O que não encontrarmos,
-        você completa abaixo.
-      </p>
 
       <form
-        className="mt-3 flex items-start gap-2"
+        className="mt-2 flex items-start gap-2"
         onSubmit={handleSubmit}
         noValidate
       >
@@ -191,29 +262,7 @@ export function JobLinkPrefill({ onPrefill }: JobLinkPrefillProps) {
         </Button>
       </form>
 
-      <div aria-live="polite" className="min-h-0">
-        {isLoading ? (
-          <p
-            role="status"
-            className="mt-2 flex items-center gap-1.5 text-[13px] text-muted"
-          >
-            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-            Buscando dados da vaga…
-          </p>
-        ) : feedback ? (
-          <p
-            role="status"
-            className={cn(
-              'mt-2 text-[13px]',
-              feedback.tone === 'success' && 'text-success',
-              feedback.tone === 'neutral' && 'text-muted',
-              feedback.tone === 'error' && 'text-danger',
-            )}
-          >
-            {feedback.message}
-          </p>
-        ) : null}
-      </div>
+      {feedbackElement}
     </section>
   );
 }

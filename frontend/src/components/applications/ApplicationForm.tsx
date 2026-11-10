@@ -1,4 +1,5 @@
-import { Save, X } from 'lucide-react';
+import { PencilLine, Save, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useApplicationForm } from '../../hooks/useApplicationForm';
 import {
   APPLICATION_STATUS_OPTIONS,
@@ -34,9 +35,41 @@ export function ApplicationForm({
     onUpdate,
     onSuccess,
   });
+  // Ao criar, o formulário só aparece depois da busca pelo link ou quando a
+  // pessoa escolhe preencher à mão. Na edição ele aparece sempre.
+  const [isFormVisible, setIsFormVisible] = useState(Boolean(application));
+  const [focusRequest, setFocusRequest] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (focusRequest === 0) {
+      return;
+    }
+
+    const formElement = formRef.current;
+
+    if (!formElement) {
+      return;
+    }
+
+    const firstEmpty = [
+      ...formElement.querySelectorAll<HTMLInputElement>('input[required]'),
+    ].find((input) => input.value.trim() === '');
+    const target =
+      firstEmpty ??
+      formElement.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+    target?.focus();
+  }, [focusRequest]);
+
+  function showForm() {
+    setIsFormVisible(true);
+    setFocusRequest((current) => current + 1);
+  }
 
   const formElement = (
     <form
+      ref={formRef}
       className="space-y-6"
       onSubmit={(event) => void form.handleSubmit(event)}
       noValidate
@@ -137,15 +170,32 @@ export function ApplicationForm({
 
   return (
     <div>
-      <JobLinkPrefill onPrefill={form.applyPrefill} />
+      <JobLinkPrefill onPrefill={form.applyPrefill} onFinished={showForm} />
 
-      <div className="my-6 flex items-center gap-3" role="separator">
-        <span className="h-px flex-1 bg-line" />
-        <span className="text-[13px] text-muted">ou preencha</span>
-        <span className="h-px flex-1 bg-line" />
-      </div>
+      {isFormVisible ? (
+        <div className="mt-6 border-t border-line pt-6">{formElement}</div>
+      ) : (
+        <>
+          <p className="mt-4 text-[13px] text-muted">
+            Não tem o link?{' '}
+            <button
+              type="button"
+              onClick={showForm}
+              className="inline-flex items-center gap-1 rounded-md font-medium text-fg underline underline-offset-4 hover:text-fg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
+            >
+              <PencilLine className="size-3.5" aria-hidden="true" />
+              Preencher à mão
+            </button>
+          </p>
 
-      {formElement}
+          <div className="mt-6 flex justify-end border-t border-line pt-4">
+            <Button type="button" variant="secondary" onClick={onCancel}>
+              <X className="size-4" aria-hidden="true" />
+              Cancelar
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

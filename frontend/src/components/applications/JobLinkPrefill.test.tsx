@@ -25,11 +25,13 @@ function found(overrides: Partial<JobPostingPreview> = {}): JobPostingPreview {
 
 function setup(filled: string[] = ['title', 'company', 'link']) {
   const onPrefill = vi.fn().mockReturnValue(filled);
+  const onFinished = vi.fn();
 
-  render(<JobLinkPrefill onPrefill={onPrefill} />);
+  render(<JobLinkPrefill onPrefill={onPrefill} onFinished={onFinished} />);
 
   return {
     onPrefill,
+    onFinished,
     input: screen.getByLabelText('Link para preencher automaticamente'),
     button: screen.getByRole('button', { name: /Preencher/ }),
   };
@@ -42,7 +44,7 @@ describe('JobLinkPrefill', () => {
 
   it('busca os dados e repassa as sugestões com o link', async () => {
     mocks.preview.mockResolvedValue(found());
-    const { input, button, onPrefill } = setup();
+    const { input, button, onPrefill, onFinished } = setup();
 
     await userEvent.type(input, LINK);
     await userEvent.click(button);
@@ -61,6 +63,28 @@ describe('JobLinkPrefill', () => {
         'Preenchemos título e empresa. Confira abaixo e complete o que faltar.',
       ),
     ).toBeInTheDocument();
+    expect(onFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('depois da busca mostra o link em uma linha compacta que pode ser trocada', async () => {
+    mocks.preview.mockResolvedValue(found());
+    const { input, button } = setup();
+
+    await userEvent.type(input, `${LINK}?jobBoardSource=gupy_public_page`);
+    await userEvent.click(button);
+
+    expect(
+      await screen.findByText('acme.gupy.io/jobs/123'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Link para preencher automaticamente'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Trocar link' }));
+
+    expect(
+      screen.getByLabelText('Link para preencher automaticamente'),
+    ).toHaveValue(`${LINK}?jobBoardSource=gupy_public_page`);
   });
 
   it('busca ao colar um link válido', async () => {
@@ -74,11 +98,13 @@ describe('JobLinkPrefill', () => {
     });
 
     expect(mocks.preview).toHaveBeenCalledWith(LINK, expect.anything());
-    expect(input).toHaveValue(LINK);
+    expect(
+      await screen.findByText('acme.gupy.io/jobs/123'),
+    ).toBeInTheDocument();
   });
 
   it('não busca link inválido e explica o motivo', async () => {
-    const { input, button } = setup();
+    const { input, button, onFinished } = setup();
 
     await userEvent.type(input, 'acme.com/vaga');
     await userEvent.click(button);
@@ -87,6 +113,7 @@ describe('JobLinkPrefill', () => {
     expect(
       screen.getByText('Cole um link HTTP ou HTTPS válido.'),
     ).toBeInTheDocument();
+    expect(onFinished).not.toHaveBeenCalled();
   });
 
   it('avisa quando os campos já estavam preenchidos', async () => {
@@ -131,7 +158,7 @@ describe('JobLinkPrefill', () => {
     mocks.preview.mockRejectedValue(
       new ApiError('Muitas tentativas. Tente novamente em 30 segundos.', 429),
     );
-    const { input, button, onPrefill } = setup(['link']);
+    const { input, button, onPrefill, onFinished } = setup(['link']);
 
     await userEvent.type(input, LINK);
     await userEvent.click(button);
@@ -140,5 +167,10 @@ describe('JobLinkPrefill', () => {
     expect(
       await screen.findByText(/Muitas tentativas.*Preencha os campos abaixo\./),
     ).toBeInTheDocument();
+    // Em erro o campo continua aberto para tentar de novo.
+    expect(
+      screen.getByLabelText('Link para preencher automaticamente'),
+    ).toBeInTheDocument();
+    expect(onFinished).toHaveBeenCalledTimes(1);
   });
 });

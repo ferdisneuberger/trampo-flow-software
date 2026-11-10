@@ -57,6 +57,7 @@ test.describe('fluxo crítico do quadro', () => {
     await expect(page).toHaveURL(/\/candidaturas$/);
 
     await page.getByRole('button', { name: /nova candidatura/i }).click();
+    await page.getByRole('button', { name: /preencher à mão/i }).click();
 
     await page.getByLabel('Título da candidatura').fill(title);
     await page.getByLabel('Empresa', { exact: true }).fill('Acme E2E');

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Application } from '../../services/applications.types';
 import { ApplicationForm } from './ApplicationForm';
 
@@ -25,26 +25,57 @@ const application: Application = {
 };
 
 function renderForm(current: Application | null = null) {
+  const onCancel = vi.fn();
+
   render(
     <ApplicationForm
       application={current}
       onCreate={vi.fn()}
       onUpdate={vi.fn()}
-      onCancel={vi.fn()}
+      onCancel={onCancel}
       onSuccess={vi.fn()}
     />,
   );
+
+  return { onCancel };
 }
 
+const LINK_LABEL = 'Link para preencher automaticamente';
+
 describe('ApplicationForm', () => {
-  it('ao criar, oferece o preenchimento pelo link acima do formulário', () => {
-    renderForm();
+  beforeEach(() => {
+    mocks.preview.mockReset();
+  });
+
+  it('ao criar, começa só com o link e esconde o formulário', async () => {
+    const { onCancel } = renderForm();
 
     expect(screen.getByText('Preencher pelo link da vaga')).toBeInTheDocument();
-    expect(screen.getByText('ou preencha')).toBeInTheDocument();
+    expect(screen.getByLabelText(LINK_LABEL)).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Título da candidatura'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Criar candidatura/ }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Cancelar/ }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('mostra o formulário vazio ao escolher preencher à mão', async () => {
+    renderForm();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Preencher à mão/ }),
+    );
+
+    expect(screen.getByLabelText('Título da candidatura')).toHaveValue('');
+    expect(screen.getByLabelText('Título da candidatura')).toHaveFocus();
     expect(screen.getByLabelText('Fase atual')).toHaveValue(
       'Candidatura enviada',
     );
+    expect(screen.getByLabelText(LINK_LABEL)).toBeInTheDocument();
   });
 
   it('ao editar, mostra só o formulário', () => {
@@ -56,31 +87,56 @@ describe('ApplicationForm', () => {
     expect(screen.getByLabelText('Fase atual')).toHaveValue('Triagem');
   });
 
-  it('preenche os campos vazios com o que foi encontrado no link', async () => {
+  it('depois da busca mostra o formulário preenchido e foca o primeiro campo vazio', async () => {
     mocks.preview.mockResolvedValue({
       title: 'Backend Engineer',
-      company: 'Acme',
+      company: null,
       companyUrl: 'https://acme.com',
       status: 'found',
     });
     renderForm();
 
-    await userEvent.type(screen.getByLabelText('Empresa'), 'Já digitada');
     await userEvent.type(
-      screen.getByLabelText('Link para preencher automaticamente'),
+      screen.getByLabelText(LINK_LABEL),
       'https://acme.gupy.io/jobs/1',
     );
-    await userEvent.click(screen.getByRole('button', { name: /Preencher/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Preencher$/ }));
 
     expect(
       await screen.findByDisplayValue('Backend Engineer'),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Empresa')).toHaveValue('Já digitada');
     expect(screen.getByLabelText('Site da empresa')).toHaveValue(
       'https://acme.com',
     );
     expect(screen.getByLabelText('Link da vaga')).toHaveValue(
       'https://acme.gupy.io/jobs/1',
     );
+    expect(screen.getByLabelText('Empresa')).toHaveFocus();
+    expect(screen.getByText('acme.gupy.io/jobs/1')).toBeInTheDocument();
+  });
+
+  it('não sobrescreve o que já foi digitado à mão', async () => {
+    mocks.preview.mockResolvedValue({
+      title: 'Backend Engineer',
+      company: 'Acme',
+      companyUrl: null,
+      status: 'found',
+    });
+    renderForm();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Preencher à mão/ }),
+    );
+    await userEvent.type(screen.getByLabelText('Empresa'), 'Já digitada');
+    await userEvent.type(
+      screen.getByLabelText(LINK_LABEL),
+      'https://acme.gupy.io/jobs/1',
+    );
+    await userEvent.click(screen.getByRole('button', { name: /^Preencher$/ }));
+
+    expect(
+      await screen.findByDisplayValue('Backend Engineer'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Empresa')).toHaveValue('Já digitada');
   });
 });
