@@ -254,8 +254,10 @@ export function ApplicationsPage() {
         meta={
           <>
             {total} candidaturas
-            <span className="mx-2 text-ink-900/30">·</span>
-            <strong className="text-ink-900">{inProgress} em andamento</strong>
+            <span className="mx-2 text-line-strong">·</span>
+            <strong className="font-medium text-fg-soft">
+              {inProgress} em andamento
+            </strong>
           </>
         }
         actions={
@@ -311,7 +313,7 @@ export function ApplicationsPage() {
           onFocus={() => setIsSearchOpen(true)}
           leading={<Search className="size-4" aria-hidden="true" />}
           trailing={
-            <kbd className="mr-1 hidden rounded border border-ink-900 bg-yellow px-1.5 py-0.5 font-mono text-[10px] font-bold text-on-accent sm:inline">
+            <kbd className="mr-2 hidden rounded border border-line px-1.5 text-[11px] font-medium leading-5 text-muted sm:inline">
               /
             </kbd>
           }
@@ -359,17 +361,17 @@ export function ApplicationsPage() {
         {board.isPending && !board.data ? (
           <BoardSkeleton />
         ) : board.isError && !board.data ? null : total === 0 && !search ? (
-          <Card className="flex flex-col items-center px-6 py-12 text-center">
-            <span className="grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
-              <Briefcase className="size-8" aria-hidden="true" />
+          <Card className="flex flex-col items-center px-6 py-14 text-center">
+            <span className="grid size-12 place-items-center rounded-card border border-line bg-surface-2 text-muted">
+              <Briefcase className="size-6" aria-hidden="true" />
             </span>
-            <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-coral-dark">
+            <p className="mt-5 text-[13px] font-medium text-muted">
               Primeiro passo
             </p>
-            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+            <h2 className="mt-1 font-display text-2xl font-semibold text-fg">
               Comece seu quadro de candidaturas
             </h2>
-            <p className="mt-2 max-w-md text-sm leading-6 text-ink-500">
+            <p className="mt-2 max-w-md text-sm leading-6 text-muted">
               A primeira vaga é o começo. Cadastra a primeira candidatura e
               acompanha cada fase em um só lugar. O quadro se organiza sozinho
               conforme você avança.
@@ -383,7 +385,7 @@ export function ApplicationsPage() {
               <Plus className="size-4" aria-hidden="true" />
               Criar primeira candidatura
             </Button>
-            <p className="mt-3 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-ink-500">
+            <p className="mt-3 text-[13px] text-muted">
               Leva menos de um minuto · sem planilha
             </p>
 
@@ -391,15 +393,15 @@ export function ApplicationsPage() {
               {emptySteps.map((step) => (
                 <div
                   key={step.number}
-                  className="rounded-xl border-2 border-ink-900 bg-surface p-4 shadow-hard-sm"
+                  className="rounded-card border border-line bg-canvas p-4"
                 >
-                  <span className="font-mono text-[10px] font-bold text-coral-dark">
+                  <span className="text-[13px] font-semibold tabular-nums text-muted">
                     {step.number}
                   </span>
-                  <h3 className="mt-2 font-display text-base font-bold tracking-[-0.02em] text-ink-900">
+                  <h3 className="mt-1.5 text-[15px] font-semibold tracking-normal text-fg">
                     {step.title}
                   </h3>
-                  <p className="mt-1 text-xs leading-5 text-ink-500">
+                  <p className="mt-1 text-[13px] leading-5 text-muted">
                     {step.description}
                   </p>
                 </div>

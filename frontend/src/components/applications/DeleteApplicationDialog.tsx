@@ -83,29 +83,29 @@ export function DeleteApplicationDialog({
         </div>
       )}
 
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-ink-900 bg-danger-soft p-4 text-sm shadow-hard-sm">
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-card border border-danger/30 bg-danger-soft p-4 text-sm">
         <input
           type="checkbox"
-          className="mt-0.5 size-4 rounded border-2 border-ink-900 accent-coral"
+          className="mt-0.5 size-4 rounded border border-line accent-fg"
           checked={isConfirmed}
           onChange={(event) => setIsConfirmed(event.target.checked)}
           disabled={isDeleting}
         />
         <span>
-          <span className="block font-bold text-coral-dark">
+          <span className="block font-semibold text-danger">
             Confirmo a exclusão
           </span>
-          <span className="mt-0.5 block text-xs leading-5 text-ink-700">
+          <span className="mt-0.5 block text-xs leading-5 text-fg-soft">
             Entendo que a candidatura será removida do quadro e que esta ação
             exige confirmação explícita.
           </span>
         </span>
       </label>
 
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-ink-900 bg-surface p-4 text-sm shadow-hard-sm">
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-card border border-line bg-surface-2 p-4 text-sm">
         <input
           type="checkbox"
-          className="mt-0.5 size-4 rounded border-2 border-ink-900 accent-coral"
+          className="mt-0.5 size-4 rounded border border-line accent-fg"
           checked={mode === 'hard'}
           onChange={(event) => {
             setMode(event.target.checked ? 'hard' : 'soft');
@@ -114,10 +114,10 @@ export function DeleteApplicationDialog({
           disabled={isDeleting}
         />
         <span>
-          <span className="block font-bold text-ink-900">
+          <span className="block font-semibold text-fg">
             Excluir permanentemente
           </span>
-          <span className="mt-0.5 block text-xs leading-5 text-ink-500">
+          <span className="mt-0.5 block text-xs leading-5 text-muted">
             Remove o registro do banco de dados. Sem esta opção, a candidatura é
             apenas arquivada (exclusão lógica).
           </span>
