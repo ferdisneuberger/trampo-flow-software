@@ -1,8 +1,15 @@
-import { LogOut, Search } from 'lucide-react';
+import { LayoutGrid, LogOut, Search } from 'lucide-react';
 import { Suspense, useCallback, useEffect } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { useAuth } from '../../contexts/auth-context';
 import { useLogout } from '../../hooks/useLogout';
+import { cn } from '../../utils/cn';
 import { BrandLockup } from '../brand/Brand';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { Menu, type MenuItem } from '../ui/Menu';
@@ -100,63 +107,89 @@ export function AppShell() {
     },
   ];
 
+  // Na barra lateral (lg+) os menus ficam no rodapé e abrem para cima.
+  const sidebarMenuClasses =
+    'lg:bottom-full lg:left-0 lg:right-auto lg:mb-1 lg:mt-0';
+
   return (
-    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-cream">
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-canvas lg:flex-row">
       <a
         href="#conteudo"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:border-2 focus:border-ink-900 focus:bg-yellow focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:font-bold focus:uppercase focus:tracking-[0.1em] focus:text-on-accent focus:shadow-hard-sm"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-btn focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-accent"
       >
         Pular para o conteúdo
       </a>
 
-      <header className="shrink-0 border-b-2 border-ink-900 bg-surface">
-        <div className="mx-auto flex h-16 w-full max-w-[100rem] items-center gap-2 px-4 sm:h-[72px] sm:gap-3 sm:px-6 lg:px-8">
-          <Link
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-4 sm:px-6 lg:h-auto lg:w-[248px] lg:flex-col lg:items-stretch lg:gap-1 lg:border-b-0 lg:border-r lg:px-3.5 lg:py-5">
+        <Link
+          to="/candidaturas"
+          aria-label="Trampo Flow"
+          className="shrink-0 rounded-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 lg:mb-6 lg:self-start lg:px-2 lg:py-1"
+        >
+          <BrandLockup
+            size="sm"
+            wordmarkClassName="hidden min-[360px]:inline"
+          />
+        </Link>
+
+        <button
+          type="button"
+          onClick={handleSearchClick}
+          aria-label="Abrir busca"
+          className="ml-auto flex size-9 shrink-0 items-center justify-center rounded-btn text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 md:h-9 md:w-full md:max-w-[420px] md:justify-start md:gap-2.5 md:border md:border-line md:bg-canvas md:px-3 lg:ml-0 lg:max-w-none"
+        >
+          <Search className="size-4 shrink-0" aria-hidden="true" />
+          <span className="hidden min-w-0 flex-1 truncate text-left text-sm md:inline">
+            Buscar trampo, empresa...
+          </span>
+          <kbd className="hidden rounded border border-line px-1.5 text-[11px] font-medium leading-5 text-muted md:inline">
+            /
+          </kbd>
+        </button>
+
+        <nav
+          aria-label="Principal"
+          className="hidden lg:mt-3 lg:flex lg:flex-col lg:gap-0.5"
+        >
+          <NavLink
             to="/candidaturas"
-            aria-label="Trampo Flow"
-            className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cobalt/20"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2.5 rounded-btn px-2.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30',
+                isActive
+                  ? 'bg-surface-2 text-fg'
+                  : 'text-muted hover:bg-surface-2 hover:text-fg',
+              )
+            }
           >
-            <BrandLockup
-              size="sm"
-              wordmarkClassName="hidden min-[360px]:inline"
-            />
-          </Link>
+            <LayoutGrid className="size-4 shrink-0" aria-hidden="true" />
+            Candidaturas
+          </NavLink>
+        </nav>
 
-          <button
-            type="button"
-            onClick={handleSearchClick}
-            aria-label="Abrir busca"
-            className="ml-auto flex size-10 shrink-0 items-center justify-center rounded-lg border-2 border-ink-900 bg-surface text-ink-900 shadow-hard-sm transition hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-surface-raised hover:shadow-hard md:ml-6 md:h-11 md:w-full md:max-w-[560px] md:justify-start md:gap-3 md:px-3"
-          >
-            <Search className="size-4 shrink-0" aria-hidden="true" />
-            <span className="hidden min-w-0 flex-1 truncate text-left text-sm text-ink-500 sm:inline">
-              Buscar trampo, empresa...
-            </span>
-            <kbd className="hidden rounded border border-ink-900 bg-yellow px-1.5 py-0.5 font-mono text-[10px] font-bold text-on-accent sm:inline">
-              /
-            </kbd>
-          </button>
-
-          <div className="flex shrink-0 items-center gap-2 md:ml-auto">
-            <ThemeToggle variant="toolbar" />
-            <Menu
-              label={`Menu da conta de ${displayName}`}
-              items={accountItems}
-              triggerVariant="avatar"
-              trigger={<span aria-hidden="true">{initials}</span>}
-              menuClassName="w-60"
-              header={
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-bold text-ink-900">
-                    {user?.firstName ?? user?.email ?? 'Sua conta'}
-                  </p>
-                  {user?.firstName && (
-                    <p className="truncate text-[10px] text-ink-500">
-                      {user.email}
-                    </p>
-                  )}
-                </div>
-              }
+        <div className="flex shrink-0 items-center gap-1.5 md:ml-auto lg:ml-0 lg:mt-auto lg:justify-between lg:border-t lg:border-line lg:px-1 lg:pt-4">
+          <Menu
+            label={`Menu da conta de ${displayName}`}
+            items={accountItems}
+            triggerVariant="avatar"
+            trigger={<span aria-hidden="true">{initials}</span>}
+            menuClassName={cn('w-60', sidebarMenuClasses)}
+            className="order-2 lg:order-1"
+            header={
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-semibold text-fg">
+                  {user?.firstName ?? user?.email ?? 'Sua conta'}
+                </p>
+                {user?.firstName && (
+                  <p className="truncate text-xs text-muted">{user.email}</p>
+                )}
+              </div>
+            }
+          />
+          <div className="order-1 lg:order-2">
+            <ThemeToggle
+              variant="toolbar"
+              menuClassName="lg:bottom-full lg:left-auto lg:right-0 lg:mb-1 lg:mt-0"
             />
           </div>
         </div>
@@ -165,7 +198,7 @@ export function AppShell() {
       <main
         id="conteudo"
         tabIndex={-1}
-        className="mx-auto flex min-h-0 w-full max-w-[100rem] flex-1 flex-col overflow-y-auto px-4 pb-10 pt-5 sm:px-6 md:pt-6 lg:px-8"
+        className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto px-4 pb-8 pt-5 sm:px-6 md:pt-6 lg:px-8 lg:pt-7"
       >
         <ErrorBoundary resetKey={location.pathname}>
           <Suspense
