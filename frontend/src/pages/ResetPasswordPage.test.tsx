@@ -82,7 +82,7 @@ describe('ResetPasswordPage', () => {
 
     expect(screen.getByText('As senhas não coincidem.')).toBeInTheDocument();
     expect(confirmPasswordInput).toHaveAttribute('aria-invalid', 'true');
-    expect(confirmPasswordInput).toHaveClass('border-coral');
+    expect(confirmPasswordInput).toHaveClass('border-danger');
 
     await userEvent.type(confirmPasswordInput, '-nova-segura1!');
 
@@ -91,7 +91,7 @@ describe('ResetPasswordPage', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('As senhas coincidem.')).toBeInTheDocument();
     expect(confirmPasswordInput).not.toHaveAttribute('aria-invalid');
-    expect(confirmPasswordInput).toHaveClass('border-green');
+    expect(confirmPasswordInput).toHaveClass('border-success');
   });
 
   it('valida senha curta e confirmação', async () => {

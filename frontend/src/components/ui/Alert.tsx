@@ -21,21 +21,23 @@ export function Alert({
     <div
       role={tone === 'error' ? 'alert' : 'status'}
       className={cn(
-        'flex flex-col gap-4 rounded-xl border-2 border-ink-900 p-4 shadow-hard-sm sm:flex-row sm:items-start',
-        tone === 'error' ? 'bg-danger-soft' : 'bg-warning-soft',
+        'flex flex-col gap-3 rounded-card border p-4 sm:flex-row sm:items-start',
+        tone === 'error'
+          ? 'border-danger/30 bg-danger-soft'
+          : 'border-info/30 bg-info-soft',
       )}
     >
       <Icon
         className={cn(
           'size-5 shrink-0',
-          tone === 'error' ? 'text-coral-dark' : 'text-cobalt',
+          tone === 'error' ? 'text-danger' : 'text-info',
         )}
         aria-hidden="true"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-ink-900">{title}</p>
+        <p className="text-sm font-semibold text-fg">{title}</p>
         {description && (
-          <p className="mt-1 text-sm leading-6 text-ink-700">{description}</p>
+          <p className="mt-1 text-sm leading-6 text-fg-soft">{description}</p>
         )}
       </div>
       {action && <div className="shrink-0">{action}</div>}

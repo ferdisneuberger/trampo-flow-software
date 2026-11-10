@@ -2,16 +2,16 @@ import { cn } from '../../utils/cn';
 
 type BrandSize = 'sm' | 'md' | 'lg';
 
-const markSizeClasses: Record<BrandSize, string> = {
-  sm: 'size-9 rounded-[9px]',
-  md: 'size-10 rounded-[11px]',
-  lg: 'size-12 rounded-[13px]',
+const glyphSizeClasses: Record<BrandSize, string> = {
+  sm: 'size-[18px]',
+  md: 'size-5',
+  lg: 'size-6',
 };
 
-const glyphSizeClasses: Record<BrandSize, string> = {
-  sm: 'size-5',
-  md: 'size-6',
-  lg: 'size-7',
+const wordmarkSizeClasses: Record<BrandSize, string> = {
+  sm: 'text-[15px]',
+  md: 'text-base',
+  lg: 'text-lg',
 };
 
 type BrandMarkProps = {
@@ -20,18 +20,14 @@ type BrandMarkProps = {
 };
 
 /**
- * T de quadro: monograma da marca. O T amarelo e o card coral são desenhados
- * em SVG para funcionar bem no tile, no favicon e em tamanhos pequenos.
+ * Três barras decrescentes: as colunas do quadro vistas de longe. Desenhadas
+ * em SVG com `currentColor` para seguir o tema claro e o escuro.
  */
 export function BrandMark({ size = 'md', className }: BrandMarkProps) {
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        'grid shrink-0 place-items-center border-2 border-ink-900 bg-brand-tile text-yellow shadow-[3px_3px_0_var(--color-shadow)]',
-        markSizeClasses[size],
-        className,
-      )}
+      className={cn('inline-flex shrink-0 text-fg', className)}
     >
       <BrandGlyph className={glyphSizeClasses[size]} />
     </span>
@@ -40,39 +36,25 @@ export function BrandMark({ size = 'md', className }: BrandMarkProps) {
 
 export function BrandGlyph({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true">
+      <rect x="2" y="2" width="4.5" height="16" rx="1.25" fill="currentColor" />
       <rect
-        x="3.25"
-        y="4.5"
-        width="17.5"
-        height="5"
-        rx="1.3"
+        x="7.75"
+        y="7"
+        width="4.5"
+        height="11"
+        rx="1.25"
         fill="currentColor"
+        opacity="0.7"
       />
       <rect
-        x="10.5"
-        y="4.5"
-        width="3"
-        height="12.5"
-        rx="0.7"
+        x="13.5"
+        y="11.5"
+        width="4.5"
+        height="6.5"
+        rx="1.25"
         fill="currentColor"
-      />
-      <rect
-        x="13.2"
-        y="14.2"
-        width="6.2"
-        height="5.2"
-        rx="1.2"
-        fill="#ff5a3c"
-      />
-      <rect
-        x="14.8"
-        y="16"
-        width="3"
-        height="0.9"
-        rx="0.45"
-        fill="#171512"
-        opacity="0.55"
+        opacity="0.45"
       />
     </svg>
   );
@@ -82,11 +64,11 @@ export function BrandWordmark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        'font-display text-2xl font-extrabold leading-none tracking-[-0.06em] text-ink-900',
+        'font-display font-semibold leading-none tracking-[-0.01em] text-fg',
         className,
       )}
     >
-      trampo <span className="text-coral-dark">flow</span>
+      trampo flow
     </span>
   );
 }
@@ -104,8 +86,10 @@ export function BrandLockup({
 }: BrandLockupProps) {
   return (
     <span className={cn('flex items-center gap-2.5', className)}>
-      <BrandMark size={size} className="-rotate-3" />
-      <BrandWordmark className={wordmarkClassName} />
+      <BrandMark size={size} />
+      <BrandWordmark
+        className={cn(wordmarkSizeClasses[size], wordmarkClassName)}
+      />
     </span>
   );
 }

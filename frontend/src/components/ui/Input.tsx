@@ -42,7 +42,7 @@ export function Input({
       <label
         htmlFor={inputId}
         className={cn(
-          'block font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-ink-700',
+          'block text-[13px] font-medium text-muted',
           hideLabel && 'sr-only',
         )}
       >
@@ -50,7 +50,7 @@ export function Input({
       </label>
       <div className="relative">
         {leading ? (
-          <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-ink-500">
+          <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">
             {leading}
           </span>
         ) : null}
@@ -59,13 +59,13 @@ export function Input({
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            'block h-11 w-full rounded-btn border-2 border-ink-900 bg-surface px-3.5 text-sm text-ink-900 shadow-hard-sm outline-none transition placeholder:text-ink-500/70 focus:border-cobalt focus:ring-4 focus:ring-cobalt/15 disabled:cursor-not-allowed disabled:bg-cream/60',
+            'block h-[42px] w-full rounded-btn border border-line bg-surface-2 px-3.5 text-sm text-fg outline-none transition placeholder:text-muted/70 focus:border-fg/50 focus:ring-2 focus:ring-fg/15 disabled:cursor-not-allowed disabled:opacity-60',
             leading ? 'pl-10' : undefined,
             trailing ? 'pr-11' : undefined,
-            error && 'border-coral focus:border-coral focus:ring-coral/15',
+            error && 'border-danger focus:border-danger focus:ring-danger/20',
             valid &&
               !error &&
-              'border-green focus:border-green focus:ring-green/15',
+              'border-success focus:border-success focus:ring-success/20',
             className,
           )}
           {...props}
@@ -77,15 +77,15 @@ export function Input({
         ) : null}
       </div>
       {error ? (
-        <p id={descriptionId} className="text-xs font-semibold text-coral-dark">
+        <p id={descriptionId} className="text-xs font-medium text-danger">
           {error}
         </p>
       ) : showValidMessage ? (
-        <p id={descriptionId} className="text-xs font-semibold text-green">
+        <p id={descriptionId} className="text-xs font-medium text-success">
           {validMessage}
         </p>
       ) : hint ? (
-        <p id={descriptionId} className="text-xs text-ink-500">
+        <p id={descriptionId} className="text-xs text-muted">
           {hint}
         </p>
       ) : null}

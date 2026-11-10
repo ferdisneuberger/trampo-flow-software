@@ -19,23 +19,19 @@ export function PageHeader({
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div>
         {eyebrow && (
-          <span className="inline-block -rotate-1 border-2 border-ink-900 bg-yellow px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-on-accent shadow-hard-sm">
+          <span className="block text-[13px] font-medium text-muted">
             {eyebrow}
           </span>
         )}
-        <h1 className="mt-3 font-display text-4xl font-extrabold leading-[0.95] tracking-[-0.06em] text-ink-900 sm:text-5xl">
+        <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight text-fg">
           {title}
         </h1>
         {description && (
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
             {description}
           </p>
         )}
-        {meta && (
-          <div className="mt-2 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-ink-500">
-            {meta}
-          </div>
-        )}
+        {meta && <div className="mt-1 text-sm text-muted">{meta}</div>}
       </div>
       {actions && (
         <div className="flex shrink-0 flex-wrap items-center gap-2">
