@@ -48,42 +48,10 @@
   --color-status-rejected: #a6423b;
 
   --color-overlay: rgba(29, 30, 33, 0.45);
-  --color-tip-bg: #1d1e21;
-  --color-tip-text: #ecedef;
-  --color-tip-muted: rgba(236, 237, 239, 0.72);
-
-  /*
-   * Apelidos temporários dos tokens antigos, só para a migração por fases.
-   * Removidos na fase de limpeza.
-   */
-  --color-cream: var(--color-canvas);
-  --color-surface-raised: var(--color-surface-2);
-  --color-ink-900: var(--color-fg);
-  --color-ink-700: var(--color-fg-soft);
-  --color-ink-500: var(--color-muted);
-  --color-yellow: var(--color-surface-2);
-  --color-yellow-soft: var(--color-warning-soft);
-  --color-coral: var(--color-accent);
-  --color-coral-dark: var(--color-danger);
-  --color-cobalt: var(--color-info);
-  --color-green: var(--color-success);
-  --color-pink: var(--color-status-rejected);
-  --color-solid: var(--color-fg);
-  --color-on-solid: var(--color-canvas);
-  --color-column: var(--color-surface);
-  --color-accent-soft: var(--color-surface-2);
-  --color-on-coral: var(--color-on-accent);
-  --color-danger-strong: var(--color-danger);
-  --color-danger-strong-hover: var(--color-danger-hover);
-  --color-shadow: transparent;
-  --color-brand-tile: var(--color-fg);
 
   --radius-card: 0.75rem;
   --radius-btn: 0.5rem;
 
-  --shadow-hard: none;
-  --shadow-hard-sm: none;
-  --shadow-hard-lg: none;
   --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.28);
 }
 
@@ -132,9 +100,6 @@
     --color-status-rejected: #d2918c;
 
     --color-overlay: rgba(0, 0, 0, 0.6);
-    --color-tip-bg: #3a3d43;
-    --color-tip-text: #ecedef;
-    --color-tip-muted: rgba(236, 237, 239, 0.72);
   }
 
   @media (prefers-reduced-motion: reduce) {
