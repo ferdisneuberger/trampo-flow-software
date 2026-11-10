@@ -281,9 +281,10 @@ export function ApplicationsPage() {
               onClick={openSearch}
               aria-expanded={isSearchOpen}
               aria-controls="board-search-panel"
+              aria-label="Filtros"
             >
               <Search className="size-4" aria-hidden="true" />
-              Filtros
+              <span className="hidden sm:inline">Filtros</span>
             </Button>
             <Button
               type="button"

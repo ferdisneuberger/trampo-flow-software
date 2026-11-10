@@ -18,12 +18,8 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        {eyebrow && (
-          <span className="block text-[13px] font-medium text-muted">
-            {eyebrow}
-          </span>
-        )}
-        <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight text-fg">
+        {eyebrow && <span className="sr-only">{eyebrow}</span>}
+        <h1 className="font-display text-[28px] font-semibold leading-tight text-fg">
           {title}
         </h1>
         {description && (

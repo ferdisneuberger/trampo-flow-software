@@ -1,5 +1,11 @@
-import { LayoutGrid, LogOut, Search } from 'lucide-react';
-import { Suspense, useCallback, useEffect } from 'react';
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  LayoutGrid,
+  LogOut,
+  Search,
+} from 'lucide-react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import {
   Link,
   NavLink,
@@ -34,6 +40,8 @@ export function AppShell() {
   const { logout } = useLogout();
   const location = useLocation();
   const navigate = useNavigate();
+  // A barra lateral (lg+) começa recolhida a cada visita.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   const displayName = user?.firstName?.trim() || user?.email || 'Você';
   const initials = getInitials(
@@ -110,6 +118,7 @@ export function AppShell() {
   // Na barra lateral (lg+) os menus ficam no rodapé e abrem para cima.
   const sidebarMenuClasses =
     'lg:bottom-full lg:left-0 lg:right-auto lg:mb-1 lg:mt-0';
+  const collapsed = isSidebarCollapsed;
 
   return (
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-canvas lg:flex-row">
@@ -120,29 +129,79 @@ export function AppShell() {
         Pular para o conteúdo
       </a>
 
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-4 sm:px-6 lg:h-auto lg:w-[248px] lg:flex-col lg:items-stretch lg:gap-1 lg:border-b-0 lg:border-r lg:px-3.5 lg:py-5">
-        <Link
-          to="/candidaturas"
-          aria-label="Trampo Flow"
-          className="shrink-0 rounded-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 lg:mb-6 lg:self-start lg:px-2 lg:py-1"
+      <header
+        className={cn(
+          'flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-4 sm:px-6 lg:h-auto lg:flex-col lg:items-stretch lg:gap-1 lg:border-b-0 lg:border-r lg:py-5 lg:transition-[width] lg:duration-200',
+          collapsed ? 'lg:w-16 lg:px-2.5' : 'lg:w-[248px] lg:px-3.5',
+        )}
+      >
+        <div
+          className={cn(
+            'flex shrink-0 items-center lg:mb-6',
+            collapsed ? 'lg:flex-col lg:gap-3' : 'lg:justify-between lg:gap-2',
+          )}
         >
-          <BrandLockup
-            size="sm"
-            wordmarkClassName="hidden min-[360px]:inline"
-          />
-        </Link>
+          <Link
+            to="/candidaturas"
+            aria-label="Trampo Flow"
+            className={cn(
+              'shrink-0 rounded-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 lg:py-1',
+              collapsed ? 'lg:px-1' : 'lg:px-2',
+            )}
+          >
+            <BrandLockup
+              size="sm"
+              wordmarkClassName={cn(
+                'hidden min-[360px]:inline',
+                collapsed && 'lg:hidden',
+              )}
+            />
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed((current) => !current)}
+            aria-label={
+              collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'
+            }
+            aria-expanded={!collapsed}
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+            className="hidden size-8 shrink-0 place-items-center rounded-btn text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 lg:grid"
+          >
+            {collapsed ? (
+              <ChevronsRight className="size-4" aria-hidden="true" />
+            ) : (
+              <ChevronsLeft className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        </div>
 
         <button
           type="button"
           onClick={handleSearchClick}
           aria-label="Abrir busca"
-          className="ml-auto flex size-9 shrink-0 items-center justify-center rounded-btn text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 md:h-9 md:w-full md:max-w-[420px] md:justify-start md:gap-2.5 md:border md:border-line md:bg-canvas md:px-3 lg:ml-0 lg:max-w-none"
+          title={collapsed ? 'Buscar (/)' : undefined}
+          className={cn(
+            'ml-auto flex size-9 shrink-0 items-center justify-center rounded-btn text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 md:h-9 md:w-full md:max-w-[420px] md:justify-start md:gap-2.5 md:border md:border-line md:bg-canvas md:px-3 lg:ml-0 lg:max-w-none',
+            collapsed &&
+              'lg:w-9 lg:self-center lg:justify-center lg:border-transparent lg:bg-transparent lg:px-0',
+          )}
         >
           <Search className="size-4 shrink-0" aria-hidden="true" />
-          <span className="hidden min-w-0 flex-1 truncate text-left text-sm md:inline">
+          <span
+            className={cn(
+              'hidden min-w-0 flex-1 truncate text-left text-sm md:inline',
+              collapsed && 'lg:hidden',
+            )}
+          >
             Buscar trampo, empresa...
           </span>
-          <kbd className="hidden rounded border border-line px-1.5 text-[11px] font-medium leading-5 text-muted md:inline">
+          <kbd
+            className={cn(
+              'hidden rounded border border-line px-1.5 text-[11px] font-medium leading-5 text-muted md:inline',
+              collapsed && 'lg:hidden',
+            )}
+          >
             /
           </kbd>
         </button>
@@ -153,9 +212,11 @@ export function AppShell() {
         >
           <NavLink
             to="/candidaturas"
+            title={collapsed ? 'Candidaturas' : undefined}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-2.5 rounded-btn px-2.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30',
+                'flex items-center gap-2.5 rounded-btn py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30',
+                collapsed ? 'justify-center px-0' : 'px-2.5',
                 isActive
                   ? 'bg-surface-2 text-fg'
                   : 'text-muted hover:bg-surface-2 hover:text-fg',
@@ -163,18 +224,23 @@ export function AppShell() {
             }
           >
             <LayoutGrid className="size-4 shrink-0" aria-hidden="true" />
-            Candidaturas
+            <span className={cn(collapsed && 'sr-only')}>Candidaturas</span>
           </NavLink>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-1.5 md:ml-auto lg:ml-0 lg:mt-auto lg:justify-between lg:border-t lg:border-line lg:px-1 lg:pt-4">
+        <div
+          className={cn(
+            'flex shrink-0 items-center gap-1.5 md:ml-auto lg:ml-0 lg:mt-auto lg:border-t lg:border-line lg:pt-4',
+            collapsed ? 'lg:flex-col lg:gap-2' : 'lg:justify-between lg:px-1',
+          )}
+        >
           <Menu
             label={`Menu da conta de ${displayName}`}
             items={accountItems}
             triggerVariant="avatar"
             trigger={<span aria-hidden="true">{initials}</span>}
             menuClassName={cn('w-60', sidebarMenuClasses)}
-            className="order-2 lg:order-1"
+            className="order-2"
             header={
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-semibold text-fg">
@@ -186,10 +252,14 @@ export function AppShell() {
               </div>
             }
           />
-          <div className="order-1 lg:order-2">
+          <div className={cn('order-1', !collapsed && 'lg:order-3')}>
             <ThemeToggle
               variant="toolbar"
-              menuClassName="lg:bottom-full lg:left-auto lg:right-0 lg:mb-1 lg:mt-0"
+              menuClassName={
+                collapsed
+                  ? sidebarMenuClasses
+                  : 'lg:bottom-full lg:left-auto lg:right-0 lg:mb-1 lg:mt-0'
+              }
             />
           </div>
         </div>

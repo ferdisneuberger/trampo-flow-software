@@ -71,7 +71,7 @@ function BoardPreview() {
       {previewItems.map((item) => (
         <li
           key={item.title}
-          className="flex items-center gap-3 border-t border-line bg-canvas px-4 py-3 first:border-t-0"
+          className="flex items-center gap-3 border-t border-line bg-surface px-4 py-3 first:border-t-0 dark:bg-canvas"
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold text-fg">
@@ -134,7 +134,7 @@ export function AuthPageLayout({
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      <aside className="hidden flex-col border-r border-line bg-surface px-12 py-10 lg:flex">
+      <aside className="hidden flex-col border-r border-line bg-canvas px-12 py-10 lg:flex dark:bg-surface">
         <BrandLockup size="md" />
         <div className="my-auto max-w-[460px] py-12">
           <p className="text-[30px] font-medium leading-tight tracking-[-0.02em] text-fg">
@@ -146,7 +146,7 @@ export function AuthPageLayout({
         <p className="text-[13px] text-muted">{tagline}</p>
       </aside>
 
-      <div className="flex min-w-0 flex-col px-5 py-5 sm:px-8 sm:py-6">
+      <div className="flex min-w-0 flex-col bg-surface px-5 py-5 sm:px-8 sm:py-6 dark:bg-canvas">
         <div className="flex items-center gap-3">
           <span className="lg:hidden">
             <BrandLockup size="md" />

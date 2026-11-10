@@ -83,7 +83,7 @@ export function BoardColumn({
           ))}
 
           {items.length === 0 && (
-            <p className="px-2 py-8 text-center text-[13px] text-muted">
+            <p className="rounded-card border border-dashed border-line-strong px-2 py-8 text-center text-[13px] text-muted">
               Nenhuma candidatura
             </p>
           )}

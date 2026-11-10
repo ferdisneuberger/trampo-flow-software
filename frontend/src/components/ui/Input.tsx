@@ -59,7 +59,7 @@ export function Input({
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            'block h-[42px] w-full rounded-btn border border-line bg-surface-2 px-3.5 text-sm text-fg outline-none transition placeholder:text-muted/70 focus:border-fg/50 focus:ring-2 focus:ring-fg/15 disabled:cursor-not-allowed disabled:opacity-60',
+            'block h-[42px] w-full rounded-btn border border-line bg-surface px-3.5 text-sm text-fg outline-none transition dark:bg-surface-2 placeholder:text-muted/70 focus:border-fg/50 focus:ring-2 focus:ring-fg/15 disabled:cursor-not-allowed disabled:opacity-60',
             leading ? 'pl-10' : undefined,
             trailing ? 'pr-11' : undefined,
             error && 'border-danger focus:border-danger focus:ring-danger/20',

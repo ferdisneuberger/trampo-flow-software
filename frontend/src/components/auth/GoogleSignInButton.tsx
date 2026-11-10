@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { env } from '../../config/env';
 import { useAuth } from '../../contexts/auth-context';
-import { useTheme } from '../../contexts/theme-context';
 import { ApiError } from '../../services/api/errors';
 import {
   loadGoogleIdentity,
@@ -28,7 +27,6 @@ function clampGoogleButtonWidth(width: number): number {
 
 export function GoogleSignInButton() {
   const { loginWithGoogle } = useAuth();
-  const { resolvedTheme } = useTheme();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [buttonWidth, setButtonWidth] = useState(GOOGLE_BUTTON_FALLBACK_WIDTH);
@@ -159,7 +157,7 @@ export function GoogleSignInButton() {
     container.replaceChildren();
     googleIdentity.accounts.id.renderButton(container, {
       type: 'standard',
-      theme: resolvedTheme === 'dark' ? 'filled_black' : 'outline',
+      theme: 'outline',
       size: 'large',
       text: 'continue_with',
       shape: 'rectangular',
@@ -167,7 +165,7 @@ export function GoogleSignInButton() {
       locale: 'pt-BR',
     });
     setIsReady(true);
-  }, [googleIdentity, buttonWidth, resolvedTheme]);
+  }, [googleIdentity, buttonWidth]);
 
   if (!env.googleClientId) {
     return null;

@@ -41,7 +41,7 @@ export function Select({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? descriptionId : undefined}
           className={cn(
-            'block h-[42px] w-full appearance-none rounded-btn border border-line bg-surface-2 px-3.5 pr-10 text-sm text-fg outline-none transition focus:border-fg/50 focus:ring-2 focus:ring-fg/15 disabled:cursor-not-allowed disabled:opacity-60',
+            'block h-[42px] w-full appearance-none rounded-btn border border-line bg-surface px-3.5 pr-10 text-sm text-fg outline-none transition dark:bg-surface-2 focus:border-fg/50 focus:ring-2 focus:ring-fg/15 disabled:cursor-not-allowed disabled:opacity-60',
             error && 'border-danger focus:border-danger focus:ring-danger/20',
             className,
           )}

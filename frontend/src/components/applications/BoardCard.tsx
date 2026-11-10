@@ -50,8 +50,14 @@ function BoardCardSummary({ application }: { application: Application }) {
         {application.company}
       </p>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        <span className="inline-flex items-center gap-1">
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted">
+        <span
+          className="inline-block max-w-full truncate rounded-full bg-surface-2 px-2 py-0.5 text-[11.5px] font-medium text-fg-soft"
+          title={application.currentPhase}
+        >
+          {application.currentPhase}
+        </span>
+        <span className="inline-flex items-center gap-1 whitespace-nowrap">
           <Clock className="size-3 shrink-0" aria-hidden="true" />
           {formatDate(application.updatedAt)}
         </span>
@@ -78,7 +84,7 @@ export function BoardCardOverlay({
   application: Application;
 }) {
   return (
-    <div className="flex h-full w-full items-start gap-2 rounded-card border border-line-strong bg-surface p-3 shadow-pop">
+    <div className="flex h-full w-full items-start gap-2.5 rounded-card border border-line-strong bg-surface p-3 shadow-pop">
       <CompanyBadge company={application.company} />
 
       <div className="min-w-0 flex-1">
@@ -216,19 +222,26 @@ export function BoardCard({
       onPointerCancelCapture={handlePointerUp}
       className="group cursor-grab rounded-card border border-line bg-surface p-3 transition-colors hover:border-line-strong active:cursor-grabbing"
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2.5">
         <CompanyBadge company={application.company} />
 
-        <div className="flex min-w-0 flex-1 items-start gap-1.5">
-          <span
-            className="inline-block max-w-full truncate rounded-full bg-surface-2 px-2 py-0.5 text-[11.5px] font-medium text-fg-soft"
-            title={application.currentPhase}
-          >
-            {application.currentPhase}
-          </span>
-        </div>
+        <Link
+          to={`/candidaturas/${application.id}`}
+          title="Abrir detalhes"
+          draggable={false}
+          onClick={handleCardClick}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              openDetails();
+            }
+          }}
+          className="block min-w-0 flex-1 touch-manipulation rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
+        >
+          <BoardCardSummary application={application} />
+        </Link>
 
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="-mr-1 -mt-0.5 flex shrink-0 items-center gap-0.5">
           {draggingEnabled && (
             <button
               type="button"
@@ -250,22 +263,6 @@ export function BoardCard({
           />
         </div>
       </div>
-
-      <Link
-        to={`/candidaturas/${application.id}`}
-        title="Abrir detalhes"
-        draggable={false}
-        onClick={handleCardClick}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            openDetails();
-          }
-        }}
-        className="mt-2.5 block min-w-0 touch-manipulation rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
-      >
-        <BoardCardSummary application={application} />
-      </Link>
     </div>
   );
 }
