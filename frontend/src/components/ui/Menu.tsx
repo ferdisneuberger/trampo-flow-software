@@ -83,12 +83,12 @@ export function Menu({
         aria-label={label}
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
-          'grid cursor-pointer list-none place-items-center border-2 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cobalt/20',
+          'grid cursor-pointer list-none place-items-center border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30',
           triggerVariant === 'avatar'
-            ? 'size-10 rounded-full border-ink-900 bg-coral font-display text-xs font-bold text-on-coral shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard'
+            ? 'size-9 rounded-full border-line bg-surface-2 text-xs font-semibold text-fg hover:border-line-strong'
             : triggerVariant === 'toolbar'
-              ? 'size-10 rounded-md border-ink-900 bg-surface text-ink-900 shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-surface-raised hover:shadow-hard'
-              : 'size-7 rounded-md border-transparent text-ink-500 hover:border-ink-900 hover:bg-surface hover:text-ink-900',
+              ? 'size-9 rounded-btn border-transparent text-muted hover:bg-surface-2 hover:text-fg'
+              : 'size-7 rounded-md border-transparent text-muted hover:bg-surface-2 hover:text-fg',
         )}
       >
         {trigger ?? (
@@ -105,14 +105,12 @@ export function Menu({
           role="menu"
           aria-label={label}
           className={cn(
-            'absolute right-0 z-20 mt-1 w-48 rounded-lg border-2 border-ink-900 bg-surface p-1 shadow-hard',
+            'absolute right-0 z-20 mt-1 w-52 rounded-btn border border-line bg-surface p-1 shadow-pop',
             menuClassName,
           )}
         >
           {header && (
-            <div className="border-b-2 border-ink-900/20 px-2 py-1.5">
-              {header}
-            </div>
+            <div className="border-b border-line px-2 py-1.5">{header}</div>
           )}
 
           {items.map((item) => {
@@ -121,10 +119,7 @@ export function Menu({
             return (
               <div key={item.id} role="none">
                 {item.separatorBefore && (
-                  <div
-                    className="my-1 border-t-2 border-ink-900/20"
-                    role="separator"
-                  />
+                  <div className="my-1 border-t border-line" role="separator" />
                 )}
                 <button
                   type="button"
@@ -136,10 +131,10 @@ export function Menu({
                   }
                   onClick={() => handleSelect(item)}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs font-semibold transition',
+                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium transition-colors',
                     item.tone === 'danger'
-                      ? 'text-coral-dark hover:bg-coral/10'
-                      : 'text-ink-700 hover:bg-accent-soft hover:text-ink-900',
+                      ? 'text-danger hover:bg-danger-soft'
+                      : 'text-fg-soft hover:bg-surface-2 hover:text-fg',
                   )}
                 >
                   {Icon && (

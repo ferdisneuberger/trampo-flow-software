@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { authService } from '../services/api/auth.service';
 import { getErrorMessage } from '../utils/errors';
@@ -38,39 +37,36 @@ export function ForgotPasswordPage() {
   if (isSuccess) {
     return (
       <AuthPageLayout>
-        <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-success-soft text-ink-900 shadow-hard-sm">
-            <CheckCircle2 className="size-8" aria-hidden="true" />
+        <div>
+          <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success">
+            <CheckCircle2 className="size-6" aria-hidden="true" />
           </span>
-          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+          <h1 className="mt-5 font-display text-[28px] font-semibold leading-tight text-fg">
             Verifique seu e-mail
           </h1>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Se houver uma conta com esse e-mail, enviaremos um link para
             redefinir a senha. Confira também a caixa de spam.
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="mt-6 inline-block text-sm font-medium text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Voltar para o login
           </Link>
-        </Card>
+        </div>
       </AuthPageLayout>
     );
   }
 
   return (
     <AuthPageLayout tagline="Recupere o acesso à sua conta">
-      <Card className="p-6 sm:p-8">
-        <div className="mb-6">
-          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
-            <Send className="size-6" aria-hidden="true" />
-          </span>
-          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+      <div>
+        <div className="mb-7">
+          <h1 className="font-display text-[28px] font-semibold leading-tight text-fg">
             Esqueci minha senha
           </h1>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Informe seu e-mail para receber um link de redefinição.
           </p>
         </div>
@@ -113,16 +109,16 @@ export function ForgotPasswordPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-ink-500">
+        <p className="mt-6 text-sm text-muted">
           Lembrou a senha?{' '}
           <Link
             to="/login"
-            className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="font-semibold text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Entrar
           </Link>
         </p>
-      </Card>
+      </div>
     </AuthPageLayout>
   );
 }

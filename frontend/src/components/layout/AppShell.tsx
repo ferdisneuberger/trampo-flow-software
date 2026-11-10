@@ -1,8 +1,21 @@
-import { LogOut, Search } from 'lucide-react';
-import { Suspense, useCallback, useEffect } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  LayoutGrid,
+  LogOut,
+  Search,
+} from 'lucide-react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { useAuth } from '../../contexts/auth-context';
 import { useLogout } from '../../hooks/useLogout';
+import { cn } from '../../utils/cn';
 import { BrandLockup } from '../brand/Brand';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { Menu, type MenuItem } from '../ui/Menu';
@@ -27,6 +40,8 @@ export function AppShell() {
   const { logout } = useLogout();
   const location = useLocation();
   const navigate = useNavigate();
+  // A barra lateral (lg+) começa recolhida a cada visita.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   const displayName = user?.firstName?.trim() || user?.email || 'Você';
   const initials = getInitials(
@@ -100,62 +115,150 @@ export function AppShell() {
     },
   ];
 
+  // Na barra lateral (lg+) os menus ficam no rodapé e abrem para cima.
+  const sidebarMenuClasses =
+    'lg:bottom-full lg:left-0 lg:right-auto lg:mb-1 lg:mt-0';
+  const collapsed = isSidebarCollapsed;
+
   return (
-    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-cream">
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-canvas lg:flex-row">
       <a
         href="#conteudo"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:border-2 focus:border-ink-900 focus:bg-yellow focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:font-bold focus:uppercase focus:tracking-[0.1em] focus:text-on-accent focus:shadow-hard-sm"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-btn focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-accent"
       >
         Pular para o conteúdo
       </a>
 
-      <header className="shrink-0 border-b-2 border-ink-900 bg-surface">
-        <div className="mx-auto flex h-16 w-full max-w-[100rem] items-center gap-2 px-4 sm:h-[72px] sm:gap-3 sm:px-6 lg:px-8">
+      <header
+        className={cn(
+          'flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-4 sm:px-6 lg:h-auto lg:flex-col lg:items-stretch lg:gap-1 lg:border-b-0 lg:border-r lg:py-5 lg:transition-[width] lg:duration-200',
+          collapsed ? 'lg:w-16 lg:px-2.5' : 'lg:w-[248px] lg:px-3.5',
+        )}
+      >
+        <div
+          className={cn(
+            'flex shrink-0 items-center lg:mb-6',
+            collapsed ? 'lg:flex-col lg:gap-3' : 'lg:justify-between lg:gap-2',
+          )}
+        >
           <Link
             to="/candidaturas"
             aria-label="Trampo Flow"
-            className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cobalt/20"
+            className={cn(
+              'shrink-0 rounded-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 lg:py-1',
+              collapsed ? 'lg:px-1' : 'lg:px-2',
+            )}
           >
             <BrandLockup
               size="sm"
-              wordmarkClassName="hidden min-[360px]:inline"
+              wordmarkClassName={cn(
+                'hidden min-[360px]:inline',
+                collapsed && 'lg:hidden',
+              )}
             />
           </Link>
 
           <button
             type="button"
-            onClick={handleSearchClick}
-            aria-label="Abrir busca"
-            className="ml-auto flex size-10 shrink-0 items-center justify-center rounded-lg border-2 border-ink-900 bg-surface text-ink-900 shadow-hard-sm transition hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-surface-raised hover:shadow-hard md:ml-6 md:h-11 md:w-full md:max-w-[560px] md:justify-start md:gap-3 md:px-3"
+            onClick={() => setIsSidebarCollapsed((current) => !current)}
+            aria-label={
+              collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'
+            }
+            aria-expanded={!collapsed}
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+            className="hidden size-8 shrink-0 place-items-center rounded-btn text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 lg:grid"
           >
-            <Search className="size-4 shrink-0" aria-hidden="true" />
-            <span className="hidden min-w-0 flex-1 truncate text-left text-sm text-ink-500 sm:inline">
-              Buscar trampo, empresa...
-            </span>
-            <kbd className="hidden rounded border border-ink-900 bg-yellow px-1.5 py-0.5 font-mono text-[10px] font-bold text-on-accent sm:inline">
-              /
-            </kbd>
+            {collapsed ? (
+              <ChevronsRight className="size-4" aria-hidden="true" />
+            ) : (
+              <ChevronsLeft className="size-4" aria-hidden="true" />
+            )}
           </button>
+        </div>
 
-          <div className="flex shrink-0 items-center gap-2 md:ml-auto">
-            <ThemeToggle variant="toolbar" />
-            <Menu
-              label={`Menu da conta de ${displayName}`}
-              items={accountItems}
-              triggerVariant="avatar"
-              trigger={<span aria-hidden="true">{initials}</span>}
-              menuClassName="w-60"
-              header={
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-bold text-ink-900">
-                    {user?.firstName ?? user?.email ?? 'Sua conta'}
-                  </p>
-                  {user?.firstName && (
-                    <p className="truncate text-[10px] text-ink-500">
-                      {user.email}
-                    </p>
-                  )}
-                </div>
+        <button
+          type="button"
+          onClick={handleSearchClick}
+          aria-label="Abrir busca"
+          title={collapsed ? 'Buscar (/)' : undefined}
+          className={cn(
+            'ml-auto flex size-9 shrink-0 items-center justify-center rounded-btn text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 md:h-9 md:w-full md:max-w-[420px] md:justify-start md:gap-2.5 md:border md:border-line md:bg-canvas md:px-3 lg:ml-0 lg:max-w-none',
+            collapsed &&
+              'lg:w-9 lg:self-center lg:justify-center lg:border-transparent lg:bg-transparent lg:px-0',
+          )}
+        >
+          <Search className="size-4 shrink-0" aria-hidden="true" />
+          <span
+            className={cn(
+              'hidden min-w-0 flex-1 truncate text-left text-sm md:inline',
+              collapsed && 'lg:hidden',
+            )}
+          >
+            Buscar trampo, empresa...
+          </span>
+          <kbd
+            className={cn(
+              'hidden rounded border border-line px-1.5 text-[11px] font-medium leading-5 text-muted md:inline',
+              collapsed && 'lg:hidden',
+            )}
+          >
+            /
+          </kbd>
+        </button>
+
+        <nav
+          aria-label="Principal"
+          className="hidden lg:mt-3 lg:flex lg:flex-col lg:gap-0.5"
+        >
+          <NavLink
+            to="/candidaturas"
+            title={collapsed ? 'Candidaturas' : undefined}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2.5 rounded-btn py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30',
+                collapsed ? 'justify-center px-0' : 'px-2.5',
+                isActive
+                  ? 'bg-surface-2 text-fg'
+                  : 'text-muted hover:bg-surface-2 hover:text-fg',
+              )
+            }
+          >
+            <LayoutGrid className="size-4 shrink-0" aria-hidden="true" />
+            <span className={cn(collapsed && 'sr-only')}>Candidaturas</span>
+          </NavLink>
+        </nav>
+
+        <div
+          className={cn(
+            'flex shrink-0 items-center gap-1.5 md:ml-auto lg:ml-0 lg:mt-auto lg:border-t lg:border-line lg:pt-4',
+            collapsed ? 'lg:flex-col lg:gap-2' : 'lg:justify-between lg:px-1',
+          )}
+        >
+          <Menu
+            label={`Menu da conta de ${displayName}`}
+            items={accountItems}
+            triggerVariant="avatar"
+            trigger={<span aria-hidden="true">{initials}</span>}
+            menuClassName={cn('w-60', sidebarMenuClasses)}
+            className="order-2"
+            header={
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-semibold text-fg">
+                  {user?.firstName ?? user?.email ?? 'Sua conta'}
+                </p>
+                {user?.firstName && (
+                  <p className="truncate text-xs text-muted">{user.email}</p>
+                )}
+              </div>
+            }
+          />
+          <div className={cn('order-1', !collapsed && 'lg:order-3')}>
+            <ThemeToggle
+              variant="toolbar"
+              menuClassName={
+                collapsed
+                  ? sidebarMenuClasses
+                  : 'lg:bottom-full lg:left-auto lg:right-0 lg:mb-1 lg:mt-0'
               }
             />
           </div>
@@ -165,7 +268,7 @@ export function AppShell() {
       <main
         id="conteudo"
         tabIndex={-1}
-        className="mx-auto flex min-h-0 w-full max-w-[100rem] flex-1 flex-col overflow-y-auto px-4 pb-10 pt-5 sm:px-6 md:pt-6 lg:px-8"
+        className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto px-4 pb-8 pt-5 sm:px-6 md:pt-6 lg:px-8 lg:pt-7"
       >
         <ErrorBoundary resetKey={location.pathname}>
           <Suspense

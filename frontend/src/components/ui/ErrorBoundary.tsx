@@ -44,13 +44,13 @@ export class ErrorBoundary extends Component<
 
     return (
       <Card className="mx-auto flex max-w-xl flex-col items-center px-6 py-12 text-center">
-        <span className="grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-danger-soft text-coral-dark shadow-hard-sm">
-          <AlertTriangle className="size-8" aria-hidden="true" />
+        <span className="grid size-12 place-items-center rounded-card bg-danger-soft text-danger">
+          <AlertTriangle className="size-6" aria-hidden="true" />
         </span>
-        <h1 className="mt-5 font-display text-2xl font-bold tracking-[-0.04em] text-ink-900">
+        <h1 className="mt-5 font-display text-xl font-semibold text-fg">
           Algo deu errado
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-6 text-ink-500">
+        <p className="mt-2 max-w-md text-sm leading-6 text-muted">
           Ocorreu um erro inesperado ao renderizar esta tela. Recarregue a
           página para tentar novamente.
         </p>

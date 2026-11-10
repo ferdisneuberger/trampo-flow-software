@@ -23,10 +23,10 @@ type BoardColumnProps = {
 };
 
 const statusDotClasses: Record<ApplicationStatus, string> = {
-  PENDING: 'bg-yellow',
-  IN_PROGRESS: 'bg-cobalt',
-  COMPLETED: 'bg-green',
-  REJECTED: 'bg-coral',
+  PENDING: 'bg-status-pending',
+  IN_PROGRESS: 'bg-status-progress',
+  COMPLETED: 'bg-status-done',
+  REJECTED: 'bg-status-rejected',
 };
 
 export function BoardColumn({
@@ -46,22 +46,22 @@ export function BoardColumn({
       ref={setNodeRef}
       aria-label={APPLICATION_STATUS_LABELS[status]}
       className={cn(
-        'flex h-full min-h-0 flex-col rounded-card border-2 border-ink-900 shadow-hard-sm transition',
-        isOver ? 'bg-accent-soft' : 'bg-column',
+        'flex h-full min-h-0 flex-col rounded-card border transition-colors',
+        isOver ? 'border-line-strong bg-surface-2/70' : 'border-transparent',
       )}
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-ink-900 px-3.5 py-3">
-        <h2 className="flex min-w-0 items-center gap-2 font-display text-sm font-bold tracking-[-0.02em] text-ink-900">
+      <header className="mx-1 flex shrink-0 items-center justify-between gap-2 border-b border-line px-1.5 pb-2.5 pt-2">
+        <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold tracking-normal text-fg">
           <span
             aria-hidden="true"
             className={cn(
-              'size-2.5 shrink-0 rounded-full border border-ink-900',
+              'size-2 shrink-0 rounded-full',
               statusDotClasses[status],
             )}
           />
           <span className="truncate">{APPLICATION_STATUS_LABELS[status]}</span>
         </h2>
-        <span className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-ink-900 bg-solid font-mono text-[10px] font-bold text-on-solid">
+        <span className="shrink-0 text-xs font-medium tabular-nums text-muted">
           {total}
         </span>
       </header>
@@ -70,7 +70,7 @@ export function BoardColumn({
         items={items.map((item) => item.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-2.5">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1 pt-2.5">
           {items.map((application) => (
             <BoardCard
               key={application.id}
@@ -83,13 +83,13 @@ export function BoardColumn({
           ))}
 
           {items.length === 0 && (
-            <p className="px-2 py-8 text-center font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-500">
+            <p className="rounded-card border border-dashed border-line-strong px-2 py-8 text-center text-[13px] text-muted">
               Nenhuma candidatura
             </p>
           )}
 
           {hasMore && (
-            <p className="px-2 py-1 text-center font-mono text-[9px] text-ink-500">
+            <p className="px-2 py-1 text-center text-xs text-muted">
               Mostrando as primeiras {items.length} de {total}
             </p>
           )}

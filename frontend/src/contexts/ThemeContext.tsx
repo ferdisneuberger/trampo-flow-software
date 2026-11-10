@@ -56,7 +56,7 @@ function applyTheme(theme: ResolvedTheme) {
   const meta = document.getElementById('theme-color');
 
   if (meta) {
-    meta.setAttribute('content', theme === 'dark' ? '#12100e' : '#f2e8d5');
+    meta.setAttribute('content', theme === 'dark' ? '#1d1e21' : '#f4f4f5');
   }
 }
 

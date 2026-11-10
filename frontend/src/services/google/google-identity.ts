@@ -40,7 +40,8 @@ export function loadGoogleIdentity(): Promise<GoogleIdentityApi> {
 
   loading = new Promise<GoogleIdentityApi>((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
+    // `hl` define o idioma do botão; sem ele o Google usa o idioma da conta.
+    script.src = 'https://accounts.google.com/gsi/client?hl=pt-BR';
     script.async = true;
     script.defer = true;
     script.onload = () => {

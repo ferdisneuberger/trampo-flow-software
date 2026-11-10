@@ -112,9 +112,8 @@ describe('GoogleSignInButton', () => {
     );
     expect(google.initialize).toHaveBeenCalledOnce();
 
-    const visualButton = screen.getByText('Continuar com Google');
-
-    expect(visualButton).toHaveAttribute('aria-hidden', 'true');
+    // O botão oficial do Google fica visível: não há botão falso por cima.
+    expect(screen.queryByText('Continuar com Google')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Continuar com Google' }),
     ).not.toBeInTheDocument();

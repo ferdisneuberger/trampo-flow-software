@@ -5,21 +5,22 @@ export type ButtonVariant =
 export type ButtonSize = 'sm' | 'md';
 
 const variantClasses: Record<ButtonVariant, string> = {
+  // Desabilitado (sem estar carregando) fica neutro; carregando mantém a cor.
   primary:
-    'border-ink-900 bg-coral text-on-coral shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-coral hover:shadow-hard active:translate-x-0 active:translate-y-0 active:shadow-hard-sm',
+    'border-transparent bg-accent text-on-accent hover:bg-accent-hover [&:disabled:not([aria-busy=true])]:border-line [&:disabled:not([aria-busy=true])]:bg-surface-2 [&:disabled:not([aria-busy=true])]:text-muted',
   secondary:
-    'border-ink-900 bg-surface text-ink-900 shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-surface-raised hover:shadow-hard active:translate-x-0 active:translate-y-0 active:shadow-hard-sm',
+    'border-line bg-surface text-fg hover:border-line-strong hover:bg-surface-2 disabled:opacity-50',
   ghost:
-    'border-transparent text-ink-700 hover:border-ink-900 hover:bg-surface/60 hover:text-ink-900',
+    'border-transparent text-fg-soft hover:bg-surface-2 hover:text-fg disabled:opacity-50',
   danger:
-    'border-ink-900 bg-danger-strong text-white shadow-hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-danger-strong-hover hover:shadow-hard active:translate-x-0 active:translate-y-0 active:shadow-hard-sm',
+    'border-transparent bg-danger text-on-danger hover:bg-danger-hover disabled:opacity-50',
   'danger-ghost':
-    'border-coral bg-transparent text-coral-dark hover:bg-coral/10',
+    'border-danger/40 bg-transparent text-danger hover:bg-danger-soft disabled:opacity-50',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-9 px-3 text-xs',
-  md: 'h-11 px-4 text-sm',
+  sm: 'h-9 px-3 text-[13px]',
+  md: 'h-[42px] px-4 text-sm',
 };
 
 export function buttonClasses({
@@ -32,7 +33,7 @@ export function buttonClasses({
   className?: string;
 } = {}): string {
   return cn(
-    'inline-flex items-center justify-center gap-2 rounded-btn border-2 font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cobalt/20 focus-visible:ring-offset-2 focus-visible:ring-offset-cream disabled:cursor-not-allowed disabled:opacity-60',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-btn border font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed',
     variantClasses[variant],
     sizeClasses[size],
     className,

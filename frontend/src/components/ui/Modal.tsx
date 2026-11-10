@@ -135,22 +135,22 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative max-h-[90vh] w-full overflow-y-auto rounded-2xl border-2 border-ink-900 bg-surface shadow-hard-lg outline-none',
+          'relative max-h-[90vh] w-full overflow-y-auto rounded-[14px] border border-line bg-surface shadow-pop outline-none',
           size === 'lg' ? 'max-w-3xl' : 'max-w-lg',
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b-2 border-ink-900 px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
           <div>
             <h2
               id={titleId}
-              className="font-display text-xl font-bold tracking-[-0.04em] text-ink-900"
+              className="font-display text-lg font-semibold text-fg"
             >
               {title}
             </h2>
             {description && (
               <p
                 id={descriptionId}
-                className="mt-1 text-sm leading-6 text-ink-500"
+                className="mt-1 text-sm leading-6 text-muted"
               >
                 {description}
               </p>
