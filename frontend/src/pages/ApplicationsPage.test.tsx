@@ -205,6 +205,9 @@ describe('ApplicationsPage', () => {
     await userEvent.click(
       screen.getByRole('button', { name: /Nova candidatura/ }),
     );
+    await userEvent.click(
+      screen.getByRole('button', { name: /Preencher à mão/ }),
+    );
     await userEvent.type(
       screen.getByLabelText('Título da candidatura'),
       'Frontend Engineer',
