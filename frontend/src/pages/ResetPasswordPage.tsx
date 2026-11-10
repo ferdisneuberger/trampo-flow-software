@@ -5,7 +5,6 @@ import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { PasswordRequirements } from '../components/auth/PasswordRequirements';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { PasswordInput } from '../components/ui/PasswordInput';
 import { authService } from '../services/api/auth.service';
 import { getErrorMessage } from '../utils/errors';
@@ -90,24 +89,24 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <AuthPageLayout>
-        <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-danger-soft text-coral-dark shadow-hard-sm">
-            <KeyRound className="size-8" aria-hidden="true" />
+        <div>
+          <span className="grid size-12 place-items-center rounded-full bg-danger-soft text-danger">
+            <KeyRound className="size-6" aria-hidden="true" />
           </span>
-          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+          <h1 className="mt-5 font-display text-[28px] font-semibold leading-tight text-fg">
             Link inválido
           </h1>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Este link de recuperação está incompleto ou expirou. Solicite um
             novo link para continuar.
           </p>
           <Link
             to="/esqueci-senha"
-            className="mt-6 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="mt-6 inline-block text-sm font-medium text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Solicitar novo link
           </Link>
-        </Card>
+        </div>
       </AuthPageLayout>
     );
   }
@@ -115,38 +114,35 @@ export function ResetPasswordPage() {
   if (isSuccess) {
     return (
       <AuthPageLayout>
-        <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-success-soft text-ink-900 shadow-hard-sm">
-            <CheckCircle2 className="size-8" aria-hidden="true" />
+        <div>
+          <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success">
+            <CheckCircle2 className="size-6" aria-hidden="true" />
           </span>
-          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+          <h1 className="mt-5 font-display text-[28px] font-semibold leading-tight text-fg">
             Senha redefinida
           </h1>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Sua senha foi alterada e as sessões anteriores foram encerradas.
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="mt-6 inline-block text-sm font-medium text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Entrar com a nova senha
           </Link>
-        </Card>
+        </div>
       </AuthPageLayout>
     );
   }
 
   return (
     <AuthPageLayout tagline="Crie uma nova senha">
-      <Card className="p-6 sm:p-8">
-        <div className="mb-6">
-          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
-            <KeyRound className="size-6" aria-hidden="true" />
-          </span>
-          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+      <div>
+        <div className="mb-7">
+          <h1 className="font-display text-[28px] font-semibold leading-tight text-fg">
             Nova senha
           </h1>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Escolha uma senha com pelo menos {PASSWORD_MIN_LENGTH} caracteres,
             incluindo uma maiúscula, um número e um caractere especial.
           </p>
@@ -214,15 +210,15 @@ export function ResetPasswordPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-ink-500">
+        <p className="mt-6 text-sm text-muted">
           <Link
             to="/login"
-            className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="font-semibold text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Voltar para o login
           </Link>
         </p>
-      </Card>
+      </div>
     </AuthPageLayout>
   );
 }

@@ -6,7 +6,6 @@ import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../contexts/auth-context';
 import { getErrorMessage } from '../utils/errors';
@@ -59,15 +58,12 @@ export function LoginPage() {
 
   return (
     <AuthPageLayout>
-      <Card className="p-6 sm:p-8">
-        <div className="mb-6">
-          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
-            <LogIn className="size-6" aria-hidden="true" />
-          </span>
-          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+      <div>
+        <div className="mb-7">
+          <h1 className="font-display text-[28px] font-semibold leading-tight text-fg">
             Entrar na conta
           </h1>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Entre com seu e-mail e senha para voltar aos seus trampos.
           </p>
         </div>
@@ -109,7 +105,7 @@ export function LoginPage() {
           <div className="flex justify-end">
             <Link
               to="/esqueci-senha"
-              className="font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+              className="text-[13px] text-muted underline underline-offset-4 hover:text-fg"
             >
               Esqueci minha senha
             </Link>
@@ -134,16 +130,16 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-ink-500">
+        <p className="mt-6 text-sm text-muted">
           Ainda não tem conta?{' '}
           <Link
             to="/cadastro"
-            className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="font-semibold text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Criar conta
           </Link>
         </p>
-      </Card>
+      </div>
     </AuthPageLayout>
   );
 }

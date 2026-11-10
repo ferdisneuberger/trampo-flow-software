@@ -1,4 +1,4 @@
-import { CheckCircle2, LogOut, MailCheck } from 'lucide-react';
+import { CheckCircle2, LogOut } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
@@ -6,7 +6,6 @@ import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { ResendVerificationButton } from '../components/auth/ResendVerificationButton';
 import { Button } from '../components/ui/Button';
 import { ButtonLink } from '../components/ui/ButtonLink';
-import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../contexts/auth-context';
 import { useLogout } from '../hooks/useLogout';
@@ -99,14 +98,14 @@ export function VerifyEmailPage() {
   if (isSuccess) {
     return (
       <AuthPageLayout>
-        <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-success-soft text-ink-900 shadow-hard-sm">
-            <CheckCircle2 className="size-8" aria-hidden="true" />
+        <div>
+          <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success">
+            <CheckCircle2 className="size-6" aria-hidden="true" />
           </span>
-          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+          <h1 className="mt-5 font-display text-[28px] font-semibold leading-tight text-fg">
             E-mail confirmado
           </h1>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Sua conta está verificada e já pode criar candidaturas.
           </p>
           <ButtonLink
@@ -115,7 +114,7 @@ export function VerifyEmailPage() {
           >
             {isAuthenticated ? 'Ir para o quadro' : 'Entrar na conta'}
           </ButtonLink>
-        </Card>
+        </div>
       </AuthPageLayout>
     );
   }
@@ -126,20 +125,17 @@ export function VerifyEmailPage() {
 
   return (
     <AuthPageLayout tagline="Confirme seu e-mail">
-      <Card className="p-6 sm:p-8">
-        <div className="mb-6">
-          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
-            <MailCheck className="size-6" aria-hidden="true" />
-          </span>
-          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+      <div>
+        <div className="mb-7">
+          <h1 className="font-display text-[28px] font-semibold leading-tight text-fg">
             Informe o código
           </h1>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             {isAuthenticated && user?.email ? (
               <>
                 Enviamos um código de 6 caracteres para{' '}
-                <strong className="text-ink-900">{user.email}</strong>. Ele
-                expira em 12 horas.
+                <strong className="font-semibold text-fg">{user.email}</strong>.
+                Ele expira em 12 horas.
               </>
             ) : (
               'Enviamos um código de 6 caracteres para o seu e-mail. Ele expira em 12 horas.'
@@ -178,8 +174,8 @@ export function VerifyEmailPage() {
         </form>
 
         {isAuthenticated && user && !user.emailVerified && (
-          <div className="mt-5 border-t-2 border-dashed border-ink-900/20 pt-5">
-            <p className="mb-3 text-sm text-ink-500">
+          <div className="mt-6 border-t border-line pt-5">
+            <p className="mb-3 text-sm text-muted">
               Não recebeu o e-mail? Envie novamente.
             </p>
             <ResendVerificationButton />
@@ -191,22 +187,22 @@ export function VerifyEmailPage() {
             type="button"
             onClick={() => void logout()}
             disabled={isLoggingOut}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-transparent px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-500 transition hover:border-ink-900 hover:bg-surface hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-btn px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOut className="size-4" aria-hidden="true" />
             Sair e usar outra conta
           </button>
         ) : (
-          <p className="mt-6 text-center text-sm text-ink-500">
+          <p className="mt-6 text-sm text-muted">
             <Link
               to="/login"
-              className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+              className="font-semibold text-fg underline underline-offset-4 hover:text-fg-soft"
             >
               Voltar para o login
             </Link>
           </p>
         )}
-      </Card>
+      </div>
     </AuthPageLayout>
   );
 }

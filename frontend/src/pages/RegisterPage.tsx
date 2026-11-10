@@ -6,7 +6,6 @@ import { PasswordRequirements } from '../components/auth/PasswordRequirements';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { ButtonLink } from '../components/ui/ButtonLink';
-import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { PasswordInput } from '../components/ui/PasswordInput';
 import { authService } from '../services/api/auth.service';
@@ -115,16 +114,16 @@ export function RegisterPage() {
   if (isSuccess) {
     return (
       <AuthPageLayout>
-        <Card className="p-6 text-center sm:p-8">
-          <span className="mx-auto grid size-16 place-items-center rounded-xl border-2 border-ink-900 bg-success-soft text-ink-900 shadow-hard-sm">
-            <CheckCircle2 className="size-8" aria-hidden="true" />
+        <div>
+          <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success">
+            <CheckCircle2 className="size-6" aria-hidden="true" />
           </span>
-          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+          <h1 className="mt-5 font-display text-[28px] font-semibold leading-tight text-fg">
             Cadastro recebido
           </h1>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Enviamos um código de verificação para{' '}
-            <strong className="text-ink-900">
+            <strong className="font-semibold text-fg">
               {email.trim().toLowerCase()}
             </strong>
             . Confira também a caixa de spam.
@@ -135,27 +134,24 @@ export function RegisterPage() {
             </ButtonLink>
             <Link
               to="/login"
-              className="font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+              className="text-sm font-medium text-fg underline underline-offset-4 hover:text-fg-soft"
             >
               Voltar para o login
             </Link>
           </div>
-        </Card>
+        </div>
       </AuthPageLayout>
     );
   }
 
   return (
     <AuthPageLayout tagline="Crie sua conta para começar">
-      <Card className="p-6 sm:p-8">
-        <div className="mb-6">
-          <span className="grid size-12 place-items-center rounded-xl border-2 border-ink-900 bg-yellow text-on-accent shadow-hard-sm">
-            <UserPlus className="size-6" aria-hidden="true" />
-          </span>
-          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+      <div>
+        <div className="mb-7">
+          <h1 className="font-display text-[28px] font-semibold leading-tight text-fg">
             Criar conta
           </h1>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-[15px] leading-6 text-muted">
             Cadastra seus dados e confirma o código que chega no e-mail.
           </p>
         </div>
@@ -270,10 +266,10 @@ export function RegisterPage() {
           />
 
           <div>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-ink-900 bg-surface p-4 text-sm text-ink-700 shadow-hard-sm">
+            <label className="flex cursor-pointer items-start gap-3 rounded-btn border border-line bg-surface-2 p-3.5 text-sm text-fg-soft">
               <input
                 type="checkbox"
-                className="mt-0.5 size-4 rounded border-2 border-ink-900 accent-coral"
+                className="mt-0.5 size-4 rounded border border-line accent-fg"
                 checked={termsAccepted}
                 onChange={(event) => {
                   setTermsAccepted(event.target.checked);
@@ -288,7 +284,7 @@ export function RegisterPage() {
                 Li e aceito os{' '}
                 <Link
                   to="/termos"
-                  className="font-bold text-ink-900 underline underline-offset-4"
+                  className="font-semibold text-fg underline underline-offset-4"
                 >
                   termos de uso
                 </Link>
@@ -296,7 +292,7 @@ export function RegisterPage() {
               </span>
             </label>
             {errors.terms && (
-              <p className="mt-1.5 text-xs font-semibold text-coral-dark">
+              <p className="mt-1.5 text-xs font-medium text-danger">
                 {errors.terms}
               </p>
             )}
@@ -316,16 +312,16 @@ export function RegisterPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-ink-500">
+        <p className="mt-6 text-sm text-muted">
           Já tem conta?{' '}
           <Link
             to="/login"
-            className="font-bold text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="font-semibold text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Entrar
           </Link>
         </p>
-      </Card>
+      </div>
     </AuthPageLayout>
   );
 }

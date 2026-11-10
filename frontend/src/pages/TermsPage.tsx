@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { AuthPageLayout } from '../components/auth/AuthPageLayout';
-import { Card } from '../components/ui/Card';
 
 const termsSections = [
   {
@@ -40,33 +39,29 @@ const termsSections = [
 export function TermsPage() {
   return (
     <AuthPageLayout tagline="Termos de uso" width="xl">
-      <Card className="p-6 text-sm leading-6 text-ink-700 sm:p-8">
-        <header className="border-b-2 border-dashed border-ink-900/20 pb-5">
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-coral-dark">
-            Documento
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-extrabold tracking-[-0.06em] text-ink-900">
+      <article className="text-sm leading-6 text-fg-soft">
+        <header className="pb-8">
+          <p className="text-[13px] font-medium text-muted">Documento</p>
+          <h1 className="mt-1 font-display text-[32px] font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[40px]">
             Termos de uso do Trampo Flow
           </h1>
-          <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-ink-500">
-            Versão 2026-11
-          </p>
+          <p className="mt-2 text-sm text-muted">Versão 2026-11</p>
         </header>
 
-        <div className="mt-6 space-y-6">
+        <div>
           {termsSections.map((section, index) => (
             <section
               key={section.title}
-              className="grid gap-3 sm:grid-cols-[2rem_1fr]"
+              className="grid gap-1 border-t border-line py-5 sm:grid-cols-[2.5rem_1fr] sm:gap-3"
             >
-              <span className="grid size-8 place-items-center rounded-md border-2 border-ink-900 bg-yellow font-mono text-[10px] font-bold text-on-accent shadow-hard-sm">
+              <span className="pt-0.5 text-[15px] font-semibold tabular-nums text-muted">
                 {index + 1}
               </span>
               <div>
-                <h2 className="font-display text-lg font-bold text-ink-900">
+                <h2 className="font-display text-base font-semibold text-fg">
                   {section.title}
                 </h2>
-                <p className="mt-1 text-sm leading-6 text-ink-700">
+                <p className="mt-1 max-w-[62ch] text-[15px] leading-7 text-fg-soft">
                   {section.body}
                 </p>
               </div>
@@ -74,18 +69,18 @@ export function TermsPage() {
           ))}
         </div>
 
-        <footer className="mt-8 flex flex-col gap-2 border-t-2 border-dashed border-ink-900/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-xs text-ink-500">
+        <footer className="flex flex-col gap-2 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-[13px] text-muted">
             Dúvidas? Responda ao e-mail de contato do Trampo Flow.
           </span>
           <Link
             to="/cadastro"
-            className="font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-900 underline underline-offset-4 hover:text-coral-dark"
+            className="text-sm font-medium text-fg underline underline-offset-4 hover:text-fg-soft"
           >
             Voltar para o cadastro
           </Link>
         </footer>
-      </Card>
+      </article>
     </AuthPageLayout>
   );
 }
