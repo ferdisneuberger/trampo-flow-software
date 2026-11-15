@@ -51,6 +51,11 @@ const SettingsPage = lazy(() =>
     default: module.SettingsPage,
   })),
 );
+const OAuthAuthorizePage = lazy(() =>
+  import('./pages/OAuthAuthorizePage').then((module) => ({
+    default: module.OAuthAuthorizePage,
+  })),
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((module) => ({
     default: module.NotFoundPage,
@@ -72,6 +77,11 @@ export function App() {
               <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
               <Route element={<ProtectedRoute />}>
+                {/* Tela focada de consentimento: protegida, mas sem o menu do app. */}
+                <Route
+                  path="oauth/authorize"
+                  element={<OAuthAuthorizePage />}
+                />
                 <Route element={<AppShell />}>
                   <Route
                     index
