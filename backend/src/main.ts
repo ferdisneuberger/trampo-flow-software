@@ -101,15 +101,21 @@ async function bootstrap(): Promise<void> {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Trampo Flow API')
     .setDescription(
-      'API de acompanhamento de candidaturas. Todas as rotas, exceto login, health e documentação, exigem um token JWT.',
+      'API de acompanhamento de candidaturas. Todas as rotas, exceto login, health e documentação, exigem um bearer token: o JWT de sessão ou um token de integração `tfp_...` (criado em `POST /auth/tokens`). Rotas de `/auth/tokens` aceitam só o JWT de sessão.',
     )
     .setVersion('1.0.0')
     .addBearerAuth(
-      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT ou tfp_...',
+        description:
+          'JWT de sessão (login) ou token de integração com prefixo `tfp_`.',
+      },
       'bearer',
     )
-    .addTag('applications', 'Candidaturas e arquivos anexados')
-    .addTag('auth', 'Autenticação e perfil')
+    .addTag('applications', 'Candidaturas')
+    .addTag('auth', 'Autenticação, perfil e tokens de integração')
     .addTag('health', 'Disponibilidade da API')
     .build();
 
