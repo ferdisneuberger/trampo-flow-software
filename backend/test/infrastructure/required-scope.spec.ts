@@ -9,6 +9,11 @@ import { IS_SESSION_ONLY_KEY } from '../../src/infrastructure/auth/session-only.
 import { AdminUsersController } from '../../src/infrastructure/http/controllers/admin-users.controller';
 import { ApplicationsController } from '../../src/infrastructure/http/controllers/applications.controller';
 import { AuthController } from '../../src/infrastructure/http/controllers/auth.controller';
+import { IS_OAUTH_ROUTE_KEY } from '../../src/infrastructure/auth/oauth-route.decorator';
+import { IS_PUBLIC_KEY } from '../../src/infrastructure/auth/public.decorator';
+import { OAuthConsentController } from '../../src/infrastructure/http/controllers/oauth-consent.controller';
+import { OAuthController } from '../../src/infrastructure/http/controllers/oauth.controller';
+import { OAuthMetadataController } from '../../src/infrastructure/http/controllers/oauth-metadata.controller';
 import { PersonalAccessTokensController } from '../../src/infrastructure/http/controllers/personal-access-tokens.controller';
 
 type ControllerClass = { prototype: object; name: string };
@@ -96,5 +101,38 @@ describe('escopos exigidos por rota (token de integração)', () => {
         metadata(AdminUsersController, handler, REQUIRED_SCOPE_KEY),
       ),
     ).toEqual([]);
+  });
+
+  it('OAuth: consentimento e grants só com sessão; endpoints públicos sem escopo; tudo atrás da flag', () => {
+    for (const controller of [
+      OAuthConsentController,
+      OAuthController,
+      OAuthMetadataController,
+    ]) {
+      expect(Reflect.getMetadata(IS_OAUTH_ROUTE_KEY, controller)).toBe(true);
+
+      // Nenhuma rota OAuth é alcançável por tfp_/tfo_ via escopo.
+      for (const handler of handlers(controller)) {
+        expect(metadata(controller, handler, REQUIRED_SCOPE_KEY)).toBe(
+          undefined,
+        );
+      }
+    }
+
+    expect(
+      Reflect.getMetadata(IS_SESSION_ONLY_KEY, OAuthConsentController),
+    ).toBe(true);
+    expect(Reflect.getMetadata(IS_PUBLIC_KEY, OAuthConsentController)).toBe(
+      undefined,
+    );
+    expect(Reflect.getMetadata(IS_PUBLIC_KEY, OAuthController)).toBe(true);
+    expect(Reflect.getMetadata(IS_PUBLIC_KEY, OAuthMetadataController)).toBe(
+      true,
+    );
+    expect(handlers(OAuthController).sort()).toEqual([
+      'register',
+      'revoke',
+      'token',
+    ]);
   });
 });

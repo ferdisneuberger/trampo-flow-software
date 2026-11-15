@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   HttpException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
@@ -19,6 +20,9 @@ import {
   SCOPE_APPLICATIONS_READ,
   SCOPE_APPLICATIONS_WRITE,
 } from '../../src/domain/auth/scopes';
+import type { OAuthSettings } from '../../src/application/oauth/services/oauth-settings';
+import type { AuthenticateOAuthAccessTokenUseCase } from '../../src/application/oauth/use-cases/authenticate-oauth-access-token.use-case';
+import { IS_OAUTH_ROUTE_KEY } from '../../src/infrastructure/auth/oauth-route.decorator';
 import { IS_PUBLIC_KEY } from '../../src/infrastructure/auth/public.decorator';
 import { REQUIRED_SCOPE_KEY } from '../../src/infrastructure/auth/required-scope.decorator';
 import { IS_SESSION_ONLY_KEY } from '../../src/infrastructure/auth/session-only.decorator';
@@ -62,12 +66,16 @@ function createContext(
   } as unknown as ExecutionContext;
 }
 
+const GRANT_ID = '7c1b8c1e-3333-4c1e-9a0e-2b6a4f5c8d10';
 const TOKEN_ID = '0b6a8c1e-2222-4c1e-9a0e-2b6a4f5c8d10';
 
 type GuardOptions = {
   /** `null` simula uma rota sem @RequiredScope. */
   requiredScope?: string | null;
   patScopes?: string[];
+  oauthEnabled?: boolean;
+  isOAuthRoute?: boolean;
+  oauthScopes?: string[];
 };
 
 function createGuard(
@@ -87,7 +95,9 @@ function createGuard(
           ? isSessionOnly
           : key === REQUIRED_SCOPE_KEY
             ? requiredScope
-            : undefined,
+            : key === IS_OAUTH_ROUTE_KEY
+              ? (options.isOAuthRoute ?? false)
+              : undefined,
     ),
   };
   const tokenService = {
@@ -106,6 +116,19 @@ function createGuard(
       ],
     }),
   };
+  const authenticateOAuth = {
+    execute: vi.fn().mockResolvedValue({
+      userId: USER_ID,
+      tokenId: TOKEN_ID,
+      grantId: GRANT_ID,
+      scopes: options.oauthScopes ?? [SCOPE_APPLICATIONS_READ],
+    }),
+  };
+  const oauthSettings = {
+    enabled: options.oauthEnabled ?? false,
+    protectedResourceMetadataUrl:
+      'https://app.example.com/.well-known/oauth-protected-resource/mcp',
+  };
   const rateLimiter = new RateLimiterService();
   const guard = new JwtAuthGuard(
     reflector as unknown as Reflector,
@@ -113,9 +136,17 @@ function createGuard(
     userRepository as unknown as UserRepository,
     authenticatePat as unknown as AuthenticatePersonalAccessTokenUseCase,
     rateLimiter,
+    authenticateOAuth as unknown as AuthenticateOAuthAccessTokenUseCase,
+    oauthSettings as unknown as OAuthSettings,
   );
 
-  return { guard, tokenService, userRepository, authenticatePat };
+  return {
+    guard,
+    tokenService,
+    userRepository,
+    authenticatePat,
+    authenticateOAuth,
+  };
 }
 
 describe('JwtAuthGuard', () => {
@@ -344,5 +375,122 @@ describe('JwtAuthGuard', () => {
         ),
       ).resolves.toBe(true);
     });
+  });
+});
+
+describe('JwtAuthGuard: OAuth (tfo_)', () => {
+  const bearer = (token: string) =>
+    createRequest({ headers: { authorization: `Bearer ${token}` } });
+
+  it('sem OAUTH_ENABLED, rota OAuth responde 404 mesmo sendo pública', async () => {
+    const { guard } = createGuard(true, false, { isOAuthRoute: true });
+
+    await expect(
+      guard.canActivate(createContext(createRequest())),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('com OAUTH_ENABLED, rota OAuth pública passa', async () => {
+    const { guard } = createGuard(true, false, {
+      isOAuthRoute: true,
+      oauthEnabled: true,
+    });
+
+    await expect(
+      guard.canActivate(createContext(createRequest())),
+    ).resolves.toBe(true);
+  });
+
+  it('sem a flag, tfo_ não é tratado como OAuth: cai na verificação do JWT', async () => {
+    const { guard, tokenService, authenticateOAuth } = createGuard();
+
+    tokenService.verify.mockImplementation(() => {
+      throw new UnauthorizedException();
+    });
+
+    await expect(
+      guard.canActivate(createContext(bearer('tfo_abc'))),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(authenticateOAuth.execute).not.toHaveBeenCalled();
+  });
+
+  it('autentica tfo_ pelo caso de uso e preenche request.user', async () => {
+    const { guard, authenticateOAuth } = createGuard(false, false, {
+      oauthEnabled: true,
+    });
+    const request = bearer('tfo_abc');
+
+    await expect(guard.canActivate(createContext(request))).resolves.toBe(true);
+    expect(authenticateOAuth.execute).toHaveBeenCalledWith('tfo_abc');
+    expect(request.user).toEqual({
+      sub: USER_ID,
+      authMethod: 'oauth',
+      tokenId: TOKEN_ID,
+      grantId: GRANT_ID,
+      scopes: [SCOPE_APPLICATIONS_READ],
+    });
+  });
+
+  it('nega por padrão: rota sem @RequiredScope fecha para tfo_', async () => {
+    const { guard } = createGuard(false, false, {
+      oauthEnabled: true,
+      requiredScope: null,
+    });
+
+    await expect(
+      guard.canActivate(createContext(bearer('tfo_abc'))),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rota só de sessão (ex.: DELETE, /oauth/grants) fecha para tfo_ sem autenticá-lo', async () => {
+    const { guard, authenticateOAuth } = createGuard(false, true, {
+      oauthEnabled: true,
+    });
+
+    await expect(
+      guard.canActivate(createContext(bearer('tfo_abc'))),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(authenticateOAuth.execute).not.toHaveBeenCalled();
+  });
+
+  it('escrita com tfo_ só de leitura dá 403 insufficient_scope com resource_metadata', async () => {
+    const { guard } = createGuard(false, false, {
+      oauthEnabled: true,
+      requiredScope: SCOPE_APPLICATIONS_WRITE,
+    });
+    const reply = { header: vi.fn() };
+
+    await expect(
+      guard.canActivate(
+        createContext({ ...bearer('tfo_abc'), method: 'POST' }, reply),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(reply.header).toHaveBeenCalledWith(
+      'WWW-Authenticate',
+      expect.stringContaining(
+        'resource_metadata="https://app.example.com/.well-known/oauth-protected-resource/mcp"',
+      ),
+    );
+  });
+
+  it('limita escritas por grant (60/min)', async () => {
+    const { guard } = createGuard(false, false, {
+      oauthEnabled: true,
+      requiredScope: SCOPE_APPLICATIONS_WRITE,
+      oauthScopes: [SCOPE_APPLICATIONS_READ, SCOPE_APPLICATIONS_WRITE],
+    });
+    const write = () =>
+      guard.canActivate(
+        createContext({
+          ...bearer('tfo_abc'),
+          method: 'POST',
+        }),
+      );
+
+    for (let i = 0; i < 60; i += 1) {
+      await write();
+    }
+
+    await expect(write()).rejects.toBeInstanceOf(HttpException);
   });
 });
