@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -9,6 +10,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import {
+  PERSONAL_ACCESS_TOKEN_SCOPES,
+  READ_WRITE_SCOPE,
+} from '../../../domain/auth/scopes';
 import { PERSONAL_ACCESS_TOKEN_NAME_MAX_LENGTH } from '../../../domain/auth/entities/personal-access-token.entity';
 import {
   PERSONAL_ACCESS_TOKEN_DEFAULT_DAYS,
@@ -38,4 +43,14 @@ export class CreatePersonalAccessTokenDto {
   @Min(1)
   @Max(PERSONAL_ACCESS_TOKEN_MAX_DAYS)
   expiresInDays?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Permissões do token: somente leitura ou leitura e escrita. Nenhuma permite apagar.',
+    enum: PERSONAL_ACCESS_TOKEN_SCOPES,
+    default: READ_WRITE_SCOPE,
+  })
+  @IsOptional()
+  @IsIn(PERSONAL_ACCESS_TOKEN_SCOPES)
+  scope?: string;
 }

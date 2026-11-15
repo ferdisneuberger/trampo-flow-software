@@ -131,6 +131,39 @@ describe('tokens de acesso pessoal', () => {
     });
   });
 
+  describe('permissões (escopo) do token', () => {
+    it('usa leitura e escrita por padrão', async () => {
+      const { token } = await create.execute({ userId: user.id, name: 'a' });
+
+      expect(token.scope).toBe('applications:read applications:write');
+      expect(token.scopes).toEqual(['applications:read', 'applications:write']);
+    });
+
+    it('cria token somente leitura e o autenticador devolve só a leitura', async () => {
+      const { token, secret } = await create.execute({
+        userId: user.id,
+        name: 'relatório',
+        scope: 'applications:read',
+      });
+
+      expect(token.scopes).toEqual(['applications:read']);
+      await expect(authenticate.execute(secret)).resolves.toMatchObject({
+        scopes: ['applications:read'],
+      });
+    });
+
+    it.each([
+      'applications:write',
+      'applications:delete',
+      'applications:read applications:write admin',
+      '',
+    ])('recusa a permissão "%s"', async (scope) => {
+      await expect(
+        create.execute({ userId: user.id, name: 'x', scope }),
+      ).rejects.toBeInstanceOf(DomainError);
+    });
+  });
+
   describe('AuthenticatePersonalAccessTokenUseCase', () => {
     it('autentica um token válido e registra o uso', async () => {
       const { token, secret } = await create.execute({
@@ -141,6 +174,7 @@ describe('tokens de acesso pessoal', () => {
       await expect(authenticate.execute(secret)).resolves.toEqual({
         userId: user.id,
         tokenId: token.id,
+        scopes: ['applications:read', 'applications:write'],
       });
 
       const [stored] = await list.execute(user.id);
@@ -187,6 +221,7 @@ describe('tokens de acesso pessoal', () => {
           lastUsedAt: null,
           expiresAt: new Date(Date.now() - 1000),
           revokedAt: null,
+          scope: 'applications:read applications:write',
           createdAt: new Date(Date.now() - 10 * DAY),
         }),
       );

@@ -27,6 +27,7 @@ function makeToken(
     lastUsedAt: null,
     expiresAt: FUTURE,
     revokedAt: null,
+    scope: 'applications:read applications:write',
     createdAt: '2026-11-15T12:00:00.000Z',
     ...overrides,
   };
@@ -80,6 +81,7 @@ describe('SettingsPage — tokens de integração', () => {
     expect(service.create).toHaveBeenCalledWith({
       name: 'Claude Code',
       expiresInDays: 30,
+      scope: 'applications:read applications:write',
     });
     expect(await screen.findByTestId('created-token')).toHaveTextContent(
       'tfp_segredo_completo',
@@ -91,6 +93,37 @@ describe('SettingsPage — tokens de integração', () => {
     await user.click(screen.getByRole('button', { name: 'Já copiei' }));
 
     expect(screen.queryByTestId('created-token')).not.toBeInTheDocument();
+  });
+
+  it('cria um token somente leitura e mostra a permissão na lista', async () => {
+    const user = userEvent.setup();
+    service.list.mockResolvedValue([
+      makeToken({ id: 't9', name: 'Relatório', scope: 'applications:read' }),
+    ]);
+    service.create.mockResolvedValue({
+      ...makeToken({ scope: 'applications:read' }),
+      token: 'tfp_so_leitura',
+    });
+
+    renderWithProviders(<SettingsPage />);
+
+    const list = await screen.findByRole('list', {
+      name: 'Tokens de integração',
+    });
+    expect(within(list).getByText(/Somente leitura/)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Nome'), 'Relatório');
+    await user.selectOptions(
+      screen.getByLabelText('Permissões'),
+      'applications:read',
+    );
+    await user.click(screen.getByRole('button', { name: 'Criar token' }));
+
+    expect(service.create).toHaveBeenCalledWith({
+      name: 'Relatório',
+      expiresInDays: 90,
+      scope: 'applications:read',
+    });
   });
 
   it('mostra o erro da API ao criar', async () => {

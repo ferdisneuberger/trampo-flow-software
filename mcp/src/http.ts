@@ -13,7 +13,7 @@ export type HttpOptions = {
   apiUrl: string;
   timeoutMs: number;
   maxBodyBytes?: number;
-  /** Por quanto tempo um token já validado dispensa nova checagem em /auth/me. */
+  /** Por quanto tempo um token já validado dispensa nova checagem em /auth/whoami. */
   tokenCacheMs?: number;
   fetch?: typeof fetch;
   now?: () => number;
@@ -130,7 +130,7 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
       return;
     }
 
-    await clientFor(token).getMe();
+    await clientFor(token).whoami();
 
     if (validTokens.size >= MAX_CACHED_TOKENS) {
       validTokens.clear();

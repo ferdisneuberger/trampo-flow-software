@@ -43,6 +43,7 @@ function toResponse(token: PersonalAccessToken): PersonalAccessTokenResponse {
     lastUsedAt: token.lastUsedAt?.toISOString() ?? null,
     expiresAt: token.expiresAt.toISOString(),
     revokedAt: token.revokedAt?.toISOString() ?? null,
+    scope: token.scope,
     createdAt: token.createdAt.toISOString(),
   };
 }
@@ -87,6 +88,7 @@ export class PersonalAccessTokensController {
       userId,
       name: dto.name,
       expiresInDays: dto.expiresInDays,
+      scope: dto.scope,
     });
 
     return { ...toResponse(token), token: secret };

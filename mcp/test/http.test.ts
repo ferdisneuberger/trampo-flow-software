@@ -26,7 +26,7 @@ function fakeApi() {
     headers.get('authorization')?.replace('Bearer ', '');
 
   return createFakeApi({
-    'GET /auth/me': ({ headers }) =>
+    'GET /auth/whoami': ({ headers }) =>
       [ALICE, BOB].includes(tokenOf(headers) ?? '')
         ? { body: { id: tokenOf(headers), email: 'x@example.com' } }
         : { status: 401, body: { message: 'Token inválido' } },
@@ -110,7 +110,7 @@ describe('MCP via HTTP', () => {
     await client.listTools();
     await client.callTool({ name: 'list_applications', arguments: {} });
 
-    expect(api.calls.filter((c) => c.path === '/auth/me')).toHaveLength(1);
+    expect(api.calls.filter((c) => c.path === '/auth/whoami')).toHaveLength(1);
   });
 
   it.each([
@@ -179,7 +179,7 @@ describe('MCP via HTTP', () => {
 
   it('responde 502 quando a API está fora', async () => {
     const { base } = await start(
-      createFakeApi({ 'GET /auth/me': { status: 503 } }),
+      createFakeApi({ 'GET /auth/whoami': { status: 503 } }),
     );
 
     const response = await fetch(`${base}/mcp`, {

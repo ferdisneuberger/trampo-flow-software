@@ -13,7 +13,12 @@ import {
 } from '@nestjs/common';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import { RateLimiterService } from '../../auth/rate-limiter.service';
+import { RequiredScope } from '../../auth/required-scope.decorator';
 import { SessionOnly } from '../../auth/session-only.decorator';
+import {
+  SCOPE_APPLICATIONS_READ,
+  SCOPE_APPLICATIONS_WRITE,
+} from '../../../domain/auth/scopes';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -76,6 +81,7 @@ export class ApplicationsController {
   ) {}
 
   @Post()
+  @RequiredScope(SCOPE_APPLICATIONS_WRITE)
   @ApiOperation({ summary: 'Cria uma candidatura' })
   @ApiCreatedResponse({ type: ApplicationHttpResponse })
   @ApiResponse({
@@ -102,6 +108,7 @@ export class ApplicationsController {
   }
 
   @Post('preview')
+  @RequiredScope(SCOPE_APPLICATIONS_READ)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Busca título, empresa e site a partir do link da vaga',
@@ -126,6 +133,7 @@ export class ApplicationsController {
   }
 
   @Get()
+  @RequiredScope(SCOPE_APPLICATIONS_READ)
   @ApiOperation({ summary: 'Lista as candidaturas com busca e paginação' })
   @ApiOkResponse({ type: PaginatedApplicationsResponse })
   @ApiResponse({
@@ -161,6 +169,7 @@ export class ApplicationsController {
   }
 
   @Get('board')
+  @RequiredScope(SCOPE_APPLICATIONS_READ)
   @ApiOperation({
     summary: 'Devolve as colunas do quadro, ordenadas por posição',
   })
@@ -186,6 +195,7 @@ export class ApplicationsController {
   }
 
   @Get('stats')
+  @RequiredScope(SCOPE_APPLICATIONS_READ)
   @ApiOperation({ summary: 'Contadores por status do usuário autenticado' })
   @ApiOkResponse({ type: ApplicationStatsResponse })
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
@@ -194,6 +204,7 @@ export class ApplicationsController {
   }
 
   @Get(':id')
+  @RequiredScope(SCOPE_APPLICATIONS_READ)
   @ApiOperation({ summary: 'Devolve uma candidatura pelo id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: ApplicationHttpResponse })
@@ -216,6 +227,7 @@ export class ApplicationsController {
   }
 
   @Patch(':id')
+  @RequiredScope(SCOPE_APPLICATIONS_WRITE)
   @ApiOperation({ summary: 'Atualiza uma candidatura' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: ApplicationHttpResponse })
@@ -250,6 +262,7 @@ export class ApplicationsController {
   }
 
   @Patch(':id/placement')
+  @RequiredScope(SCOPE_APPLICATIONS_WRITE)
   @ApiOperation({ summary: 'Move a candidatura de coluna e/ou posição' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: ApplicationHttpResponse })

@@ -37,7 +37,9 @@ O agente **não apaga** candidaturas (apagar é só pela interface) e só enxerg
 3. Clique em **Criar token** e **copie na hora**: ele aparece uma única vez. O sistema guarda só um resumo (hash), então não dá para recuperá-lo depois. Se perder, revogue e crie outro.
 4. Para desligar um acesso, volte à mesma tela e clique em **Revogar**. O efeito é imediato.
 
-Regras do token: vale até 365 dias (padrão 90), no máximo 20 ativos por conta, até 60 escritas por minuto por token e **nunca apaga** candidaturas. Trate-o como uma senha: não cole em chats, repositórios nem prints. A opção de criar um token **somente leitura** chega com a 3.2.0.
+Regras do token: vale até 365 dias (padrão 90), no máximo 20 ativos por conta, até 60 escritas por minuto por token e **nunca apaga** candidaturas. Trate-o como uma senha: não cole em chats, repositórios nem prints.
+
+**Permissões.** Ao criar, escolha **Leitura e escrita** (padrão) ou **Somente leitura**. Um token somente leitura consulta tudo (listar, ver, resumo do funil), mas qualquer tentativa de criar, atualizar ou mover recebe `403`. Prefira-o para relatórios e automações que só consultam. Não é possível mudar a permissão depois: crie outro token.
 
 ### Três pedidos para testar qualquer conexão
 
@@ -177,6 +179,7 @@ Quando a 3.2.0 sair, o caminho recomendado no Claude Desktop passa a ser **Conec
 
 - Crie **um token por automação**, com nome claro ("cron do resumo semanal"), para revogar só aquele se vazar.
 - Use validade curta (30 a 90 dias) e guarde o token em um gerenciador de segredos ou variável de ambiente, nunca no repositório.
+- Se a automação só consulta (relatório, resumo do funil), use um token **somente leitura**.
 - Lembre dos limites: 60 escritas por minuto por token e nada apaga.
 
 **Exemplo 1: cliente MCP em Node.** `npm i @modelcontextprotocol/sdk` e salve como `pipeline-summary.mjs`:
@@ -229,13 +232,13 @@ curl -s -X POST https://trampo-flow.neubergerdev.com.br/mcp \
 
 **Erros comuns**
 
-| Resposta                               | Causa e solução                                                                                   |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `401` "Envie um token de integração…"  | Faltou o cabeçalho, ou o valor não começa com `Bearer tfp_`. No `curl`, confira as aspas e o `$`. |
-| `401` "inválido, expirado ou revogado" | O token venceu ou foi revogado. Crie outro.                                                       |
-| `403`                                  | A rota exige login na interface (por exemplo, apagar) ou o token não tem permissão para a ação.   |
-| `429`                                  | Passou de 60 escritas por minuto. Espere e tente de novo.                                         |
-| `405` no `/mcp`                        | Só `POST` é aceito.                                                                               |
+| Resposta                               | Causa e solução                                                                                                                                 |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401` "Envie um token de integração…"  | Faltou o cabeçalho, ou o valor não começa com `Bearer tfp_`. No `curl`, confira as aspas e o `$`.                                               |
+| `401` "inválido, expirado ou revogado" | O token venceu ou foi revogado. Crie outro.                                                                                                     |
+| `403`                                  | A rota exige login na interface (por exemplo, apagar), ou o token é **somente leitura** e tentou escrever. Crie um token com leitura e escrita. |
+| `429`                                  | Passou de 60 escritas por minuto. Espere e tente de novo.                                                                                       |
+| `405` no `/mcp`                        | Só `POST` é aceito.                                                                                                                             |
 
 ## B5. Desenvolvimento local (stdio)
 
