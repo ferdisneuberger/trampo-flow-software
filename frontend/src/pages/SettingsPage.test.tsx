@@ -71,7 +71,9 @@ describe('SettingsPage — tokens de integração', () => {
     expect(await screen.findByTestId('created-token')).toHaveTextContent(
       'tfp_segredo_completo',
     );
-    expect(screen.getByText(/claude mcp add trampo-flow/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/claude mcp add --transport http trampo-flow/),
+    ).toHaveTextContent(`${window.location.origin}/mcp`);
 
     await user.click(screen.getByRole('button', { name: 'Já copiei' }));
 

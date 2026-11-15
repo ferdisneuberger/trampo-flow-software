@@ -6,9 +6,9 @@ Full-stack application for tracking job applications. The backend is a Node.js A
 
 ## Highlights of 3.1
 
-- **AI agents via MCP:** a new `mcp/` package lets Claude Code, Claude Desktop,
-  or any MCP client create, read, update, and move applications through the
-  API ("cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?").
+- **AI agents via MCP:** a hosted MCP server at `/mcp` (and a local stdio
+  mode) lets Claude Code or any MCP client create, read, update, and move
+  applications through the API ("cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?").
   See [Using with AI agents (MCP)](#using-with-ai-agents-mcp).
 - **Integration tokens:** long-lived, revocable `tfp_` personal access tokens,
   stored only as a hash and managed in **Configurações → Tokens de integração**.
@@ -174,9 +174,10 @@ The `ingress` service is the only public entry point on the host (`127.0.0.1:${W
 | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | Frontend | http://localhost:5173     | Single entry point through the ingress; production build served by Nginx                                     |
 | API      | http://localhost:5173/api | Through the ingress; `GET /api/health` and `POST /api/auth/login` are public; all other routes require a JWT |
+| MCP      | http://localhost:5173/mcp | Hosted MCP server (Streamable HTTP) through the ingress; requires an integration token `tfp_`                |
 | Postgres | `localhost:5432`          | Access from an external SQL client on `127.0.0.1`                                                            |
 
-The API does not publish port `3000` and the `web` container does not publish `5173`; the only service with a port published for external access is `ingress` (`127.0.0.1:${WEB_PORT:-5173}`). The API is only reachable from the Compose network or through the ingress.
+The API does not publish port `3000`, the `mcp` container does not publish `3100`, and the `web` container does not publish `5173`; the only service with a port published for external access is `ingress` (`127.0.0.1:${WEB_PORT:-5173}`). The API is only reachable from the Compose network or through the ingress.
 
 These are the defaults from `docker-compose.yml`. If you changed `.env`, use the corresponding values.
 
@@ -650,52 +651,57 @@ Domain and application errors:
 
 The `mcp/` package is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets an AI agent work with your applications. It is a client of the HTTP API, just like the frontend: validation, per-user authorization, rate limits, and the job page preview all stay in the API, with no duplicated business rules.
 
+It runs in two ways, both with the same tools:
+
 ```text
-Claude Code / Claude Desktop ──stdio──▶ mcp/dist/index.js ──HTTPS + Bearer tfp_…──▶ Trampo Flow API
+Hosted (production):  agent ──HTTPS /mcp + Bearer tfp_…──▶ ingress ─▶ mcp (Streamable HTTP) ─▶ api ─▶ Postgres
+Local (stdio):        Claude Code/Desktop ──stdio──▶ node mcp/dist/index.js ──HTTPS + Bearer tfp_…──▶ api
 ```
 
-### Setup
+The hosted server keeps no secrets: each request carries the caller's own integration token, which is forwarded to the API. Anyone with an account can connect their agent, and each person only sees their own applications.
 
-1. Create a token in **Configurações → Tokens de integração** (or `POST /auth/tokens` with your session).
-2. Build the server:
+### Connect your agent (hosted)
 
-   ```bash
-   cd mcp
-   npm ci
-   npm run build
-   ```
-
-3. Register it in **Claude Code**:
+1. Sign in and create a token in **Configurações → Tokens de integração**. The screen shows the token once, together with the command below already filled in.
+2. **Claude Code:**
 
    ```bash
-   claude mcp add trampo-flow \
-     -e TRAMPO_API_URL=https://trampo-flow.neubergerdev.com.br/api \
-     -e TRAMPO_API_TOKEN=tfp_... \
-     -- node /path/to/trampo-flow-software/mcp/dist/index.js
+   claude mcp add --transport http trampo-flow https://trampo-flow.neubergerdev.com.br/mcp \
+     --header "Authorization: Bearer tfp_..."
    ```
 
-   Or in **Claude Desktop** (`claude_desktop_config.json`):
+   Add `-s user` to make it available in every project. Inside Claude Code, `/mcp` shows whether `trampo-flow` is connected.
 
-   ```json
-   {
-     "mcpServers": {
-       "trampo-flow": {
-         "command": "node",
-         "args": ["/path/to/trampo-flow-software/mcp/dist/index.js"],
-         "env": {
-           "TRAMPO_API_URL": "https://trampo-flow.neubergerdev.com.br/api",
-           "TRAMPO_API_TOKEN": "tfp_..."
-         }
-       }
-     }
-   }
-   ```
-
-   For the local stack use `TRAMPO_API_URL=http://localhost:5173/api`. `TRAMPO_API_TIMEOUT_MS` (default 15000) is optional. The server validates the configuration on startup and exits with a clear message if something is missing.
-
+3. **Other MCP clients** (Cursor, VS Code, and others): URL `https://trampo-flow.neubergerdev.com.br/mcp`, transport Streamable HTTP, header `Authorization: Bearer tfp_...`.
 4. Ask things like "cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?", or "move a vaga da Haytek para Em andamento, fase Entrevista técnica".
 
+Revoking the token in the interface disconnects the agent immediately. Claude on the web and on mobile add custom connectors through OAuth, which is not available yet (see [Decisions and known limitations](#decisions-and-known-limitations)).
+
 <!-- GIF: short recording of Claude Code using the MCP server goes here. -->
+
+### Run locally (stdio)
+
+For development, or to point an agent at a local stack:
+
+```bash
+cd mcp
+npm ci
+npm run build
+
+claude mcp add trampo-flow \
+  -e TRAMPO_API_URL=http://localhost:5173/api \
+  -e TRAMPO_API_TOKEN=tfp_... \
+  -- node /path/to/trampo-flow-software/mcp/dist/index.js
+```
+
+Claude Desktop accepts the same command in `claude_desktop_config.json` (`"command": "node"`, `"args": [".../mcp/dist/index.js"]`, and both variables in `"env"`). `TRAMPO_API_TIMEOUT_MS` (default 15000) is optional. The server validates the configuration on startup and exits with a clear message if something is missing.
+
+### Hosted server details
+
+- Service `mcp` in `docker-compose.yml` (`mcp/Dockerfile`, `node dist/http-main.js`, port 3100 on the internal network), exposed by the ingress at `/mcp` with its own rate limit (10 r/s per IP, burst 20) and a 1 MB body limit.
+- Stateless Streamable HTTP: `POST /mcp` only (`GET`/`DELETE` return `405`), JSON responses, and a new MCP server instance per request bound to the caller's token.
+- Requests without a `tfp_` bearer get `401` with `WWW-Authenticate: Bearer`. The token is checked against `GET /auth/me` and the result is cached in memory for 60 seconds (only its SHA-256); every tool call still goes through the API, so a revoked token stops reading or writing data immediately.
+- Variables: `TRAMPO_API_URL` (internal API URL, `http://api:3000` in Compose), `PORT` (default 3100), and `TRAMPO_API_TIMEOUT_MS`.
 
 ### Tools
 
@@ -718,17 +724,19 @@ There is also a `revisar_funil` prompt that calls `pipeline_summary` and suggest
 - **Per-user scope.** The token acts as its owner: other users' applications return `404`, exactly as in the interface.
 - **A token cannot create tokens.** `/auth/tokens` only accepts the session JWT.
 - **Annotated tools.** `readOnlyHint` on reads; writes are `destructiveHint: false`, so clients know what to confirm.
-- **Nothing on stdout but the protocol.** Logs go to `stderr`, and the token never appears in logs or error messages.
+- **Nothing on stdout but the protocol.** In stdio mode logs go to `stderr`, and in both modes the token never appears in logs or error messages.
+- **The hosted server holds no credentials.** It only forwards each caller's own token to the API over the internal network.
 
 ### Development
 
 ```bash
 cd mcp
-npm test           # unit tests with mocked fetch + Client/InMemoryTransport integration
+npm test           # unit tests with mocked fetch, Client/InMemoryTransport, and Streamable HTTP
 npm run lint
 npm run typecheck
 npm run build
 npm run inspect    # MCP Inspector against dist/index.js
+npm run start:http # hosted mode on :3100 (needs TRAMPO_API_URL)
 ```
 
 ## Tests
@@ -933,12 +941,15 @@ backend/test/
 ├── mcp/
 │   ├── src/
 │   │   ├── index.ts          # stdio entry point (logs on stderr only)
+│   │   ├── http-main.ts      # hosted entry point (Streamable HTTP on :3100)
+│   │   ├── http.ts           # stateless /mcp handler: per-request token, validation, limits
 │   │   ├── server.ts         # McpServer with tools and prompt
 │   │   ├── config.ts         # TRAMPO_API_URL / TRAMPO_API_TOKEN, validated with zod
 │   │   ├── api-client.ts     # fetch with Bearer, timeout, and error translation
 │   │   ├── prompts.ts
 │   │   └── tools/            # one tool per file
 │   ├── test/
+│   ├── Dockerfile
 │   └── package.json
 ├── infra/
 │   └── ingress/
@@ -1114,7 +1125,7 @@ This section makes explicit what the project does **not** do, and why. None of t
 - **Users.** Public sign-up is available behind `REGISTRATION_ENABLED`, with email verification, Google sign-in, and password recovery by email. There is no password change from inside the interface: passwords are changed through the recovery flow. To change it: an authenticated password change endpoint that revokes the other sessions.
 - **Roles and permissions.** Each user sees only their own applications, but there are no roles (admin, viewer) or sharing between accounts. To change it: a roles model and per-resource authorization rules.
 - **Guard cost.** It validates the signature and queries `users` on every request (one primary-key `SELECT`); integration tokens add one lookup by hash. To change it: an in-memory cache with a short TTL, if the volume justifies it.
-- **MCP transport and token scopes.** The MCP server runs locally over stdio, so it works with Claude Code and Claude Desktop but not with Claude on the web or mobile, and integration tokens have the same permissions as the session (minus deleting through the MCP tools and managing tokens). To change it: Streamable HTTP at `/mcp` in the backend with OAuth, and `read`/`write` scopes on the token.
+- **MCP authentication and token scopes.** The hosted MCP accepts integration tokens as a bearer header, which covers Claude Code and clients that let you set headers; Claude on the web and on mobile add connectors through OAuth, which the API does not implement yet. Integration tokens have the same permissions as the session (minus deleting through the MCP tools and managing tokens). To change it: an OAuth 2.1 authorization server in the API (login, consent, dynamic client registration), and `read`/`write` scopes on the token.
 - **UI tests.** Components and pages have Testing Library tests, hooks/services have coverage, and Playwright covers the critical path (login, creation, search, detail, and deletion). E2E runs on PRs, on demand, and on a schedule. Visual regression uses Linux snapshots and runs in a separate workflow.
 - **Observability.** Default Nest/Fastify logging, with no request ID or metrics. To change it: structured Pino logging, request correlation, and a metrics endpoint.
 

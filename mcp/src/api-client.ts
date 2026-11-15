@@ -119,6 +119,11 @@ export class TrampoApiClient {
     this.fetchImpl = options.fetch ?? fetch;
   }
 
+  /** Valida o token: `GET /auth/me` aceita PAT e responde 401 se ele for inválido. */
+  getMe(): Promise<{ id: string; email: string }> {
+    return this.request('GET', '/auth/me');
+  }
+
   previewJobPosting(link: string): Promise<JobPostingPreview> {
     return this.request('POST', '/applications/preview', { body: { link } });
   }

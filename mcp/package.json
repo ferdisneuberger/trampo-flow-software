@@ -1,12 +1,13 @@
 {
   "name": "trampo-flow-mcp",
   "version": "3.1.0",
-  "description": "MCP server that lets AI agents read and update Trampo Flow job applications through the API.",
+  "description": "MCP server (stdio and Streamable HTTP) that lets AI agents read and update Trampo Flow job applications through the API.",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
   "bin": {
-    "trampo-flow-mcp": "dist/index.js"
+    "trampo-flow-mcp": "dist/index.js",
+    "trampo-flow-mcp-http": "dist/http-main.js"
   },
   "files": [
     "dist"
@@ -23,7 +24,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js"
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "start:http": "node dist/http-main.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

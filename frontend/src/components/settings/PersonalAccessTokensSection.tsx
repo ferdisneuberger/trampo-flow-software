@@ -1,6 +1,5 @@
 import { Check, Copy, KeyRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { env } from '../../config/env';
 import { usePersonalAccessTokens } from '../../hooks/usePersonalAccessTokens';
 import { normalizeApiError } from '../../services/api/errors';
 import {
@@ -41,12 +40,8 @@ function formatDate(value: string | null): string {
   return value ? dateFormatter.format(new Date(value)) : 'nunca';
 }
 
-function absoluteApiUrl(): string {
-  try {
-    return new URL(env.apiUrl, window.location.origin).href.replace(/\/+$/, '');
-  } catch {
-    return env.apiUrl;
-  }
+function mcpUrl(): string {
+  return `${window.location.origin}/mcp`;
 }
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -87,11 +82,10 @@ function CreatedTokenNotice({
   token: CreatedPersonalAccessToken;
   onDismiss: () => void;
 }) {
+  const url = mcpUrl();
   const command = [
-    'claude mcp add trampo-flow \\',
-    `  -e TRAMPO_API_URL=${absoluteApiUrl()} \\`,
-    `  -e TRAMPO_API_TOKEN=${token.token} \\`,
-    '  -- node /caminho/trampo-flow-software/mcp/dist/index.js',
+    `claude mcp add --transport http trampo-flow ${url} \\`,
+    `  --header "Authorization: Bearer ${token.token}"`,
   ].join('\n');
 
   return (
@@ -118,12 +112,19 @@ function CreatedTokenNotice({
       </div>
       <div className="space-y-2">
         <p className="text-[13px] font-medium text-muted">
-          Para usar no Claude Code
+          Para conectar no Claude Code
         </p>
         <pre className="overflow-x-auto rounded-btn border border-line bg-surface px-3 py-2 font-mono text-[12px] leading-5 text-fg">
           {command}
         </pre>
         <CopyButton value={command} label="Copiar comando" />
+        <p className="text-xs leading-5 text-muted">
+          Em outros clientes MCP, use o endereço{' '}
+          <code className="font-mono text-fg">{url}</code> (Streamable HTTP) com
+          o cabeçalho{' '}
+          <code className="font-mono text-fg">Authorization: Bearer</code> e o
+          token acima.
+        </p>
       </div>
       <div className="flex justify-end">
         <Button type="button" variant="ghost" size="sm" onClick={onDismiss}>

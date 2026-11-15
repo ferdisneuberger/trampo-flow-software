@@ -1,6 +1,6 @@
 # Plano: servidor MCP do Trampo Flow
 
-> **Status:** implementado na 3.1.0. Itens em aberto são manuais: Inspector, teste com Claude Code real e GIF. A ponta a ponta foi validada com um cliente MCP via stdio contra a API local (PAT real, os três exemplos do objetivo, revogação).
+> **Status:** implementado na 3.1.0, incluindo o MCP hospedado em `/mcp` (Streamable HTTP sem estado, serviço `mcp` no Compose, autenticado pelo token `tfp_` de quem chama). OAuth para Claude web/celular segue fora do escopo. Itens em aberto são manuais: Inspector, teste com Claude Code real e GIF. A ponta a ponta foi validada com um cliente MCP via stdio contra a API local (PAT real, os três exemplos do objetivo, revogação).
 
 ## Objetivo
 
@@ -91,5 +91,5 @@ Uma fase por sessão. Para cada fase: peça ao agente para ler este arquivo e im
 
 ## Depois da v1 (fora do escopo)
 
-- Transporte Streamable HTTP em `/mcp` no próprio backend, com OAuth, para usar no Claude web e no celular.
+- ~~Transporte Streamable HTTP em `/mcp`~~ (feito na 3.1.0, como serviço separado que repassa o PAT). Falta OAuth 2.1 na API para usar como conector no Claude web e no celular.
 - Escopos no PAT (`read`, `write`).

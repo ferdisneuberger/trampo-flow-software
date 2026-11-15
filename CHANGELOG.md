@@ -7,9 +7,11 @@ semantic versioning.
 
 ### Added
 
-- MCP server in the new `mcp/` package (stdio, `@modelcontextprotocol/sdk` +
-  `zod`) so AI agents such as Claude Code and Claude Desktop can work with
-  applications through the API. Tools: `preview_job_posting`,
+- MCP server in the new `mcp/` package (`@modelcontextprotocol/sdk` + `zod`)
+  so AI agents can work with applications through the API. It is hosted at
+  `/mcp` (stateless Streamable HTTP, new `mcp` Compose service behind the
+  ingress, authenticated with each caller's integration token) and also runs
+  locally over stdio. Tools: `preview_job_posting`,
   `create_application` (fills from the job page, never invents title or
   company, returns the existing application for a repeated link),
   `list_applications`, `get_application`, `update_application`,
@@ -23,13 +25,14 @@ semantic versioning.
   only the session JWT (`@SessionOnly()`), so a token cannot mint tokens.
 - Settings page (`/configuracoes`) with **Tokens de integração**: create, copy
   once, list with last use and expiration, and revoke, plus a ready-to-paste
-  `claude mcp add` command. Reachable from the account menu and the sidebar.
+  `claude mcp add --transport http` command pointing at the hosted `/mcp`. Reachable from the account menu and the sidebar.
 - Prefill from the job link: `POST /applications/preview` reads title, company,
   and company website from the job page (with SSRF protections and a per-user
   rate limit), and the create modal starts with just the link field and tags
   the prefilled fields "do link".
-- `mcp` job in CI (lint, typecheck, tests with coverage, build) and `mcp/` in
-  lint-staged and the root `lint` script.
+- `mcp` job in CI (lint, typecheck, tests with coverage, build), the `mcp`
+  image in the Docker build check and in the GHCR publish workflow, and `mcp/`
+  in lint-staged and the root `lint` script.
 
 ### Changed
 
