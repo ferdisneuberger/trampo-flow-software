@@ -243,13 +243,18 @@ export function PersonalAccessTokensSection() {
             Tokens de integração
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-            Deixe agentes de IA (Claude Code, Claude Desktop ou qualquer cliente
-            MCP) consultarem e atualizarem suas candidaturas. O token dá acesso
-            só à sua conta, não apaga candidaturas e pode ser revogado a
-            qualquer momento.
+            Deixe agentes de IA e scripts consultarem e atualizarem suas
+            candidaturas. O token dá acesso só à sua conta, não apaga
+            candidaturas e pode ser revogado a qualquer momento.
           </p>
         </div>
       </div>
+
+      <Alert
+        tone="info"
+        title="Onde o token funciona hoje"
+        description="Funciona no Claude Code (terminal) e em clientes MCP que aceitam um cabeçalho de autorização, como Cursor e VS Code. No Claude Desktop só pelo modo local. No Claude web e no celular ainda não: eles pedem login por OAuth, que está a caminho."
+      />
 
       <Card className="p-4">
         <form
