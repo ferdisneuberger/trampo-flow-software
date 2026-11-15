@@ -18,16 +18,16 @@ Sequência de PRs (cada um verde e com testes): **PR0** aviso + guia do `tfp_`; 
 
 > **Esta seção é a fonte da verdade do andamento.** Os `[ ]` das seções 5 a 12 não foram todos atualizados; confie na tabela abaixo e, em dúvida, no código da `release/v3.2.0`.
 
-| PR  | Conteúdo                                                                                                       | Estado                                                                         |
-| --- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| #58 | Plano e CI rodando em PRs para `release/**`                                                                    | Mesclado                                                                       |
-| #59 | PR 0: guia do `tfp_` (`docs/guia-conexao-mcp.md`, parte B), aviso na tela, tabela de compatibilidade no README | Mesclado                                                                       |
-| #60 | PR 1: `tfp_` com escopo (somente leitura), guard negado por padrão, `@RequiredScope`, `GET /auth/whoami`       | Mesclado (revisão de segurança sem achados)                                    |
-| #62 | PR 2: servidor de autorização (fase 1) + ramo `tfo_` no guard, atrás de `OAUTH_ENABLED`                        | Mesclado (revisão de segurança sem achados; teste ao vivo em stack isolada OK) |
-| #63 | PR 3: MCP (metadata do recurso, 401 com `resource_metadata`, `tfo_`) + infra (nginx, compose, variáveis)       | Mesclado (teste ao vivo com ingress, flag ligada e desligada, OK)              |
-| —   | PR 4: frontend (tela de permissão, "Aplicativos conectados", painel "Como conectar")                           | Pendente                                                                       |
-| —   | PR 5: guia do OAuth (parte A), README, `scripts/oauth-smoke.mjs`, CHANGELOG, bump para 3.2.0                   | Pendente                                                                       |
-| —   | PR `release/v3.2.0` → `main`: aberto por quem implementa, **mesclado só pelo dono**                            | Pendente                                                                       |
+| PR  | Conteúdo                                                                                                       | Estado                                                                                |
+| --- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| #58 | Plano e CI rodando em PRs para `release/**`                                                                    | Mesclado                                                                              |
+| #59 | PR 0: guia do `tfp_` (`docs/guia-conexao-mcp.md`, parte B), aviso na tela, tabela de compatibilidade no README | Mesclado                                                                              |
+| #60 | PR 1: `tfp_` com escopo (somente leitura), guard negado por padrão, `@RequiredScope`, `GET /auth/whoami`       | Mesclado (revisão de segurança sem achados)                                           |
+| #62 | PR 2: servidor de autorização (fase 1) + ramo `tfo_` no guard, atrás de `OAUTH_ENABLED`                        | Mesclado (revisão de segurança sem achados; teste ao vivo em stack isolada OK)        |
+| #63 | PR 3: MCP (metadata do recurso, 401 com `resource_metadata`, `tfo_`) + infra (nginx, compose, variáveis)       | Mesclado (teste ao vivo com ingress, flag ligada e desligada, OK)                     |
+| #64 | PR 4: frontend (tela de permissão, "Aplicativos conectados", painel "Como conectar")                           | Mesclado (testes de componente e rotas ao vivo; **tela não vista em navegador real**) |
+| —   | PR 5: guia do OAuth (parte A), README, `scripts/oauth-smoke.mjs`, CHANGELOG, bump para 3.2.0                   | Pendente                                                                              |
+| —   | PR `release/v3.2.0` → `main`: aberto por quem implementa, **mesclado só pelo dono**                            | Pendente                                                                              |
 
 **Já feito do que o plano pedia para o PR 1/Fase 2:** coluna `scope` no token, `PersonalAccessToken.scope`, DTO e UI com o seletor de permissões, `@RequiredScope` em todas as rotas de candidaturas, deny-by-default para `pat`, `403 insufficient_scope` com `WWW-Authenticate`, `GET /auth/whoami` (o MCP já valida por ele) e o teste `backend/test/infrastructure/required-scope.spec.ts`, que trava a lista de rotas abertas ao token. **Fase 2 concluída no PR 2:** variante `oauth` de `AuthenticatedUser`, ramo `tfo_` no guard e `resource_metadata` no header de `insufficient_scope`.
 
@@ -72,9 +72,15 @@ Sequência de PRs (cada um verde e com testes): **PR0** aviso + guia do `tfp_`; 
 - O MCP guarda por 60 s o resultado da validação do token (`/auth/whoami`): após revogar um app, `tools/list` ainda pode responder até 60 s, mas qualquer chamada de ferramenta falha na hora, porque o token é repassado à API.
 - `/mcp` não tem CORS aberto (só `.well-known` e `/api/oauth/token|register|revoke`): o MCP Inspector deve ser usado em modo proxy.
 
+### Lições do PR 4
+
+- A tela de Configurações descobre se o OAuth está ligado pedindo `/.well-known/oauth-authorization-server` na mesma origem (200 com `issuer` = ligado; qualquer outra coisa = desligado). Em `npm run dev` (Vite sem proxy do `.well-known`) o OAuth aparece desligado.
+- A tela `/oauth/authorize` só segue o `redirectTo` devolvido pelo servidor e recusa esquemas que não sejam http/https; pedido inválido mostra o motivo e não redireciona.
+- A Configurações não tem baseline visual (`frontend/e2e`), então nenhum baseline precisou ser regenerado.
+
 ### Pendências manuais (dependem do dono)
 
-Testar em clientes reais o que o guia marca como "não testado": Cursor, VS Code, a ponte `mcp-remote` e o celular; e, depois do OAuth no ar, o Claude web, o celular e o Claude Desktop em produção com a flag ligada (conferir também o plano do Claude necessário para conectores personalizados e o Cloudflare, seção 11).
+Ver a tela de consentimento e o painel de Configurações em um navegador real (só foram cobertos por testes de componente); testar em clientes reais o que o guia marca como "não testado": Cursor, VS Code, a ponte `mcp-remote` e o celular; e, depois do OAuth no ar, o Claude web, o celular e o Claude Desktop em produção com a flag ligada (conferir também o plano do Claude necessário para conectores personalizados e o Cloudflare, seção 11).
 
 ## 1. Objetivo e escopo
 
