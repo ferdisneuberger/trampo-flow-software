@@ -261,12 +261,6 @@ export function PersonalAccessTokensSection() {
         </div>
       </div>
 
-      <Alert
-        tone="info"
-        title="Onde o token funciona hoje"
-        description="Funciona no Claude Code (terminal) e em clientes MCP que aceitam um cabeçalho de autorização, como Cursor e VS Code. No Claude Desktop só pelo modo local. No Claude web e no celular ainda não: eles pedem login por OAuth, que está a caminho."
-      />
-
       <Card className="p-4">
         <form
           onSubmit={(event) => void handleSubmit(event)}
