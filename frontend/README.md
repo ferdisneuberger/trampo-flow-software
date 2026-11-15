@@ -116,6 +116,7 @@ frontend/
 │   │   ├── NotFoundPage.tsx
 │   │   ├── RegisterPage.tsx
 │   │   ├── ResetPasswordPage.tsx
+│   │   ├── OAuthAuthorizePage.tsx
 │   │   ├── SettingsPage.tsx
 │   │   ├── TermsPage.tsx
 │   │   └── VerifyEmailPage.tsx
@@ -192,19 +193,20 @@ The application is available at `http://localhost:5173`. Vite forwards `/api/*` 
 
 ## Routes
 
-| Route               | Screen                        |
-| ------------------- | ----------------------------- |
-| `/login`            | Login                         |
-| `/cadastro`         | Sign-up                       |
-| `/verificar-email`  | Email verification            |
-| `/esqueci-senha`    | Forgot password               |
-| `/redefinir-senha`  | Password reset                |
-| `/termos`           | Terms of use                  |
-| `/`                 | Redirects to `/candidaturas`  |
-| `/candidaturas`     | Kanban board (home screen)    |
-| `/candidaturas/:id` | Detail, editing, and deletion |
-| `/configuracoes`    | Settings: integration tokens  |
-| `*`                 | 404                           |
+| Route               | Screen                                                       |
+| ------------------- | ------------------------------------------------------------ |
+| `/login`            | Login                                                        |
+| `/cadastro`         | Sign-up                                                      |
+| `/verificar-email`  | Email verification                                           |
+| `/esqueci-senha`    | Forgot password                                              |
+| `/redefinir-senha`  | Password reset                                               |
+| `/termos`           | Terms of use                                                 |
+| `/`                 | Redirects to `/candidaturas`                                 |
+| `/candidaturas`     | Kanban board (home screen)                                   |
+| `/candidaturas/:id` | Detail, editing, and deletion                                |
+| `/configuracoes`    | Settings: how to connect, connected apps, integration tokens |
+| `/oauth/authorize`  | OAuth consent screen (protected, outside the app shell)      |
+| `*`                 | 404                                                          |
 
 ## API integration
 

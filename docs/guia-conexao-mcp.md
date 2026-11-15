@@ -6,29 +6,124 @@ O agente **não apaga** candidaturas (apagar é só pela interface) e só enxerg
 
 ## Qual forma de conexão usar
 
-| Eu quero…                                               | Use                                   |
-| ------------------------------------------------------- | ------------------------------------- |
-| Usar no **Claude Code** (terminal)                      | [B1](#b1-claude-code-terminal)        |
-| Usar no **Cursor** ou no **VS Code**                    | [B2](#b2-cursor-vs-code-e-similares)  |
-| Usar no **Claude Desktop**                              | [B3](#b3-claude-desktop)              |
-| Rodar um **script, cron ou CI**                         | [B4](#b4-automação-e-scripts)         |
-| **Testar localmente** ou desenvolver                    | [B5](#b5-desenvolvimento-local-stdio) |
-| Usar no **Claude web ou no celular** (login, sem token) | Parte A (OAuth): **em breve**         |
+| Eu quero…                                               | Use                                                                                        |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Usar no **Claude Code** (terminal)                      | [A4](#a4-claude-code-terminal-com-login) (login) ou [B1](#b1-claude-code-terminal) (token) |
+| Usar no **Cursor** ou no **VS Code**                    | [B2](#b2-cursor-vs-code-e-similares)                                                       |
+| Usar no **Claude Desktop**                              | [A2](#a2-claude-desktop) (login) ou [B3](#b3-claude-desktop) (token)                       |
+| Rodar um **script, cron ou CI**                         | [B4](#b4-automação-e-scripts)                                                              |
+| **Testar localmente** ou desenvolver                    | [B5](#b5-desenvolvimento-local-stdio)                                                      |
+| Usar no **Claude web ou no celular** (login, sem token) | [A1](#a1-claude-web-claudeai) e [A3](#a3-claude-no-celular)                                |
 
-> **Estado:** hoje a conexão é por **token** (`tfp_…`, parte B). O login por OAuth, que funciona no Claude web, no celular e no Desktop sem copiar token, chega com a 3.2.0; a parte A deste guia será publicada junto.
+> **Estado:** há duas formas de conectar. Por **login (OAuth)**, parte A: o Claude abre uma janela do Trampo Flow, você entra e clica em **Autorizar**, sem copiar token. Por **token** (`tfp_…`), parte B: você cria o token em Configurações e o envia num cabeçalho. O OAuth só funciona se o servidor estiver com `OAUTH_ENABLED=true`; a tela de Configurações mostra **Aplicativos conectados** quando ele está ligado.
 
 ### O que está testado
 
-| Método                                | Situação                                                                                                                                                                   |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B1 Claude Code                        | Endereço e cabeçalho testados ao vivo; a sintaxe do comando conferida na ajuda do CLI (`claude mcp add --help`). O comando em si não foi executado em uma instalação real. |
-| B2 Cursor e VS Code                   | Formato conferido na documentação de cada um (consulta em 2026-11-15). **Não testado nos aplicativos.**                                                                    |
-| B3 Claude Desktop, modo local (stdio) | Testado.                                                                                                                                                                   |
-| B3 Claude Desktop, ponte `mcp-remote` | **Não testada.**                                                                                                                                                           |
-| B4 Automação (script Node, `curl`)    | Testado ao vivo, incluindo os erros descritos.                                                                                                                             |
-| B5 Desenvolvimento local              | Testado (stdio e MCP Inspector).                                                                                                                                           |
+| Método                                | Situação                                                                                                                                                                                           |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Servidor OAuth (todos os passos de A) | Testado de ponta a ponta com `scripts/oauth-smoke.mjs` (descoberta pelo `401`, registro, login, consentimento, troca do código, MCP, refresh e revogação), em uma stack Docker local pelo ingress. |
+| A1 Claude web                         | **Não testado** (exige URL pública e uma conta Claude com conectores personalizados).                                                                                                              |
+| A2 Claude Desktop (Conectores)        | **Não testado.**                                                                                                                                                                                   |
+| A3 Claude no celular                  | **Não testado.**                                                                                                                                                                                   |
+| A4 Claude Code com login              | O fluxo que ele usa foi testado pelo script; o cliente real **não foi executado** nesta instalação.                                                                                                |
+| B1 Claude Code                        | Endereço e cabeçalho testados ao vivo; a sintaxe do comando conferida na ajuda do CLI (`claude mcp add --help`). O comando em si não foi executado em uma instalação real.                         |
+| B2 Cursor e VS Code                   | Formato conferido na documentação de cada um (consulta em 2026-11-15). **Não testado nos aplicativos.**                                                                                            |
+| B3 Claude Desktop, modo local (stdio) | Testado.                                                                                                                                                                                           |
+| B3 Claude Desktop, ponte `mcp-remote` | **Não testada.**                                                                                                                                                                                   |
+| B4 Automação (script Node, `curl`)    | Testado ao vivo, incluindo os erros descritos.                                                                                                                                                     |
+| B5 Desenvolvimento local              | Testado (stdio e MCP Inspector).                                                                                                                                                                   |
 
 ---
+
+## Parte A: conectar por login (OAuth), sem token
+
+**Como funciona.** Você informa só o endereço do MCP. O Claude descobre sozinho onde fazer o login, abre uma janela do Trampo Flow, você entra (senha ou Google) e confere o pedido de permissão. Ao clicar em **Autorizar**, o Claude recebe uma credencial própria, que **você nunca vê nem copia**. Ela dura 1 hora e é renovada sozinha por até 30 dias; depois disso o Claude pede para autorizar de novo.
+
+**O que o aplicativo pode e não pode.** Pode ver, criar, atualizar e mover candidaturas. **Não pode apagar** (apagar é só pela interface) nem mexer em perfil, tema ou tokens.
+
+Endereço do MCP em todos os métodos: `https://trampo-flow.neubergerdev.com.br/mcp`.
+
+### A1. Claude web (claude.ai)
+
+**Para quem é:** quem usa o Claude no navegador. **Pré-requisitos:** conta Claude com conectores personalizados (o plano necessário **não foi confirmado**: uma fonte da Anthropic cita só planos pagos, outra inclui o gratuito) e conta no Trampo Flow com e-mail verificado.
+
+1. No claude.ai, abra **Configurações → Conectores** e adicione um **conector personalizado**.
+2. Informe o endereço `https://trampo-flow.neubergerdev.com.br/mcp` (um nome, como "Trampo Flow", é opcional).
+3. Uma janela do Trampo Flow abre. Entre (senha ou Google) se pedir.
+4. Confira o nome do aplicativo e o **endereço de destino** na tela de permissão. Quando for o Claude, aparece o selo **Aplicativo verificado (Claude)**. Clique em **Autorizar**.
+5. **Confirme:** o conector aparece como conectado e o Claude lista as ferramentas do Trampo Flow.
+6. Faça os [três pedidos de teste](#três-pedidos-para-testar-qualquer-conexão).
+
+**Desconectar:** em **Configurações → Aplicativos conectados** do Trampo Flow, clique em **Revogar** (o corte é imediato), e depois remova o conector no Claude.
+
+> **Não testado** neste ambiente (exige URL pública e uma conta Claude).
+
+### A2. Claude Desktop
+
+O Claude Desktop adiciona servidores remotos pela tela de **Conectores** do aplicativo, igual ao Claude web (A1). **Não use** o `claude_desktop_config.json`: ele só aceita servidores locais (para esse caso, veja o [B3](#b3-claude-desktop)). Os passos, a confirmação e a revogação são os mesmos do A1.
+
+> **Não testado.**
+
+### A3. Claude no celular
+
+Pela documentação da Anthropic, o conector é adicionado no **claude.ai** (A1) e passa a valer no aplicativo do celular da mesma conta. Adicione no navegador e abra o app para usar.
+
+> **Não testado.** Confirme na prática antes de contar com isso.
+
+### A4. Claude Code (terminal), com login
+
+**Para quem é:** quem usa o Claude Code e prefere não guardar um token. **Pré-requisitos:** Claude Code instalado e um navegador na mesma máquina.
+
+1. Rode:
+
+   ```bash
+   claude mcp add --transport http trampo-flow https://trampo-flow.neubergerdev.com.br/mcp --scope user
+   ```
+
+2. Dentro do Claude Code, digite `/mcp`, escolha `trampo-flow` e **autentique**. O navegador abre na janela do Trampo Flow: entre e clique em **Autorizar**.
+3. **Confirme:** `/mcp` mostra `trampo-flow` conectado, com 7 ferramentas.
+4. Faça os três pedidos de teste.
+
+**Desconectar:** `claude mcp remove trampo-flow` e **Revogar** em Aplicativos conectados.
+
+> O fluxo que o Claude Code usa foi testado com o script de verificação (veja abaixo). O Claude Code em si **não foi executado** aqui.
+
+**Automação não usa OAuth.** O fluxo exige uma pessoa no navegador, o acesso dura 1 hora e o refresh é rotativo: dois processos renovando ao mesmo tempo derrubam a conexão inteira. Para cron, CI e scripts, use o [token](#b4-automação-e-scripts).
+
+### Erros comuns
+
+| Sintoma                                                                 | Causa e solução                                                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "Couldn't reach" / não consegue alcançar o servidor                     | Quase sempre um firewall (WAF) na frente do servidor ou DNS sem IPv4. O Claude conecta de `160.79.104.0/21`, só por IPv4; é preciso liberar esse bloco ou isentar `/.well-known/*`, `/api/oauth/*` e `/mcp` do Bot Fight e do rate limit.        |
+| "Authorization with the MCP server failed"                              | Redirecionamento do domínio para outro host (por exemplo, apex para `www`): o cabeçalho de autorização se perde. Use o endereço final direto.                                                                                                    |
+| O botão de conector personalizado não existe                            | O plano da conta Claude pode não incluir conectores personalizados.                                                                                                                                                                              |
+| Tela de permissão mostra "Não foi possível autorizar"                   | O pedido tem um parâmetro inválido ou um `redirect_uri` que não é permitido (só Claude, endereços locais `localhost` e os extras configurados em `OAUTH_EXTRA_REDIRECT_URIS`). A mensagem explica o motivo; volte ao aplicativo e tente de novo. |
+| A janela pede login de novo no meio                                     | A sessão do Trampo Flow expirou: entre de novo e o pedido continua.                                                                                                                                                                              |
+| Conta Google sem e-mail verificado                                      | O Trampo Flow pede a verificação antes de qualquer coisa; conclua e volte.                                                                                                                                                                       |
+| Depois de revogar, o Claude ainda lista as ferramentas por até 1 minuto | O MCP guarda a validação por 60 segundos; qualquer chamada de ferramenta já falha na hora. Remova o conector no Claude.                                                                                                                          |
+| `403` ao criar, atualizar ou mover                                      | O acesso não tem escrita. Reconecte e autorize de novo.                                                                                                                                                                                          |
+
+### Segurança
+
+- Confira sempre o **nome do aplicativo** e o **endereço de destino** na tela de permissão. O selo "verificado" só aparece para o Claude; qualquer outro aplicativo recebe um aviso.
+- Não há nada para copiar nem guardar. Revogar em **Aplicativos conectados** corta o acesso na hora.
+- Detalhes técnicos: PKCE S256 obrigatório, credenciais opacas guardadas só como resumo (HMAC) no servidor, refresh rotativo com detecção de reuso e escopos mínimos (`applications:read`, `applications:write`).
+
+### Verificar o servidor (para quem administra)
+
+O script `scripts/oauth-smoke.mjs` percorre o fluxo inteiro, como o Claude faz, contra qualquer endereço (local ou produção), com uma conta de teste:
+
+```bash
+BASE_URL=https://trampo-flow.neubergerdev.com.br \
+E2E_EMAIL=conta-de-teste@exemplo.com E2E_PASSWORD='...' \
+node scripts/oauth-smoke.mjs
+```
+
+Ele só lê dados, revoga o que autorizou ao final e termina com código diferente de zero se algo falhar. Para ver o fluxo guiado passo a passo em uma interface, o **MCP Inspector** (`npx @modelcontextprotocol/inspector`, aba de autenticação, em modo proxy) é a alternativa; ele também **não foi testado** aqui.
+
+---
+
+## Parte B: conectar por token (`tfp_`)
 
 ## Criar e revogar o token (vale para toda a parte B)
 
@@ -169,7 +264,7 @@ O arquivo de configuração do Claude Desktop (`claude_desktop_config.json`) **s
 
 **(b) Ponte `mcp-remote`, NÃO TESTADA.** O pacote [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) permite que clientes só-locais falem com servidores remotos e aceita `--header`. Em tese bastaria apontar `command: "npx"` e `args: ["-y", "mcp-remote", "<URL>", "--header", "Authorization:${TRAMPO_AUTH}"]` com a variável `TRAMPO_AUTH="Bearer tfp_…"` no `env` (o README do pacote recomenda esse formato, sem espaços ao redor dos dois-pontos, por causa de um problema de escape de argumentos em alguns clientes). Como não foi testado aqui e executa um pacote de terceiros, **avalie por conta própria** antes de usar.
 
-Quando a 3.2.0 sair, o caminho recomendado no Claude Desktop passa a ser **Conectores** (parte A), sem token.
+Com o OAuth ligado, o caminho recomendado no Claude Desktop é **Conectores** ([A2](#a2-claude-desktop)), sem token.
 
 ## B4. Automação e scripts
 
@@ -270,7 +365,7 @@ Variáveis do modo stdio: `TRAMPO_API_URL` e `TRAMPO_API_TOKEN` (obrigatórias; 
 
 ---
 
-## Segurança, em resumo
+## Segurança, em resumo (tokens)
 
 - O token vale como a sua senha, menos apagar candidaturas. Não cole em chats nem em repositórios.
 - Cada token enxerga só a conta de quem o criou.

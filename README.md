@@ -4,6 +4,22 @@
 
 Full-stack application for tracking job applications. The backend is a Node.js API built with NestJS, Fastify, Prisma, and PostgreSQL, organized in layers following DDD and SOLID principles. The frontend is a React SPA built with Vite, TypeScript, and Tailwind CSS, structured into components, hooks, and services.
 
+## Highlights of 3.2
+
+- **OAuth 2.1 for the MCP server:** Claude (web, mobile, and the Desktop
+  connectors) can connect with just the URL `https://trampo-flow.neubergerdev.com.br/mcp`:
+  you sign in, review the permission screen, and click **Authorize**, with no token to copy.
+  It is an authorization server inside the API (PKCE S256, dynamic client
+  registration and Client ID Metadata Documents, rotating refresh tokens) and it
+  ships **dark**: nothing exists until `OAUTH_ENABLED=true`. See
+  [Connecting with OAuth](#connecting-with-oauth-claude-web-and-mobile).
+- **Scoped integration tokens:** `tfp_` tokens can be read-only, and tokens
+  (both kinds) are denied by default on every route that does not declare a scope.
+- **Connection guide:** [`docs/guia-conexao-mcp.md`](docs/guia-conexao-mcp.md)
+  (Portuguese) covers every way to connect, what was tested and what was not.
+- **Settings:** a "Como conectar" panel, **Aplicativos conectados** (revoke) and the
+  permission selector for new tokens.
+
 ## Highlights of 3.1
 
 - **AI agents via MCP:** a hosted MCP server at `/mcp` (and a local stdio
@@ -27,7 +43,7 @@ and persisted ordering, server-side search, light/dark/system themes saved per
 user, a short-lived access token in memory with an `HttpOnly` refresh cookie,
 and Playwright visual regression.
 
-**Current version:** 3.1.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
+**Current version:** 3.2.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Stack
 
@@ -656,13 +672,15 @@ The `mcp/` package is a [Model Context Protocol](https://modelcontextprotocol.io
 It runs in two ways, both with the same tools:
 
 ```text
-Hosted (production):  agent ──HTTPS /mcp + Bearer tfp_…──▶ ingress ─▶ mcp (Streamable HTTP) ─▶ api ─▶ Postgres
+Hosted (production):  agent ──HTTPS /mcp + Bearer tfp_… or tfo_…──▶ ingress ─▶ mcp (Streamable HTTP) ─▶ api ─▶ Postgres
 Local (stdio):        Claude Code/Desktop ──stdio──▶ node mcp/dist/index.js ──HTTPS + Bearer tfp_…──▶ api
 ```
 
-The hosted server keeps no secrets: each request carries the caller's own integration token, which is forwarded to the API. Anyone with an account can connect their agent, and each person only sees their own applications.
+The hosted server keeps no secrets: each request carries the caller's own token (an integration token `tfp_…`, or an OAuth access token `tfo_…`), which is forwarded to the API. Anyone with an account can connect their agent, and each person only sees their own applications.
 
 ### Connect your agent (hosted)
+
+Two ways. **With login (OAuth)**, when the server has `OAUTH_ENABLED=true`: add the URL in Claude (see [Connecting with OAuth](#connecting-with-oauth-claude-web-and-mobile)). **With a token**, below:
 
 1. Sign in and create a token in **Configurações → Tokens de integração**. The screen shows the token once, together with the command below already filled in.
 2. **Claude Code:**
@@ -679,18 +697,63 @@ The hosted server keeps no secrets: each request carries the caller's own integr
 
 Where it works today:
 
-| Client                                      | Today (token)                                                          |
-| ------------------------------------------- | ---------------------------------------------------------------------- |
-| Claude Code (terminal)                      | Works, with `--header`                                                 |
-| Cursor, VS Code, others that accept headers | Works                                                                  |
-| Claude Desktop                              | Only the local stdio mode (or a bridge such as `mcp-remote`, untested) |
-| Claude web and mobile                       | Not yet (needs OAuth)                                                  |
+| Client                                      | Token (`tfp_`)                                                         | OAuth login (`OAUTH_ENABLED=true`)                                                           |
+| ------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Claude Code (terminal)                      | Works, with `--header`                                                 | Works, without a header (flow tested by `scripts/oauth-smoke.mjs`)                           |
+| Cursor, VS Code, others that accept headers | Works (formats checked in each client's docs, not run in the apps)     | Depends on the client's OAuth support; not tested                                            |
+| Claude Desktop                              | Only the local stdio mode (or a bridge such as `mcp-remote`, untested) | As a connector (Settings → Connectors); **not tested**                                       |
+| Claude web and mobile                       | No                                                                     | As a connector; **not tested** (needs a public URL and a Claude plan with custom connectors) |
 
 Step-by-step instructions for every method, with commands and troubleshooting, are in the [connection guide](docs/guia-conexao-mcp.md) (in Portuguese).
 
-Revoking the token in the interface disconnects the agent immediately. Claude on the web, on mobile, and the Claude Desktop connectors add servers through OAuth, which is not available yet (see [Decisions and known limitations](#decisions-and-known-limitations)).
+Revoking the token in the interface disconnects the agent immediately. Claude on the web, on mobile, and the Claude Desktop connectors add servers through OAuth (next section).
 
 <!-- GIF: short recording of Claude Code using the MCP server goes here. -->
+
+### Connecting with OAuth (Claude web and mobile)
+
+With `OAUTH_ENABLED=true`, the API is also an OAuth 2.1 authorization server and `/mcp` is its protected resource. In Claude, **Settings → Connectors → custom connector** and the URL `https://trampo-flow.neubergerdev.com.br/mcp` are enough: Claude discovers everything from the `401`, you sign in (password or Google), check the permission screen (`/oauth/authorize`), and click **Authorize**. Claude Code does the same with `claude mcp add --transport http trampo-flow <url>` and `/mcp`. Revoke in **Configurações → Aplicativos conectados**.
+
+```text
+Claude ──POST /mcp (no token)──▶ 401 WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource/mcp"
+Claude ──▶ GET /.well-known/oauth-protected-resource/mcp   (resource, authorization_servers)
+Claude ──▶ GET /.well-known/oauth-authorization-server     (endpoints, S256, scopes)
+Claude ──▶ POST /api/oauth/register (DCR) or a CIMD client_id URL
+Claude ──▶ browser: /oauth/authorize (login + consent) ──▶ redirect with code
+Claude ──▶ POST /api/oauth/token (code + PKCE verifier) ──▶ tfo_ (1 h) + tfr_ (30 days, rotating)
+Claude ──▶ POST /mcp  Authorization: Bearer tfo_…  ──▶ mcp ──▶ api (checks audience and scope)
+```
+
+| Endpoint                                                                 | What it is                                                                      |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `GET /.well-known/oauth-authorization-server`                            | Authorization server metadata (RFC 8414); the `issuer` has no path              |
+| `GET /.well-known/oauth-protected-resource[/mcp]`                        | Resource metadata (RFC 9728), served by the `mcp` service                       |
+| `POST /api/oauth/register`                                               | Dynamic client registration (RFC 7591): public clients only, no `client_secret` |
+| `GET /api/oauth/authorize/preview`, `POST /api/oauth/authorize/decision` | Consent, session JWT only                                                       |
+| `POST /api/oauth/token`                                                  | `authorization_code` + PKCE and `refresh_token` (form-encoded, RFC 6749 errors) |
+| `POST /api/oauth/revoke`                                                 | Revocation (RFC 7009), always `200`                                             |
+| `GET /api/oauth/grants`, `DELETE /api/oauth/grants/:id`                  | Connected apps, session JWT only                                                |
+
+Decisions, with the reason:
+
+- **The API is the authorization server; `mcp/` is the resource server.** Login, session, and Google already exist, so there is no external identity provider.
+- **Opaque tokens, not JWT.** `tfo_` (1 h) and `tfr_` (30 days, rotating) are 32 random bytes stored only as an HMAC, like integration tokens, so revoking cuts access immediately. Refresh reuse outside a 10 s grace window revokes the whole family; reusing an authorization code revokes the grant.
+- **PKCE S256 only**, authorization codes are single-use (60 s, atomic exchange), and every failure at `/token` for a refresh answers `invalid_grant`.
+- **Scopes:** `applications:read` and `applications:write` (`offline_access` is accepted). **No scope deletes**: `DELETE /applications/:id` stays session-only. Tokens (`tfp_` and `tfo_`) are **denied by default** on routes without `@RequiredScope`.
+- **Audience.** Tokens are issued for `MCP_PUBLIC_URL` and the API only accepts that audience. `mcp/` forwards the token to **its own API** (the same trust domain), which checks audience and scope. This is a **deliberate deviation** from the MCP spec's "no token passthrough" rule, which targets third-party APIs; it avoids minting a second internal token.
+- **Client registration:** DCR and CIMD, public clients only. Redirect URIs follow one allowlist for both: Claude's callbacks, loopback (any port, RFC 8252), and `OAUTH_EXTRA_REDIRECT_URIS`; exact match otherwise. The consent screen shows the name and the destination host, and the "verified" badge only appears for Claude. CIMD documents are fetched with the same SSRF guard as job previews (public IPs only, https, no redirects, 16 KB, 5 s).
+- **Dark by default.** Without `OAUTH_ENABLED=true` every OAuth route answers `404` and `tfo_` is not accepted.
+- **Rate limits are in memory** (and in nginx), like the rest of the project: not shared across replicas.
+
+Variables (API and `mcp`, see `.env.example`): `OAUTH_ENABLED` (default `false`), `OAUTH_ISSUER` (default `APP_BASE_URL`, no trailing slash, https except localhost), `MCP_PUBLIC_URL` (default `<issuer>/mcp`), `OAUTH_EXTRA_REDIRECT_URIS`, `OAUTH_ACCESS_TOKEN_TTL_SECONDS` (3600), `OAUTH_REFRESH_TOKEN_TTL_DAYS` (30), `OAUTH_CODE_TTL_SECONDS` (60), and `OAUTH_MAX_CLIENTS` (1000). Deploy order: migration, `api`, `mcp`, recreate the `ingress` (its `nginx.conf` is a mounted volume), and only then turn the flag on. Behind Cloudflare, let Claude's egress (`160.79.104.0/21`, IPv4 only) through, or exempt `/.well-known/*`, `/api/oauth/*`, and `/mcp` from Bot Fight and rate limiting, and avoid redirects to another host (they drop the `Authorization` header).
+
+**Verify it end to end** with the dependency-free script, against any URL, using a test account:
+
+```bash
+BASE_URL=http://localhost:5173 E2E_EMAIL=you@example.com E2E_PASSWORD=... node scripts/oauth-smoke.mjs
+```
+
+It walks the same path as Claude (discovery from the `401`, registration, login, consent, token exchange, an MCP call, refresh, and revocation), checks that `tfo_` cannot reach `/auth/me`, `/auth/tokens`, `/oauth/grants`, or `DELETE /applications/:id`, and exits non-zero on any failure.
 
 ### Run locally (stdio)
 
@@ -707,14 +770,15 @@ claude mcp add trampo-flow \
   -- node /path/to/trampo-flow-software/mcp/dist/index.js
 ```
 
-In Claude Desktop this applies to the **local stdio mode only**: `claude_desktop_config.json` does not accept remote URLs, so the hosted `/mcp` needs OAuth connectors (not available yet). The same command goes in `claude_desktop_config.json` (`"command": "node"`, `"args": [".../mcp/dist/index.js"]`, and both variables in `"env"`). `TRAMPO_API_TIMEOUT_MS` (default 15000) is optional. The server validates the configuration on startup and exits with a clear message if something is missing.
+In Claude Desktop this applies to the **local stdio mode only**: `claude_desktop_config.json` does not accept remote URLs, so the hosted `/mcp` is added through the Connectors screen (OAuth) instead. The same command goes in `claude_desktop_config.json` (`"command": "node"`, `"args": [".../mcp/dist/index.js"]`, and both variables in `"env"`). `TRAMPO_API_TIMEOUT_MS` (default 15000) is optional. The server validates the configuration on startup and exits with a clear message if something is missing.
 
 ### Hosted server details
 
 - Service `mcp` in `docker-compose.yml` (`mcp/Dockerfile`, `node dist/http-main.js`, port 3100 on the internal network), exposed by the ingress at `/mcp` with its own rate limit (10 r/s per IP, burst 20) and a 1 MB body limit.
 - Stateless Streamable HTTP: `POST /mcp` only (`GET`/`DELETE` return `405`), JSON responses, and a new MCP server instance per request bound to the caller's token.
-- Requests without a `tfp_` bearer get `401` with `WWW-Authenticate: Bearer`. The token is checked against `GET /auth/me` and the result is cached in memory for 60 seconds (only its SHA-256); every tool call still goes through the API, so a revoked token stops reading or writing data immediately.
-- Variables: `TRAMPO_API_URL` (internal API URL, `http://api:3000` in Compose), `PORT` (default 3100), and `TRAMPO_API_TIMEOUT_MS`.
+- Requests without a `tfp_` (or, with OAuth on, `tfo_`) bearer get `401` with `WWW-Authenticate: Bearer` (with OAuth on: `resource_metadata` and `scope`, plus `error="invalid_token"` for an invalid or expired token). The token is checked against `GET /auth/whoami` (which returns only the id) and the result is cached in memory for 60 seconds (only its SHA-256); every tool call still goes through the API, so a revoked token stops reading or writing data immediately.
+- With `OAUTH_ENABLED=true` it also serves `/.well-known/oauth-protected-resource[/mcp]`.
+- Variables: `TRAMPO_API_URL` (internal API URL, `http://api:3000` in Compose), `PORT` (default 3100), `TRAMPO_API_TIMEOUT_MS`, and, for OAuth, `OAUTH_ENABLED`, `OAUTH_ISSUER`, and `MCP_PUBLIC_URL`.
 
 ### Tools
 
@@ -735,7 +799,7 @@ There is also a `revisar_funil` prompt that calls `pipeline_summary` and suggest
 - **Token stored as a hash, revocable, with expiration.** The secret appears once; the database keeps only the HMAC. Revoking in the interface cuts access immediately.
 - **No deletion by the agent.** No tool deletes applications, and the API itself refuses `DELETE /applications/:id` for integration tokens (`403`), so even a leaked token or an agent calling the API directly cannot delete, soft or hard. To discard an application the agent moves it to Recusada or Finalizada; deleting stays a human action in the interface.
 - **Per-user scope.** The token acts as its owner: other users' applications return `404`, exactly as in the interface.
-- **A token cannot create tokens.** `/auth/tokens` only accepts the session JWT.
+- **A token cannot create tokens.** `/auth/tokens` and `/oauth/grants` only accept the session JWT.
 - **Annotated tools.** `readOnlyHint` on reads; writes are `destructiveHint: false`, so clients know what to confirm.
 - **Nothing on stdout but the protocol.** In stdio mode logs go to `stderr`, and in both modes the token never appears in logs or error messages.
 - **The hosted server holds no credentials.** It only forwards each caller's own token to the API over the internal network.
@@ -1017,6 +1081,19 @@ Scripts available in `backend/package.json`:
 
 The `JWT_SECRET`, `JWT_EXPIRES_IN`, `LOGIN_MAX_ATTEMPTS`, and `LOGIN_WINDOW_SECONDS` variables also live in the root `.env` and are passed to the `api` service; see [Authentication](#authentication).
 
+OAuth (all optional, off by default; passed to `api`, and the first three also to `mcp`):
+
+| Variable                         | Default        | Description                                                             |
+| -------------------------------- | -------------- | ----------------------------------------------------------------------- |
+| `OAUTH_ENABLED`                  | `false`        | Turns the authorization server and `tfo_` tokens on                     |
+| `OAUTH_ISSUER`                   | `APP_BASE_URL` | Issuer URL, no path and no trailing slash (https, or http on localhost) |
+| `MCP_PUBLIC_URL`                 | `<issuer>/mcp` | Public MCP URL, used as the token audience                              |
+| `OAUTH_EXTRA_REDIRECT_URIS`      | empty          | Extra allowed redirect URIs, comma-separated                            |
+| `OAUTH_ACCESS_TOKEN_TTL_SECONDS` | `3600`         | Access token lifetime                                                   |
+| `OAUTH_REFRESH_TOKEN_TTL_DAYS`   | `30`           | Refresh token lifetime (rotating)                                       |
+| `OAUTH_CODE_TTL_SECONDS`         | `60`           | Authorization code lifetime                                             |
+| `OAUTH_MAX_CLIENTS`              | `1000`         | Cap on dynamically registered clients                                   |
+
 ### Backend (`backend/.env`)
 
 | Variable       | Default                                                     | Description                                   |
@@ -1138,7 +1215,7 @@ This section makes explicit what the project does **not** do, and why. None of t
 - **Users.** Public sign-up is available behind `REGISTRATION_ENABLED`, with email verification, Google sign-in, and password recovery by email. There is no password change from inside the interface: passwords are changed through the recovery flow. To change it: an authenticated password change endpoint that revokes the other sessions.
 - **Roles and permissions.** Each user sees only their own applications, but there are no roles (admin, viewer) or sharing between accounts. To change it: a roles model and per-resource authorization rules.
 - **Guard cost.** It validates the signature and queries `users` on every request (one primary-key `SELECT`); integration tokens add one lookup by hash. To change it: an in-memory cache with a short TTL, if the volume justifies it.
-- **MCP authentication and token scopes.** The hosted MCP accepts integration tokens as a bearer header, which covers Claude Code and clients that let you set headers; Claude on the web and on mobile add connectors through OAuth, which the API does not implement yet. Integration tokens are limited to the applications routes with the scope chosen at creation (read-only or read and write), so they cannot delete applications, change the profile, or manage tokens. To change it: an OAuth 2.1 authorization server in the API (login, consent, dynamic client registration), and `read`/`write` scopes on the token.
+- **MCP authentication and token scopes.** Integration tokens (`tfp_`, read-only or read and write) and OAuth access tokens (`tfo_`) only reach the applications routes that declare a scope; they cannot delete applications, change the profile, or manage tokens. OAuth ships behind `OAUTH_ENABLED` and has **not been exercised with the real Claude clients** (web, mobile, Desktop, Cursor, VS Code): the flow is verified by `scripts/oauth-smoke.mjs` and the test suite, and the manual checks are listed in the [connection guide](docs/guia-conexao-mcp.md). The MCP forwards the OAuth token to its own API instead of minting a second one (a deliberate deviation from the spec's passthrough rule, explained above). Only public OAuth clients exist (no `client_secret`), scopes are just read and write, and rate limits are in memory. To change it: a confidential-client flow, finer scopes, and a shared rate limiter.
 - **UI tests.** Components and pages have Testing Library tests, hooks/services have coverage, and Playwright covers the critical path (login, creation, search, detail, and deletion). E2E runs on PRs, on demand, and on a schedule. Visual regression uses Linux snapshots and runs in a separate workflow.
 - **Observability.** Default Nest/Fastify logging, with no request ID or metrics. To change it: structured Pino logging, request correlation, and a metrics endpoint.
 
