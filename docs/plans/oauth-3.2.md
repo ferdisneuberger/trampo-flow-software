@@ -2,6 +2,18 @@
 
 > **Para quem for retomar este trabalho (outro agente ou pessoa):** este arquivo é autossuficiente. Leia as seções 1 a 4 antes de tocar em código, execute **uma fase por vez, um PR por fase**, e marque os `[ ]` conforme concluir. Nada aqui foi implementado ainda. As decisões da seção 3 já foram conversadas com o dono do projeto; o que ainda depende dele está na seção 14.
 
+## 0. Estratégia de entrega (atualizada em 2026-11-15)
+
+O dono decidiu o seguinte fluxo, que **substitui** o de "release 3.1.1 separada":
+
+- Existe uma branch de integração **`release/v3.2.0`**, criada a partir da `main`. **Todos os PRs deste plano têm `release/v3.2.0` como base**, nunca a `main`. Quem implementa abre cada PR, espera o CI ficar verde e faz o merge (squash) na branch de release.
+- A **3.1.1 deixa de existir como release própria**: o aviso e o guia do `tfp_` (Fase 0) viajam dentro da 3.2.0. Não há bump nem tag `v3.1.1`.
+- Ao final, **um único PR `release/v3.2.0` → `main`**, aberto por quem implementa e **mesclado pelo dono**. O bump de versão, o CHANGELOG e a tag `v3.2.0` só acontecem depois disso e da validação.
+- O `ci.yml` passou a rodar também em PRs para `release/**`; os PRs intermediários têm CI.
+- **Ambiente local do dono:** a stack Docker local (`docker compose`, projeto `trampo-flow`) é atualizada a cada PR mesclado, para o teste ponta a ponta no fim. O `docker-compose.override.yml` local (fora do git, listado em `.git/info/exclude`) liga `OAUTH_ENABLED=true` e define `OAUTH_ISSUER=http://localhost:5173` e `MCP_PUBLIC_URL=http://localhost:5173/mcp`, porque o `.env` do dono aponta `APP_BASE_URL` para produção. O Claude real exige URL pública; localmente o teste é com MCP Inspector, Claude Code e o `scripts/oauth-smoke.mjs`.
+
+Sequência de PRs (cada um verde e com testes): **PR0** aviso + guia do `tfp_`; **PR1** escopos (`tfp_` somente leitura, guard fechado por padrão, `/auth/whoami`); **PR2** servidor de autorização; **PR3** MCP + infra; **PR4** frontend; **PR5** guia do OAuth e documentação.
+
 ## 1. Objetivo e escopo
 
 Hoje o MCP hospedado em `/mcp` (3.1.0) exige que a pessoa crie um token `tfp_` em Configurações e o cole num cabeçalho. Isso funciona no Claude Code, mas **não no Claude web, no celular nem no Claude Desktop pela URL**, que só se autenticam por OAuth.
@@ -98,7 +110,7 @@ Só texto e uma pequena mudança de tela (sem backend). Branch sugerida: `docs/m
 - [ ] `README.md`: incluir a tabela da seção 2; corrigir a frase de `Claude Desktop accepts the same command…` (vale **só para o modo stdio local**); ajustar "MCP authentication and token scopes" em "Decisions and known limitations". Tudo em inglês, como o resto do README.
 - [ ] **Guia de uso do `tfp_`** (decisão 13): escrever as partes B1 a B5 da seção 12.1 em `docs/guia-conexao-mcp.md` (em português, para ser enviado a quem for usar), com link no README. Na tela de Configurações, mostrar um resumo curto por método ao lado do comando já existente.
 - [ ] `CHANGELOG.md`: entrada `3.1.1` (`### Changed`).
-- [ ] Release: `npm version 3.1.1 --no-git-tag-version` em `.`, `backend`, `frontend` e `mcp` (atualiza os lockfiles); commit `chore(release): 3.1.1`. Depois do merge, tag anotada `v3.1.1` no commit de merge.
+- (Sem release própria: vale a seção 0; nada de bump de versão nem tag `v3.1.1` neste PR.)
 - **Pronto quando:** testes do frontend passam, `npm run format:check` passa, a tela de Configurações mostra o aviso e o README tem a tabela.
 
 ## 6. Fase 1: servidor de autorização (backend)
