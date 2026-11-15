@@ -4,6 +4,7 @@ import {
   LayoutGrid,
   LogOut,
   Search,
+  Settings,
 } from 'lucide-react';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import {
@@ -105,7 +106,16 @@ export function AppShell() {
 
   const accountItems: MenuItem[] = [
     {
+      id: 'settings',
+      label: 'Configurações',
+      icon: Settings,
+      onSelect: () => {
+        void navigate('/configuracoes');
+      },
+    },
+    {
       id: 'logout',
+      separatorBefore: true,
       label: 'Sair',
       icon: LogOut,
       tone: 'danger',
@@ -225,6 +235,22 @@ export function AppShell() {
           >
             <LayoutGrid className="size-4 shrink-0" aria-hidden="true" />
             <span className={cn(collapsed && 'sr-only')}>Candidaturas</span>
+          </NavLink>
+          <NavLink
+            to="/configuracoes"
+            title={collapsed ? 'Configurações' : undefined}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2.5 rounded-btn py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30',
+                collapsed ? 'justify-center px-0' : 'px-2.5',
+                isActive
+                  ? 'bg-surface-2 text-fg'
+                  : 'text-muted hover:bg-surface-2 hover:text-fg',
+              )
+            }
+          >
+            <Settings className="size-4 shrink-0" aria-hidden="true" />
+            <span className={cn(collapsed && 'sr-only')}>Configurações</span>
           </NavLink>
         </nav>
 

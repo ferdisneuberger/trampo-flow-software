@@ -46,6 +46,11 @@ const ResetPasswordPage = lazy(() =>
     default: module.ResetPasswordPage,
   })),
 );
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((module) => ({
+    default: module.SettingsPage,
+  })),
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((module) => ({
     default: module.NotFoundPage,
@@ -77,6 +82,7 @@ export function App() {
                     path="candidaturas/:id"
                     element={<ApplicationDetailPage />}
                   />
+                  <Route path="configuracoes" element={<SettingsPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Route>

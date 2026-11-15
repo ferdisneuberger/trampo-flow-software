@@ -40,6 +40,7 @@ function renderShell() {
       <Route element={<AppShell />}>
         <Route path="/candidaturas" element={<p>conteúdo do quadro</p>} />
         <Route path="/login" element={<p>login</p>} />
+        <Route path="/configuracoes" element={<p>página de configurações</p>} />
       </Route>
     </Routes>,
     { route: '/candidaturas' },
@@ -83,5 +84,19 @@ describe('AppShell', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Sair' }));
 
     expect(logout).toHaveBeenCalledOnce();
+  });
+
+  it('abre Configurações pelo menu da conta', async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    await user.click(
+      screen.getByRole('button', { name: /Menu da conta de Fernando/ }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Configurações' }));
+
+    expect(
+      await screen.findByText('página de configurações'),
+    ).toBeInTheDocument();
   });
 });
