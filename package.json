@@ -1,11 +1,11 @@
 {
   "name": "trampo-flow",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "description": "Development tooling for the Trampo Flow monorepo.",
   "scripts": {
     "prepare": "husky",
-    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint && npm --prefix mcp run lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:e2e:local": "bash scripts/e2e-local.sh"
@@ -13,6 +13,10 @@
   "lint-staged": {
     "backend/**/*.ts": [
       "bash -c 'cd backend && ./node_modules/.bin/eslint --fix \"$@\"' _",
+      "prettier --write"
+    ],
+    "mcp/{src,test}/**/*.ts": [
+      "bash -c 'cd mcp && ./node_modules/.bin/eslint --fix \"$@\"' _",
       "prettier --write"
     ],
     "frontend/src/**/*.{ts,tsx}": [

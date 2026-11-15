@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import { RateLimiterService } from '../../auth/rate-limiter.service';
+import { SessionOnly } from '../../auth/session-only.decorator';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -280,9 +281,12 @@ export class ApplicationsController {
   }
 
   @Delete(':id')
+  @SessionOnly()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Exclui uma candidatura (lógica por padrão, física com mode=hard)',
+    description:
+      'Exige o JWT de sessão: tokens de integração (`tfp_`) recebem 403, então agentes não apagam candidaturas.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiQuery({
@@ -297,6 +301,7 @@ export class ApplicationsController {
     type: ErrorResponse,
   })
   @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  @ApiResponse({ status: 403, description: 'Chamado com um token tfp_.' })
   @ApiResponse({
     status: 404,
     description: 'Candidatura não encontrada.',

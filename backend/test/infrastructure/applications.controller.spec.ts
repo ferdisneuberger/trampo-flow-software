@@ -11,6 +11,7 @@ import type { PreviewJobPostingUseCase } from '../../src/application/application
 import type { RateLimiterService } from '../../src/infrastructure/auth/rate-limiter.service';
 import type { UpdateApplicationUseCase } from '../../src/application/applications/use-cases/update-application.use-case';
 import { ApplicationStatus } from '../../src/domain/applications/enums/application-status.enum';
+import { IS_SESSION_ONLY_KEY } from '../../src/infrastructure/auth/session-only.decorator';
 import { ApplicationsController } from '../../src/infrastructure/http/controllers/applications.controller';
 import {
   makeApplication,
@@ -316,5 +317,33 @@ describe('ApplicationsController', () => {
       controller.preview({ link: 'https://acme.com/vaga' }, USER_ID),
     ).rejects.toThrow('RATE_LIMITED');
     expect(preview).not.toHaveBeenCalled();
+  });
+});
+
+describe('ApplicationsController — acesso por token de integração', () => {
+  const sessionOnly = (handler: string) =>
+    Reflect.getMetadata(
+      IS_SESSION_ONLY_KEY,
+      Object.getOwnPropertyDescriptor(ApplicationsController.prototype, handler)
+        ?.value as object,
+    ) as boolean | undefined;
+
+  it('exclusão exige o JWT de sessão (tokens tfp_ recebem 403)', () => {
+    expect(sessionOnly('remove')).toBe(true);
+  });
+
+  it('as demais rotas continuam abertas ao token', () => {
+    for (const handler of [
+      'create',
+      'preview',
+      'list',
+      'board',
+      'stats',
+      'findOne',
+      'update',
+      'place',
+    ] as const) {
+      expect(sessionOnly(handler), handler).toBeUndefined();
+    }
   });
 });

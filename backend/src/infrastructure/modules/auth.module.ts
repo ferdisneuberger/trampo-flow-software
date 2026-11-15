@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { AuthenticatePersonalAccessTokenUseCase } from '../../application/auth/use-cases/authenticate-personal-access-token.use-case';
+import { CreatePersonalAccessTokenUseCase } from '../../application/auth/use-cases/create-personal-access-token.use-case';
+import { ListPersonalAccessTokensUseCase } from '../../application/auth/use-cases/list-personal-access-tokens.use-case';
+import { RevokePersonalAccessTokenUseCase } from '../../application/auth/use-cases/revoke-personal-access-token.use-case';
 import { AuthenticateUserUseCase } from '../../application/auth/use-cases/authenticate-user.use-case';
 import { CreateSessionUseCase } from '../../application/auth/use-cases/create-session.use-case';
 import { DeleteUserByEmailUseCase } from '../../application/auth/use-cases/delete-user-by-email.use-case';
@@ -21,11 +25,14 @@ import { Mailer } from '../../domain/auth/services/mailer';
 import { TokenHasher } from '../../domain/auth/services/token-hasher';
 import { PasswordResetTokenGenerator } from '../../domain/auth/services/password-reset-token-generator';
 import { VerificationCodeGenerator } from '../../domain/auth/services/verification-code-generator';
+import { PersonalAccessTokenRepository } from '../../domain/auth/repositories/personal-access-token.repository';
+import { PersonalAccessTokenGenerator } from '../../domain/auth/services/personal-access-token-generator';
 import { RefreshTokenRepository } from '../../domain/auth/repositories/refresh-token.repository';
 import { RefreshTokenGenerator } from '../../domain/auth/services/refresh-token-generator';
 import { RefreshTokenPolicy } from '../../domain/auth/services/refresh-token-policy';
 import { UserRepository } from '../../domain/users/repositories/user.repository';
 import { PasswordHasher } from '../../domain/users/services/password-hasher';
+import { CryptoPersonalAccessTokenGenerator } from '../auth/crypto-personal-access-token-generator';
 import { CryptoRefreshTokenGenerator } from '../auth/crypto-refresh-token-generator';
 import { CryptoPasswordResetTokenGenerator } from '../auth/crypto-password-reset-token-generator';
 import { GoogleTokenVerifier } from '../auth/google-token-verifier';
@@ -37,10 +44,12 @@ import { RateLimiterService } from '../auth/rate-limiter.service';
 import { ScryptPasswordHasher } from '../auth/scrypt-password-hasher';
 import { TokenService } from '../auth/token.service';
 import { PrismaAuthTokenRepository } from '../database/prisma/repositories/prisma-auth-token.repository';
+import { PrismaPersonalAccessTokenRepository } from '../database/prisma/repositories/prisma-personal-access-token.repository';
 import { PrismaRefreshTokenRepository } from '../database/prisma/repositories/prisma-refresh-token.repository';
 import { PrismaUserRepository } from '../database/prisma/repositories/prisma-user.repository';
 import { AdminUsersController } from '../http/controllers/admin-users.controller';
 import { AuthController } from '../http/controllers/auth.controller';
+import { PersonalAccessTokensController } from '../http/controllers/personal-access-tokens.controller';
 import { SmtpMailer } from '../mail/smtp-mailer';
 
 const HOUR_IN_MS = 60 * 60 * 1000;
@@ -52,7 +61,11 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
 }
 
 @Module({
-  controllers: [AuthController, AdminUsersController],
+  controllers: [
+    AuthController,
+    PersonalAccessTokensController,
+    AdminUsersController,
+  ],
   providers: [
     AuthenticateUserUseCase,
     CreateSessionUseCase,
@@ -67,6 +80,11 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     UpdateThemePreferenceUseCase,
     GoogleSignInUseCase,
     DeleteUserByEmailUseCase,
+    CreatePersonalAccessTokenUseCase,
+    ListPersonalAccessTokensUseCase,
+    RevokePersonalAccessTokenUseCase,
+    AuthenticatePersonalAccessTokenUseCase,
+    CryptoPersonalAccessTokenGenerator,
     LoginRateLimiter,
     RateLimiterService,
     ScryptPasswordHasher,
@@ -142,6 +160,14 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     {
       provide: AuthTokenRepository,
       useClass: PrismaAuthTokenRepository,
+    },
+    {
+      provide: PersonalAccessTokenGenerator,
+      useExisting: CryptoPersonalAccessTokenGenerator,
+    },
+    {
+      provide: PersonalAccessTokenRepository,
+      useClass: PrismaPersonalAccessTokenRepository,
     },
     {
       provide: RefreshTokenRepository,

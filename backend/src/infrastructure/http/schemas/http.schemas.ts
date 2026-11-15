@@ -172,3 +172,41 @@ export class JobPostingPreviewResponse {
   status!:
     'found' | 'no_data' | 'blocked' | 'timeout' | 'not_html' | 'unreachable';
 }
+
+export class PersonalAccessTokenResponse {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'Claude Code no notebook' })
+  name!: string;
+
+  @ApiProperty({
+    example: 'tfp_Ab3x',
+    description: 'Início do token, para reconhecê-lo na lista.',
+  })
+  prefix!: string;
+
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    example: '2026-11-15T12:00:00.000Z',
+  })
+  lastUsedAt!: string | null;
+
+  @ApiProperty({ example: '2027-02-13T12:00:00.000Z' })
+  expiresAt!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  revokedAt!: string | null;
+
+  @ApiProperty({ example: '2026-11-15T12:00:00.000Z' })
+  createdAt!: string;
+}
+
+export class CreatedPersonalAccessTokenResponse extends PersonalAccessTokenResponse {
+  @ApiProperty({
+    example: 'tfp_Ab3xQ9...',
+    description: 'Segredo em texto puro. Só aparece nesta resposta.',
+  })
+  token!: string;
+}
