@@ -1,6 +1,8 @@
-# Plano: OAuth 2.1 para o MCP (3.1.1 e 3.2.0)
+# Plano: OAuth 2.1 para o MCP (3.2.0)
 
-> **Para quem for retomar este trabalho (outro agente ou pessoa):** este arquivo é autossuficiente. Leia as seções 1 a 4 antes de tocar em código, execute **uma fase por vez, um PR por fase**, e marque os `[ ]` conforme concluir. Nada aqui foi implementado ainda. As decisões da seção 3 já foram conversadas com o dono do projeto; o que ainda depende dele está na seção 14.
+> **Estado (2026-11-15): implementado na `release/v3.2.0` (PRs #58 a #65).** Falta o merge do dono na `main`, a validação em clientes reais e a tag `v3.2.0` (só depois). Este documento fica como registro das decisões; a fonte da verdade do que foi feito é a seção 0.1.
+
+> **Para quem for retomar este trabalho (outro agente ou pessoa):** este arquivo é autossuficiente. Leia as seções 0.1 e 1 a 4 antes de tocar em código. Os `[ ]` das fases não foram todos marcados; confie na seção 0.1. As decisões da seção 3 já foram conversadas com o dono do projeto; o que ainda depende dele está na seção 14.
 
 ## 0. Estratégia de entrega (atualizada em 2026-11-15)
 
@@ -26,8 +28,8 @@ Sequência de PRs (cada um verde e com testes): **PR0** aviso + guia do `tfp_`; 
 | #62 | PR 2: servidor de autorização (fase 1) + ramo `tfo_` no guard, atrás de `OAUTH_ENABLED`                        | Mesclado (revisão de segurança sem achados; teste ao vivo em stack isolada OK)        |
 | #63 | PR 3: MCP (metadata do recurso, 401 com `resource_metadata`, `tfo_`) + infra (nginx, compose, variáveis)       | Mesclado (teste ao vivo com ingress, flag ligada e desligada, OK)                     |
 | #64 | PR 4: frontend (tela de permissão, "Aplicativos conectados", painel "Como conectar")                           | Mesclado (testes de componente e rotas ao vivo; **tela não vista em navegador real**) |
-| —   | PR 5: guia do OAuth (parte A), README, `scripts/oauth-smoke.mjs`, CHANGELOG, bump para 3.2.0                   | Pendente                                                                              |
-| —   | PR `release/v3.2.0` → `main`: aberto por quem implementa, **mesclado só pelo dono**                            | Pendente                                                                              |
+| #65 | PR 5: guia do OAuth (parte A), README, `scripts/oauth-smoke.mjs`, CHANGELOG, bump para 3.2.0                   | Mesclado (smoke de ponta a ponta OK em stack local)                                   |
+| —   | PR `release/v3.2.0` → `main`: aberto por quem implementa, **mesclado só pelo dono**                            | Aberto pelo implementador; **só o dono mescla**                                       |
 
 **Já feito do que o plano pedia para o PR 1/Fase 2:** coluna `scope` no token, `PersonalAccessToken.scope`, DTO e UI com o seletor de permissões, `@RequiredScope` em todas as rotas de candidaturas, deny-by-default para `pat`, `403 insufficient_scope` com `WWW-Authenticate`, `GET /auth/whoami` (o MCP já valida por ele) e o teste `backend/test/infrastructure/required-scope.spec.ts`, que trava a lista de rotas abertas ao token. **Fase 2 concluída no PR 2:** variante `oauth` de `AuthenticatedUser`, ramo `tfo_` no guard e `resource_metadata` no header de `insufficient_scope`.
 
@@ -77,6 +79,18 @@ Sequência de PRs (cada um verde e com testes): **PR0** aviso + guia do `tfp_`; 
 - A tela de Configurações descobre se o OAuth está ligado pedindo `/.well-known/oauth-authorization-server` na mesma origem (200 com `issuer` = ligado; qualquer outra coisa = desligado). Em `npm run dev` (Vite sem proxy do `.well-known`) o OAuth aparece desligado.
 - A tela `/oauth/authorize` só segue o `redirectTo` devolvido pelo servidor e recusa esquemas que não sejam http/https; pedido inválido mostra o motivo e não redireciona.
 - A Configurações não tem baseline visual (`frontend/e2e`), então nenhum baseline precisou ser regenerado.
+
+### Lições do PR 5
+
+- O `scripts/oauth-smoke.mjs` percorre o fluxo inteiro e serve de prova repetível (19 verificações); o registro dinâmico tem limite de 5 por minuto por IP (API e nginx), então não rode várias vezes seguidas.
+- O build do Docker lê a árvore de trabalho: não troque de branch nem faça o bump de versão enquanto um `docker compose up --build` roda.
+
+### Depois (fora desta release)
+
+- Escopos mais finos, cliente confidencial (`client_secret`) e IdP externo (seção 17).
+- Rate limit compartilhado entre réplicas (Redis ou Postgres).
+- CORS aberto em `/mcp` para o MCP Inspector em modo navegador, se houver demanda.
+- Reduzir o cache de 60 s de validação do token no MCP, se o corte "na hora" do `tools/list` importar.
 
 ### Pendências manuais (dependem do dono)
 
