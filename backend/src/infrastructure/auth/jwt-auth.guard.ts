@@ -3,14 +3,19 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { OAuthSettings } from '../../application/oauth/services/oauth-settings';
+import { AuthenticateOAuthAccessTokenUseCase } from '../../application/oauth/use-cases/authenticate-oauth-access-token.use-case';
+import { isOAuthAccessToken } from '../../domain/oauth/services/oauth-token-generator';
 import { AuthenticatePersonalAccessTokenUseCase } from '../../application/auth/use-cases/authenticate-personal-access-token.use-case';
 import { hasScope } from '../../domain/auth/scopes';
 import { isPersonalAccessToken } from '../../domain/auth/services/personal-access-token-generator';
 import { UserRepository } from '../../domain/users/repositories/user.repository';
+import { IS_OAUTH_ROUTE_KEY } from './oauth-route.decorator';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { RateLimiterService } from './rate-limiter.service';
 import { REQUIRED_SCOPE_KEY } from './required-scope.decorator';
@@ -19,7 +24,14 @@ import { TokenService } from './token.service';
 
 export type AuthenticatedUser =
   | { sub: string; authMethod: 'jwt' }
-  | { sub: string; authMethod: 'pat'; tokenId: string; scopes: string[] };
+  | { sub: string; authMethod: 'pat'; tokenId: string; scopes: string[] }
+  | {
+      sub: string;
+      authMethod: 'oauth';
+      tokenId: string;
+      grantId: string;
+      scopes: string[];
+    };
 
 export type AuthenticatedRequest = FastifyRequest & {
   user?: AuthenticatedUser;
@@ -39,10 +51,21 @@ export class JwtAuthGuard implements CanActivate {
     private readonly userRepository: UserRepository,
     private readonly authenticatePersonalAccessToken: AuthenticatePersonalAccessTokenUseCase,
     private readonly rateLimiter: RateLimiterService,
+    private readonly authenticateOAuthAccessToken: AuthenticateOAuthAccessTokenUseCase,
+    private readonly oauthSettings: OAuthSettings,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const targets = [context.getHandler(), context.getClass()];
+
+    // Entrega escura: sem OAUTH_ENABLED as rotas do OAuth não existem.
+    if (
+      !this.oauthSettings.enabled &&
+      this.reflector.getAllAndOverride<boolean>(IS_OAUTH_ROUTE_KEY, targets)
+    ) {
+      throw new NotFoundException();
+    }
+
     const isPublic = this.reflector.getAllAndOverride<boolean>(
       IS_PUBLIC_KEY,
       targets,
@@ -70,7 +93,10 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Cabeçalho Authorization inválido.');
     }
 
-    if (isPersonalAccessToken(token)) {
+    const isPat = isPersonalAccessToken(token);
+    const isOAuth = this.oauthSettings.enabled && isOAuthAccessToken(token);
+
+    if (isPat || isOAuth) {
       const isSessionOnly = this.reflector.getAllAndOverride<boolean>(
         IS_SESSION_ONLY_KEY,
         targets,
@@ -82,20 +108,31 @@ export class JwtAuthGuard implements CanActivate {
         );
       }
 
-      const { userId, tokenId, scopes } =
-        await this.authenticatePersonalAccessToken.execute(token);
+      if (isPat) {
+        const { userId, tokenId, scopes } =
+          await this.authenticatePersonalAccessToken.execute(token);
 
-      this.assertScope(context, targets, scopes);
+        this.assertScope(context, targets, scopes);
+        this.limitWrites(request, `pat:write:${tokenId}`);
 
-      if (!READ_METHODS.has(request.method)) {
-        this.rateLimiter.consume(
-          `pat:write:${tokenId}`,
-          PAT_WRITE_LIMIT,
-          PAT_WRITE_WINDOW_MS,
-        );
+        request.user = { sub: userId, authMethod: 'pat', tokenId, scopes };
+
+        return true;
       }
 
-      request.user = { sub: userId, authMethod: 'pat', tokenId, scopes };
+      const { userId, tokenId, grantId, scopes } =
+        await this.authenticateOAuthAccessToken.execute(token);
+
+      this.assertScope(context, targets, scopes);
+      this.limitWrites(request, `oauth:write:${grantId}`);
+
+      request.user = {
+        sub: userId,
+        authMethod: 'oauth',
+        tokenId,
+        grantId,
+        scopes,
+      };
 
       return true;
     }
@@ -110,6 +147,12 @@ export class JwtAuthGuard implements CanActivate {
     request.user = { sub: payload.sub, authMethod: 'jwt' };
 
     return true;
+  }
+
+  private limitWrites(request: AuthenticatedRequest, key: string): void {
+    if (!READ_METHODS.has(request.method)) {
+      this.rateLimiter.consume(key, PAT_WRITE_LIMIT, PAT_WRITE_WINDOW_MS);
+    }
   }
 
   /**
@@ -141,7 +184,9 @@ export class JwtAuthGuard implements CanActivate {
       .getResponse<FastifyReply>()
       .header(
         'WWW-Authenticate',
-        `Bearer error="insufficient_scope", scope="${required}"`,
+        this.oauthSettings.enabled
+          ? `Bearer error="insufficient_scope", scope="${required}", resource_metadata="${this.oauthSettings.protectedResourceMetadataUrl}"`
+          : `Bearer error="insufficient_scope", scope="${required}"`,
       );
 
     throw new ForbiddenException(

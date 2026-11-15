@@ -51,6 +51,37 @@ import { AdminUsersController } from '../http/controllers/admin-users.controller
 import { AuthController } from '../http/controllers/auth.controller';
 import { PersonalAccessTokensController } from '../http/controllers/personal-access-tokens.controller';
 import { SmtpMailer } from '../mail/smtp-mailer';
+import { AuthorizationRequestValidator } from '../../application/oauth/services/authorization-request';
+import { OAuthSettings } from '../../application/oauth/services/oauth-settings';
+import { OAuthTokenIssuer } from '../../application/oauth/services/oauth-token-issuer';
+import { AuthenticateOAuthAccessTokenUseCase } from '../../application/oauth/use-cases/authenticate-oauth-access-token.use-case';
+import { DecideAuthorizationUseCase } from '../../application/oauth/use-cases/decide-authorization.use-case';
+import { ExchangeAuthorizationCodeUseCase } from '../../application/oauth/use-cases/exchange-authorization-code.use-case';
+import { GetAuthorizationServerMetadataUseCase } from '../../application/oauth/use-cases/get-authorization-server-metadata.use-case';
+import { ListOAuthGrantsUseCase } from '../../application/oauth/use-cases/list-oauth-grants.use-case';
+import { PreviewAuthorizationUseCase } from '../../application/oauth/use-cases/preview-authorization.use-case';
+import { RefreshOAuthTokenUseCase } from '../../application/oauth/use-cases/refresh-oauth-token.use-case';
+import { RegisterOAuthClientUseCase } from '../../application/oauth/use-cases/register-oauth-client.use-case';
+import { ResolveOAuthClientUseCase } from '../../application/oauth/use-cases/resolve-oauth-client.use-case';
+import { RevokeOAuthGrantUseCase } from '../../application/oauth/use-cases/revoke-oauth-grant.use-case';
+import { RevokeOAuthTokenUseCase } from '../../application/oauth/use-cases/revoke-oauth-token.use-case';
+import { OAuthClientRepository } from '../../domain/oauth/repositories/oauth-client.repository';
+import { OAuthCodeRepository } from '../../domain/oauth/repositories/oauth-code.repository';
+import { OAuthGrantRepository } from '../../domain/oauth/repositories/oauth-grant.repository';
+import { OAuthTokenRepository } from '../../domain/oauth/repositories/oauth-token.repository';
+import { ClientMetadataFetcher } from '../../domain/oauth/services/client-metadata-fetcher';
+import { OAuthTokenGenerator } from '../../domain/oauth/services/oauth-token-generator';
+import { PrismaOAuthClientRepository } from '../database/prisma/repositories/prisma-oauth-client.repository';
+import { PrismaOAuthCodeRepository } from '../database/prisma/repositories/prisma-oauth-code.repository';
+import { PrismaOAuthGrantRepository } from '../database/prisma/repositories/prisma-oauth-grant.repository';
+import { PrismaOAuthTokenRepository } from '../database/prisma/repositories/prisma-oauth-token.repository';
+import { OAuthConsentController } from '../http/controllers/oauth-consent.controller';
+import { OAuthController } from '../http/controllers/oauth.controller';
+import { OAuthMetadataController } from '../http/controllers/oauth-metadata.controller';
+import { CryptoOAuthTokenGenerator } from '../oauth/crypto-oauth-token-generator';
+import { OAuthCleanupService } from '../oauth/oauth-cleanup.service';
+import { createOAuthSettings } from '../oauth/oauth-settings.factory';
+import { SafeHttpClientMetadataFetcher } from '../oauth/safe-http-client-metadata-fetcher';
 
 const HOUR_IN_MS = 60 * 60 * 1000;
 
@@ -65,6 +96,9 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
     AuthController,
     PersonalAccessTokensController,
     AdminUsersController,
+    OAuthMetadataController,
+    OAuthController,
+    OAuthConsentController,
   ],
   providers: [
     AuthenticateUserUseCase,
@@ -188,6 +222,33 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
           ) * 1000,
         ),
     },
+    // OAuth 2.1 (atrás de OAUTH_ENABLED; sem a flag as rotas respondem 404).
+    {
+      provide: OAuthSettings,
+      inject: [ConfigService],
+      useFactory: createOAuthSettings,
+    },
+    RegisterOAuthClientUseCase,
+    ResolveOAuthClientUseCase,
+    PreviewAuthorizationUseCase,
+    DecideAuthorizationUseCase,
+    ExchangeAuthorizationCodeUseCase,
+    RefreshOAuthTokenUseCase,
+    RevokeOAuthTokenUseCase,
+    ListOAuthGrantsUseCase,
+    RevokeOAuthGrantUseCase,
+    AuthenticateOAuthAccessTokenUseCase,
+    GetAuthorizationServerMetadataUseCase,
+    AuthorizationRequestValidator,
+    OAuthTokenIssuer,
+    OAuthCleanupService,
+    CryptoOAuthTokenGenerator,
+    { provide: OAuthTokenGenerator, useExisting: CryptoOAuthTokenGenerator },
+    { provide: ClientMetadataFetcher, useClass: SafeHttpClientMetadataFetcher },
+    { provide: OAuthClientRepository, useClass: PrismaOAuthClientRepository },
+    { provide: OAuthGrantRepository, useClass: PrismaOAuthGrantRepository },
+    { provide: OAuthCodeRepository, useClass: PrismaOAuthCodeRepository },
+    { provide: OAuthTokenRepository, useClass: PrismaOAuthTokenRepository },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
