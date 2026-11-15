@@ -37,6 +37,19 @@ describe('SettingsPage — tokens de integração', () => {
     vi.clearAllMocks();
   });
 
+  it('avisa onde o token funciona hoje', async () => {
+    service.list.mockResolvedValue([]);
+
+    renderWithProviders(<SettingsPage />);
+
+    const notice = await screen.findByRole('status', {
+      name: '',
+    });
+    expect(notice).toHaveTextContent('Onde o token funciona hoje');
+    expect(notice).toHaveTextContent('Claude Code');
+    expect(notice).toHaveTextContent('Claude web e no celular ainda não');
+  });
+
   it('mostra o estado vazio', async () => {
     service.list.mockResolvedValue([]);
 

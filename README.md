@@ -675,7 +675,18 @@ The hosted server keeps no secrets: each request carries the caller's own integr
 3. **Other MCP clients** (Cursor, VS Code, and others): URL `https://trampo-flow.neubergerdev.com.br/mcp`, transport Streamable HTTP, header `Authorization: Bearer tfp_...`.
 4. Ask things like "cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?", or "move a vaga da Haytek para Em andamento, fase Entrevista técnica".
 
-Revoking the token in the interface disconnects the agent immediately. Claude on the web and on mobile add custom connectors through OAuth, which is not available yet (see [Decisions and known limitations](#decisions-and-known-limitations)).
+Where it works today:
+
+| Client                                      | Today (token)                                                          |
+| ------------------------------------------- | ---------------------------------------------------------------------- |
+| Claude Code (terminal)                      | Works, with `--header`                                                 |
+| Cursor, VS Code, others that accept headers | Works                                                                  |
+| Claude Desktop                              | Only the local stdio mode (or a bridge such as `mcp-remote`, untested) |
+| Claude web and mobile                       | Not yet (needs OAuth)                                                  |
+
+Step-by-step instructions for every method, with commands and troubleshooting, are in the [connection guide](docs/guia-conexao-mcp.md) (in Portuguese).
+
+Revoking the token in the interface disconnects the agent immediately. Claude on the web, on mobile, and the Claude Desktop connectors add servers through OAuth, which is not available yet (see [Decisions and known limitations](#decisions-and-known-limitations)).
 
 <!-- GIF: short recording of Claude Code using the MCP server goes here. -->
 
@@ -694,7 +705,7 @@ claude mcp add trampo-flow \
   -- node /path/to/trampo-flow-software/mcp/dist/index.js
 ```
 
-Claude Desktop accepts the same command in `claude_desktop_config.json` (`"command": "node"`, `"args": [".../mcp/dist/index.js"]`, and both variables in `"env"`). `TRAMPO_API_TIMEOUT_MS` (default 15000) is optional. The server validates the configuration on startup and exits with a clear message if something is missing.
+In Claude Desktop this applies to the **local stdio mode only**: `claude_desktop_config.json` does not accept remote URLs, so the hosted `/mcp` needs OAuth connectors (not available yet). The same command goes in `claude_desktop_config.json` (`"command": "node"`, `"args": [".../mcp/dist/index.js"]`, and both variables in `"env"`). `TRAMPO_API_TIMEOUT_MS` (default 15000) is optional. The server validates the configuration on startup and exits with a clear message if something is missing.
 
 ### Hosted server details
 
