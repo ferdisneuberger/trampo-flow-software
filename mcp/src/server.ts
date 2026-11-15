@@ -17,7 +17,8 @@ const INSTRUCTIONS = [
   'Status (colunas do quadro): PENDING = Aguardando, IN_PROGRESS = Em andamento, COMPLETED = Finalizada, REJECTED = Recusada.',
   'A fase atual (currentPhase) é texto livre, por exemplo "Entrevista técnica".',
   'Para achar o id de uma candidatura, use list_applications com search.',
-  'Nenhuma ferramenta apaga candidaturas; excluir é feito pelo usuário na interface.',
+  'Nenhuma ferramenta apaga candidaturas e a API recusa exclusão por este acesso: excluir é feito pelo usuário na interface.',
+  'Se o usuário quiser descartar uma candidatura, explique isso e ofereça movê-la para Recusada (REJECTED) ou Finalizada (COMPLETED) com move_application, perguntando qual faz sentido.',
 ].join(' ');
 
 export function createServer(client: TrampoApiClient): McpServer {

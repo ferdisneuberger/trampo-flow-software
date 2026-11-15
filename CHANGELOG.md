@@ -22,7 +22,10 @@ semantic versioning.
 /auth/tokens`, stored only as an HMAC hash with an 8-character display
   prefix, 1–365 days of validity (default 90), at most 20 active per user,
   throttled `last_used_at`, and a per-token write rate limit. The routes accept
-  only the session JWT (`@SessionOnly()`), so a token cannot mint tokens.
+  only the session JWT (`@SessionOnly()`), so a token cannot mint tokens, and
+  `DELETE /applications/:id` is session-only too, so a token (or an agent using
+  it) can never delete applications; it can only move them to Recusada or
+  Finalizada.
 - Settings page (`/configuracoes`) with **Tokens de integração**: create, copy
   once, list with last use and expiration, and revoke, plus a ready-to-paste
   `claude mcp add --transport http` command pointing at the hosted `/mcp`. Reachable from the account menu and the sidebar.

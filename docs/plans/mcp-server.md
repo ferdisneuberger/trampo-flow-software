@@ -11,7 +11,7 @@ Permitir que um agente de IA (Claude Code, Claude Desktop ou qualquer cliente MC
 1. **O MCP chama a API HTTP, não o banco.** Ele é um cliente da API como o frontend. Assim reaproveita validação (class-validator), autorização por usuário, rate limit e o `preview` de vagas, sem duplicar regra de negócio. É o mesmo padrão de "plugin da IA integrado a um sistema existente".
 2. **Pacote novo no monorepo:** `mcp/`, em TypeScript, com `@modelcontextprotocol/sdk` e `zod`. Transporte **stdio** na v1, que é o que Claude Code e Claude Desktop usam localmente. Transporte HTTP remoto fica para depois.
 3. **Autenticação por token de acesso pessoal (PAT).** Hoje o access token dura 5 min e o refresh fica num cookie HttpOnly, o que não serve para um processo MCP. Criar tokens próprios para integrações: longos, revogáveis, guardados só como hash e enviados como `Authorization: Bearer tfp_...`. Funciona também para quem entra com Google, que não tem senha.
-4. **Sem exclusão pelo agente.** Nenhuma ferramenta apaga candidatura. O agente cria, lê, atualiza e move. Apagar continua sendo ação humana na interface.
+4. **Sem exclusão pelo agente.** Nenhuma ferramenta apaga candidatura, e a própria API recusa `DELETE /applications/:id` para PAT (`@SessionOnly()`, 403), então nem um token vazado apaga, de forma lógica ou definitiva. O agente cria, lê, atualiza e move; para descartar, move para Recusada ou Finalizada. Apagar continua sendo ação humana na interface.
 5. **Ferramentas anotadas.** `readOnlyHint` nas de leitura e `idempotentHint` onde couber, para o cliente saber o que pede confirmação.
 
 ## Fase 1: tokens de acesso pessoal (backend)

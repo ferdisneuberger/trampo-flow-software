@@ -318,7 +318,7 @@ DELETE /auth/tokens/:id    → revokes immediately
 - Format `tfp_` + 32 random bytes in base64url. The database keeps only the HMAC-SHA256 hash (`AUTH_TOKEN_SECRET`) and an 8-character prefix for display.
 - Sent as `Authorization: Bearer tfp_…`. The global guard recognizes the prefix, rejects revoked or expired tokens with `401`, and updates `last_used_at` at most once per minute.
 - Validity from 1 to 365 days (default 90), at most 20 active tokens per user, and at most 10 created per hour.
-- `/auth/tokens` routes are `@SessionOnly()`: a PAT gets `403` there, so a leaked token cannot mint or revoke tokens.
+- `/auth/tokens` and `DELETE /applications/:id` are `@SessionOnly()`: a PAT gets `403` there, so a leaked token cannot mint or revoke tokens, and cannot delete applications (soft or hard). Deleting stays a login-only action in the interface.
 - Writes made with a PAT are rate limited to 60 per minute per token.
 - In the interface: **Configurações → Tokens de integração** (`/configuracoes`) creates, copies, and revokes tokens, and shows a ready-to-paste `claude mcp add` command.
 
@@ -720,7 +720,7 @@ There is also a `revisar_funil` prompt that calls `pipeline_summary` and suggest
 ### Security decisions
 
 - **Token stored as a hash, revocable, with expiration.** The secret appears once; the database keeps only the HMAC. Revoking in the interface cuts access immediately.
-- **No deletion by the agent.** No tool deletes applications; deleting stays a human action in the interface.
+- **No deletion by the agent.** No tool deletes applications, and the API itself refuses `DELETE /applications/:id` for integration tokens (`403`), so even a leaked token or an agent calling the API directly cannot delete, soft or hard. To discard an application the agent moves it to Recusada or Finalizada; deleting stays a human action in the interface.
 - **Per-user scope.** The token acts as its owner: other users' applications return `404`, exactly as in the interface.
 - **A token cannot create tokens.** `/auth/tokens` only accepts the session JWT.
 - **Annotated tools.** `readOnlyHint` on reads; writes are `destructiveHint: false`, so clients know what to confirm.
@@ -1125,7 +1125,7 @@ This section makes explicit what the project does **not** do, and why. None of t
 - **Users.** Public sign-up is available behind `REGISTRATION_ENABLED`, with email verification, Google sign-in, and password recovery by email. There is no password change from inside the interface: passwords are changed through the recovery flow. To change it: an authenticated password change endpoint that revokes the other sessions.
 - **Roles and permissions.** Each user sees only their own applications, but there are no roles (admin, viewer) or sharing between accounts. To change it: a roles model and per-resource authorization rules.
 - **Guard cost.** It validates the signature and queries `users` on every request (one primary-key `SELECT`); integration tokens add one lookup by hash. To change it: an in-memory cache with a short TTL, if the volume justifies it.
-- **MCP authentication and token scopes.** The hosted MCP accepts integration tokens as a bearer header, which covers Claude Code and clients that let you set headers; Claude on the web and on mobile add connectors through OAuth, which the API does not implement yet. Integration tokens have the same permissions as the session (minus deleting through the MCP tools and managing tokens). To change it: an OAuth 2.1 authorization server in the API (login, consent, dynamic client registration), and `read`/`write` scopes on the token.
+- **MCP authentication and token scopes.** The hosted MCP accepts integration tokens as a bearer header, which covers Claude Code and clients that let you set headers; Claude on the web and on mobile add connectors through OAuth, which the API does not implement yet. Integration tokens have the same permissions as the session, minus deleting applications and managing tokens. To change it: an OAuth 2.1 authorization server in the API (login, consent, dynamic client registration), and `read`/`write` scopes on the token.
 - **UI tests.** Components and pages have Testing Library tests, hooks/services have coverage, and Playwright covers the critical path (login, creation, search, detail, and deletion). E2E runs on PRs, on demand, and on a schedule. Visual regression uses Linux snapshots and runs in a separate workflow.
 - **Observability.** Default Nest/Fastify logging, with no request ID or metrics. To change it: structured Pino logging, request correlation, and a metrics endpoint.
 
