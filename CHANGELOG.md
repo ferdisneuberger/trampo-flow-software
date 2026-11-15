@@ -3,6 +3,46 @@
 All notable changes to the project. The format follows Conventional Commits and
 semantic versioning.
 
+## 3.1.0 — 2026-11-15
+
+### Added
+
+- MCP server in the new `mcp/` package (stdio, `@modelcontextprotocol/sdk` +
+  `zod`) so AI agents such as Claude Code and Claude Desktop can work with
+  applications through the API. Tools: `preview_job_posting`,
+  `create_application` (fills from the job page, never invents title or
+  company, returns the existing application for a repeated link),
+  `list_applications`, `get_application`, `update_application`,
+  `move_application` (top of the target column), and `pipeline_summary`, plus
+  the `revisar_funil` prompt. No tool deletes applications; reads are annotated
+  `readOnlyHint` and writes `destructiveHint: false`.
+- Personal access tokens (`tfp_…`) for integrations: `POST/GET/DELETE
+/auth/tokens`, stored only as an HMAC hash with an 8-character display
+  prefix, 1–365 days of validity (default 90), at most 20 active per user,
+  throttled `last_used_at`, and a per-token write rate limit. The routes accept
+  only the session JWT (`@SessionOnly()`), so a token cannot mint tokens.
+- Settings page (`/configuracoes`) with **Tokens de integração**: create, copy
+  once, list with last use and expiration, and revoke, plus a ready-to-paste
+  `claude mcp add` command. Reachable from the account menu and the sidebar.
+- Prefill from the job link: `POST /applications/preview` reads title, company,
+  and company website from the job page (with SSRF protections and a per-user
+  rate limit), and the create modal starts with just the link field and tags
+  the prefilled fields "do link".
+- `mcp` job in CI (lint, typecheck, tests with coverage, build) and `mcp/` in
+  lint-staged and the root `lint` script.
+
+### Changed
+
+- Grafite theme: neutral graphite palette in light and dark, Hanken Grotesk,
+  and a split-screen sign-in with the official Google button.
+- On large screens the horizontal header became a collapsible sidebar that
+  starts collapsed; mobile keeps a compact top bar.
+- Cleaner create modal with a staged form; new applications start with the
+  phase "Candidatura enviada".
+- The authenticated request now carries `{ sub, authMethod, tokenId? }`
+  instead of the raw JWT payload.
+- The OpenAPI document describes both bearer formats (session JWT and `tfp_`).
+
 ## 3.0.0 — 2026-11-07
 
 ### Added

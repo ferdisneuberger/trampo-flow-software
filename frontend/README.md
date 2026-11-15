@@ -37,8 +37,9 @@ Page (pages/ApplicationDetailPage)
 | `components/auth`         | Protected route and session loading screen                                                                                               |
 | `components/layout`       | Global shell: collapsible sidebar on large screens, compact top bar on mobile (brand, search, theme, account menu/logout, and skip link) |
 | `components/applications` | Board, columns, cards, form with prefill from the job link, and deletion dialog                                                          |
+| `components/settings`     | Integration tokens section: create, copy once, list, and revoke                                                                          |
 | `pages`                   | Screen composition                                                                                                                       |
-| `hooks`                   | Queries/mutations, form, debounce, disclosure, and logout                                                                                |
+| `hooks`                   | Queries/mutations, form, debounce, disclosure, logout, and integration tokens                                                            |
 | `contexts`                | Authenticated session, theme, and the unauthorized event                                                                                 |
 | `services`                | Domain types and isolated HTTP calls                                                                                                     |
 | `lib`                     | Query client, query keys, and centralized invalidation                                                                                   |
@@ -101,7 +102,8 @@ frontend/
 │   │   ├── useBoard.ts
 │   │   ├── useDebouncedValue.ts
 │   │   ├── useDisclosure.ts
-│   │   └── useLogout.ts
+│   │   ├── useLogout.ts
+│   │   └── usePersonalAccessTokens.ts
 │   ├── lib/
 │   │   ├── invalidate.ts
 │   │   ├── query-client.ts
@@ -114,6 +116,7 @@ frontend/
 │   │   ├── NotFoundPage.tsx
 │   │   ├── RegisterPage.tsx
 │   │   ├── ResetPasswordPage.tsx
+│   │   ├── SettingsPage.tsx
 │   │   ├── TermsPage.tsx
 │   │   └── VerifyEmailPage.tsx
 │   ├── services/
@@ -123,9 +126,11 @@ frontend/
 │   │   │   ├── auth.service.ts
 │   │   │   ├── client.ts
 │   │   │   ├── errors.ts
+│   │   │   ├── personal-access-tokens.service.ts
 │   │   │   └── session.ts
 │   │   ├── applications.types.ts
-│   │   └── auth.types.ts
+│   │   ├── auth.types.ts
+│   │   └── personal-access-tokens.types.ts
 │   ├── test/
 │   ├── utils/
 │   ├── App.tsx
@@ -198,6 +203,7 @@ The application is available at `http://localhost:5173`. Vite forwards `/api/*` 
 | `/`                 | Redirects to `/candidaturas`  |
 | `/candidaturas`     | Kanban board (home screen)    |
 | `/candidaturas/:id` | Detail, editing, and deletion |
+| `/configuracoes`    | Settings: integration tokens  |
 | `*`                 | 404                           |
 
 ## API integration
@@ -222,6 +228,9 @@ The application is available at `http://localhost:5173`. Vite forwards `/api/*` 
 | Create              | `POST`   | `/applications`                     |
 | Update              | `PATCH`  | `/applications/:id`                 |
 | Delete              | `DELETE` | `/applications/:id?mode=soft\|hard` |
+| List tokens         | `GET`    | `/auth/tokens`                      |
+| Create token        | `POST`   | `/auth/tokens`                      |
+| Revoke token        | `DELETE` | `/auth/tokens/:id`                  |
 
 ## Quality
 

@@ -4,22 +4,14 @@
 
 Full-stack application for tracking job applications. The backend is a Node.js API built with NestJS, Fastify, Prisma, and PostgreSQL, organized in layers following DDD and SOLID principles. The frontend is a React SPA built with Vite, TypeScript, and Tailwind CSS, structured into components, hooks, and services.
 
-## Highlights of 3.0
+## Highlights of 3.1
 
-- Per-user applications, with company and company website.
-- Kanban board with drag and drop and persisted manual ordering.
-- Server-side search, with the Kanban board as the home screen.
-- Horizontal header with search, theme toggle, and an account menu with logout.
-- Light, dark, and system themes, with light as the default and the preference
-  saved per user.
-- Trampo Brasil visual identity across the app and transactional emails.
-- Session with a short-lived access token in memory and a refresh token in an
-  `HttpOnly` cookie.
-- Application detail page with editing and deletion.
-- Playwright visual regression with Linux baselines.
-
-## Since 3.0 (unreleased)
-
+- **AI agents via MCP:** a new `mcp/` package lets Claude Code, Claude Desktop,
+  or any MCP client create, read, update, and move applications through the
+  API ("cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?").
+  See [Using with AI agents (MCP)](#using-with-ai-agents-mcp).
+- **Integration tokens:** long-lived, revocable `tfp_` personal access tokens,
+  stored only as a hash and managed in **Configurações → Tokens de integração**.
 - **Grafite theme:** neutral graphite palette in light and dark, Hanken
   Grotesk, and a split-screen sign-in with the official Google button.
 - **Sidebar navigation:** on large screens the header became a sidebar that
@@ -30,7 +22,12 @@ Full-stack application for tracking job applications. The backend is a Node.js A
   (`POST /applications/preview`), and the form shows up already filled in,
   with the fields that came from the page tagged "do link".
 
-**Current version:** 3.0.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
+Still there from 3.0: per-user applications, Kanban board with drag and drop
+and persisted ordering, server-side search, light/dark/system themes saved per
+user, a short-lived access token in memory with an `HttpOnly` refresh cookie,
+and Playwright visual regression.
+
+**Current version:** 3.1.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Stack
 
@@ -43,6 +40,7 @@ Full-stack application for tracking job applications. The backend is a Node.js A
 - **React 19**, **Vite 8**, **TypeScript 6**, and **Tailwind CSS 4** on the frontend
 - **Lucide React**, **Axios**, **React Router 7**, **TanStack Query**, and **dnd-kit** in the web interface
 - **Nginx** at the edge (proxying `/` and `/api`) and to serve the frontend production build
+- **Model Context Protocol** (`@modelcontextprotocol/sdk`, stdio) and **zod** in the `mcp/` package
 
 ## Architecture
 
@@ -306,9 +304,28 @@ POST /auth/logout    → revokes the family and clears the cookie
 
 Each refresh rotates the token: the previous one is revoked and points to its replacement. If an already revoked token is presented again outside a 10-second grace window, the **entire family** is revoked — this is reuse detection. The window exists so that two tabs refreshing at the same time do not end the session.
 
+#### Integration tokens (personal access tokens)
+
+For agents and scripts, which cannot hold a 5-minute access token plus an `HttpOnly` cookie, the API accepts **personal access tokens** (PAT). They work for every account, including Google-only accounts that have no password.
+
+```http
+POST   /auth/tokens        { "name": "Claude Code", "expiresInDays": 90 }  → token tfp_… (shown once)
+GET    /auth/tokens        → name, prefix, last use, expiration, revocation (never the secret)
+DELETE /auth/tokens/:id    → revokes immediately
+```
+
+- Format `tfp_` + 32 random bytes in base64url. The database keeps only the HMAC-SHA256 hash (`AUTH_TOKEN_SECRET`) and an 8-character prefix for display.
+- Sent as `Authorization: Bearer tfp_…`. The global guard recognizes the prefix, rejects revoked or expired tokens with `401`, and updates `last_used_at` at most once per minute.
+- Validity from 1 to 365 days (default 90), at most 20 active tokens per user, and at most 10 created per hour.
+- `/auth/tokens` routes are `@SessionOnly()`: a PAT gets `403` there, so a leaked token cannot mint or revoke tokens.
+- Writes made with a PAT are rate limited to 60 per minute per token.
+- In the interface: **Configurações → Tokens de integração** (`/configuracoes`) creates, copies, and revokes tokens, and shows a ready-to-paste `claude mcp add` command.
+
+#### Theme preference and route protection
+
 The theme preference is saved per user via `PATCH /auth/me/theme` (`light`, `dark`, or `system`). The default is `light`; the frontend keeps a copy in `localStorage` only to apply the theme before React loads and avoid a flash.
 
-`POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/refresh`, `POST /auth/logout`, and `GET /health` are public. `POST /auth/verification/resend` requires a session. All `/applications` routes, `GET /auth/me`, and `PATCH /auth/me/theme` go through the global guard. The frontend keeps the access token only in memory, restores the session with `POST /auth/refresh` + `GET /auth/me`, and clears the query cache on any `401` response. Logout calls `POST /auth/logout`, revokes the refresh token family, and clears the cookie. Invalid credentials always receive `401` with the same message, and the hash runs even when the user does not exist, so registered emails are not revealed.
+`POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/refresh`, `POST /auth/logout`, and `GET /health` are public. `POST /auth/verification/resend` requires a session. All `/applications` routes, `GET /auth/me`, `PATCH /auth/me/theme`, and `/auth/tokens` go through the global guard. The frontend keeps the access token only in memory, restores the session with `POST /auth/refresh` + `GET /auth/me`, and clears the query cache on any `401` response. Logout calls `POST /auth/logout`, revokes the refresh token family, and clears the cookie. Invalid credentials always receive `401` with the same message, and the hash runs even when the user does not exist, so registered emails are not revealed.
 
 ## Frontend
 
@@ -430,12 +447,13 @@ The `Visual` workflow runs on PRs touching `frontend/**` and publishes the diffs
 - Public sign-up with email verification by code, terms of use, and creation blocked until confirmation.
 - Google sign-in for verified accounts.
 - Session with the access token in memory, deduplicated refresh, server-side logout, and cache clearing on `401`.
+- Settings page (`/configuracoes`, from the account menu or the sidebar) with integration tokens: create with name and validity, copy once, list with last use, and revoke.
 
 See [`frontend/README.md`](frontend/README.md) for the full structure and architecture details.
 
 ## API
 
-> All `/applications` routes require `Authorization: Bearer <token>`. Get the token from `POST /auth/login`. `GET /health`, `POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, and `POST /auth/password/reset` are public. In the examples below, replace `<token>` with the `accessToken` returned by login.
+> All `/applications` routes require `Authorization: Bearer <token>`. Get the token from `POST /auth/login`, or use an integration token `tfp_…` (see [Integration tokens](#integration-tokens-personal-access-tokens)). `GET /health`, `POST /auth/login`, `POST /auth/google`, `POST /auth/register`, `POST /auth/verification/confirm`, `POST /auth/password/forgot`, and `POST /auth/password/reset` are public. In the examples below, replace `<token>` with the `accessToken` returned by login.
 >
 > The API is accessed through the local ingress entry point at `http://localhost:5173/api`; the `/api` prefix is stripped before reaching the API. If the API is running outside Docker at `http://localhost:3000`, remove the `/api` prefix from the URLs.
 >
@@ -627,6 +645,91 @@ Domain and application errors:
 | Invalid deletion mode              | `400` | `INVALID_DELETE_MODE`                        |
 | Domain validation                  | `400` | Specific code, such as `TITLE_REQUIRED`      |
 | DTO validation                     | `400` | Default NestJS format with `statusCode: 400` |
+
+## Using with AI agents (MCP)
+
+The `mcp/` package is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets an AI agent work with your applications. It is a client of the HTTP API, just like the frontend: validation, per-user authorization, rate limits, and the job page preview all stay in the API, with no duplicated business rules.
+
+```text
+Claude Code / Claude Desktop ──stdio──▶ mcp/dist/index.js ──HTTPS + Bearer tfp_…──▶ Trampo Flow API
+```
+
+### Setup
+
+1. Create a token in **Configurações → Tokens de integração** (or `POST /auth/tokens` with your session).
+2. Build the server:
+
+   ```bash
+   cd mcp
+   npm ci
+   npm run build
+   ```
+
+3. Register it in **Claude Code**:
+
+   ```bash
+   claude mcp add trampo-flow \
+     -e TRAMPO_API_URL=https://trampo-flow.neubergerdev.com.br/api \
+     -e TRAMPO_API_TOKEN=tfp_... \
+     -- node /path/to/trampo-flow-software/mcp/dist/index.js
+   ```
+
+   Or in **Claude Desktop** (`claude_desktop_config.json`):
+
+   ```json
+   {
+     "mcpServers": {
+       "trampo-flow": {
+         "command": "node",
+         "args": ["/path/to/trampo-flow-software/mcp/dist/index.js"],
+         "env": {
+           "TRAMPO_API_URL": "https://trampo-flow.neubergerdev.com.br/api",
+           "TRAMPO_API_TOKEN": "tfp_..."
+         }
+       }
+     }
+   }
+   ```
+
+   For the local stack use `TRAMPO_API_URL=http://localhost:5173/api`. `TRAMPO_API_TIMEOUT_MS` (default 15000) is optional. The server validates the configuration on startup and exits with a clear message if something is missing.
+
+4. Ask things like "cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?", or "move a vaga da Haytek para Em andamento, fase Entrevista técnica".
+
+<!-- GIF: short recording of Claude Code using the MCP server goes here. -->
+
+### Tools
+
+| Tool                  | What it does                                                                                                                                                                   | API                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `preview_job_posting` | Reads title, company, and website from a job page, without saving. Read-only.                                                                                                  | `POST /applications/preview`                                            |
+| `create_application`  | Creates from the link, filling missing fields from the page. Asks for title/company instead of inventing them, and returns the existing one if the link is already registered. | `GET /applications`, `POST /applications/preview`, `POST /applications` |
+| `list_applications`   | Lists with `status`, `search`, `sort` (`recent`/`stale`), and `limit`. Compact output with days since the last update. Read-only.                                              | `GET /applications`                                                     |
+| `get_application`     | Full details of one application. Read-only.                                                                                                                                    | `GET /applications/:id`                                                 |
+| `update_application`  | Changes phase, status, title, company, or links; at least one field.                                                                                                           | `PATCH /applications/:id`                                               |
+| `move_application`    | Moves to another column and puts it at the **top**.                                                                                                                            | `GET /applications/board`, `PATCH /applications/:id/placement`          |
+| `pipeline_summary`    | Totals per status and open applications (Aguardando/Em andamento) idle for `staleDays` (default 7). Read-only.                                                                 | `GET /applications/stats`, `GET /applications?sort=stale`               |
+
+There is also a `revisar_funil` prompt that calls `pipeline_summary` and suggests next steps. Status values are the API enums, with the interface names in the descriptions: `PENDING` = Aguardando, `IN_PROGRESS` = Em andamento, `COMPLETED` = Finalizada, `REJECTED` = Recusada.
+
+### Security decisions
+
+- **Token stored as a hash, revocable, with expiration.** The secret appears once; the database keeps only the HMAC. Revoking in the interface cuts access immediately.
+- **No deletion by the agent.** No tool deletes applications; deleting stays a human action in the interface.
+- **Per-user scope.** The token acts as its owner: other users' applications return `404`, exactly as in the interface.
+- **A token cannot create tokens.** `/auth/tokens` only accepts the session JWT.
+- **Annotated tools.** `readOnlyHint` on reads; writes are `destructiveHint: false`, so clients know what to confirm.
+- **Nothing on stdout but the protocol.** Logs go to `stderr`, and the token never appears in logs or error messages.
+
+### Development
+
+```bash
+cd mcp
+npm test           # unit tests with mocked fetch + Client/InMemoryTransport integration
+npm run lint
+npm run typecheck
+npm run build
+npm run inspect    # MCP Inspector against dist/index.js
+```
 
 ## Tests
 
@@ -827,6 +930,16 @@ backend/test/
 │   ├── tsconfig.node.json
 │   ├── vite.config.ts
 │   └── README.md
+├── mcp/
+│   ├── src/
+│   │   ├── index.ts          # stdio entry point (logs on stderr only)
+│   │   ├── server.ts         # McpServer with tools and prompt
+│   │   ├── config.ts         # TRAMPO_API_URL / TRAMPO_API_TOKEN, validated with zod
+│   │   ├── api-client.ts     # fetch with Bearer, timeout, and error translation
+│   │   ├── prompts.ts
+│   │   └── tools/            # one tool per file
+│   ├── test/
+│   └── package.json
 ├── infra/
 │   └── ingress/
 │       └── nginx.conf
@@ -1000,7 +1113,8 @@ This section makes explicit what the project does **not** do, and why. None of t
 - **Listing.** The interface uses the board (`GET /applications/board`); the API keeps the paginated listing endpoint for integrations and statistics.
 - **Users.** Public sign-up is available behind `REGISTRATION_ENABLED`, with email verification, Google sign-in, and password recovery by email. There is no password change from inside the interface: passwords are changed through the recovery flow. To change it: an authenticated password change endpoint that revokes the other sessions.
 - **Roles and permissions.** Each user sees only their own applications, but there are no roles (admin, viewer) or sharing between accounts. To change it: a roles model and per-resource authorization rules.
-- **Guard cost.** It validates the signature and queries `users` on every request (one primary-key `SELECT`). To change it: an in-memory cache with a short TTL, if the volume justifies it.
+- **Guard cost.** It validates the signature and queries `users` on every request (one primary-key `SELECT`); integration tokens add one lookup by hash. To change it: an in-memory cache with a short TTL, if the volume justifies it.
+- **MCP transport and token scopes.** The MCP server runs locally over stdio, so it works with Claude Code and Claude Desktop but not with Claude on the web or mobile, and integration tokens have the same permissions as the session (minus deleting through the MCP tools and managing tokens). To change it: Streamable HTTP at `/mcp` in the backend with OAuth, and `read`/`write` scopes on the token.
 - **UI tests.** Components and pages have Testing Library tests, hooks/services have coverage, and Playwright covers the critical path (login, creation, search, detail, and deletion). E2E runs on PRs, on demand, and on a schedule. Visual regression uses Linux snapshots and runs in a separate workflow.
 - **Observability.** Default Nest/Fastify logging, with no request ID or metrics. To change it: structured Pino logging, request correlation, and a metrics endpoint.
 

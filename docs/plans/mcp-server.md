@@ -1,5 +1,7 @@
 # Plano: servidor MCP do Trampo Flow
 
+> **Status:** implementado na 3.1.0. Itens em aberto são manuais: Inspector, teste com Claude Code real e GIF. A ponta a ponta foi validada com um cliente MCP via stdio contra a API local (PAT real, os três exemplos do objetivo, revogação).
+
 ## Objetivo
 
 Permitir que um agente de IA (Claude Code, Claude Desktop ou qualquer cliente MCP) consulte e atualize as candidaturas do Trampo Flow. Exemplo de uso: "cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?", "move a vaga da Haytek para Em andamento, fase Entrevista técnica".
@@ -14,17 +16,17 @@ Permitir que um agente de IA (Claude Code, Claude Desktop ou qualquer cliente MC
 
 ## Fase 1: tokens de acesso pessoal (backend)
 
-- [ ] Prisma: model `PersonalAccessToken` (`id`, `userId`, `name`, `tokenHash`, `prefix` com os primeiros 8 caracteres para exibição, `lastUsedAt`, `expiresAt`, `revokedAt`, `createdAt`), com índice em `tokenHash` e cascade ao apagar o usuário. Gerar a migration.
-- [ ] Geração: `tfp_` + 32 bytes aleatórios em base64url. Hash com o `HmacTokenHasher` que já existe (`AUTH_TOKEN_SECRET`). O token em texto aparece **uma vez**, na criação.
-- [ ] Domínio/aplicação: repositório + use cases `CreatePersonalAccessToken`, `ListPersonalAccessTokens`, `RevokePersonalAccessToken` e `AuthenticatePersonalAccessToken`.
-- [ ] Rotas: `POST /auth/tokens` (`{ name, expiresInDays? }`, máximo de 365 dias), `GET /auth/tokens` (sem o segredo) e `DELETE /auth/tokens/:id`. Criar e revogar **só com o JWT de sessão**: um PAT não pode criar outro PAT.
-- [ ] `JwtAuthGuard`: se o bearer começa com `tfp_`, validar pelo hash (não revogado, não expirado), atualizar `lastUsedAt` no máximo uma vez por minuto. Senão, segue o fluxo JWT atual. Em ambos os casos `request.user` passa a ser `{ sub, authMethod: 'jwt' | 'pat', tokenId? }` (o `JwtPayload` completo não existe para PAT).
-- [ ] Decorator `@SessionOnly()`: o guard recusa com 403 quando `authMethod === 'pat'`. Usado em `/auth/tokens*`.
-- [ ] Rate limit por token nas rotas de escrita, reaproveitando o `RateLimiterService`.
-- [ ] Testes (Vitest): criação devolve o segredo uma vez; o hash bate; token revogado ou expirado dá 401; PAT não acessa `/auth/tokens`; token de outro usuário não enxerga candidaturas (404).
-- [ ] Swagger: documentar o esquema `tfp_`.
-- [ ] Rotas de token passam pelo `location /api` genérico do ingress; o rate limit fica no próprio backend (criação: 10 por hora por usuário).
-- [ ] Tela em Configurações → "Tokens de integração" (rota `/settings`, link no menu da conta): criar com nome e validade, mostrar o segredo uma vez com botão de copiar, listar (nome, prefixo, último uso, expiração) e revogar.
+- [x] Prisma: model `PersonalAccessToken` (`id`, `userId`, `name`, `tokenHash`, `prefix` com os primeiros 8 caracteres para exibição, `lastUsedAt`, `expiresAt`, `revokedAt`, `createdAt`), com índice em `tokenHash` e cascade ao apagar o usuário. Gerar a migration.
+- [x] Geração: `tfp_` + 32 bytes aleatórios em base64url. Hash com o `HmacTokenHasher` que já existe (`AUTH_TOKEN_SECRET`). O token em texto aparece **uma vez**, na criação.
+- [x] Domínio/aplicação: repositório + use cases `CreatePersonalAccessToken`, `ListPersonalAccessTokens`, `RevokePersonalAccessToken` e `AuthenticatePersonalAccessToken`.
+- [x] Rotas: `POST /auth/tokens` (`{ name, expiresInDays? }`, máximo de 365 dias), `GET /auth/tokens` (sem o segredo) e `DELETE /auth/tokens/:id`. Criar e revogar **só com o JWT de sessão**: um PAT não pode criar outro PAT.
+- [x] `JwtAuthGuard`: se o bearer começa com `tfp_`, validar pelo hash (não revogado, não expirado), atualizar `lastUsedAt` no máximo uma vez por minuto. Senão, segue o fluxo JWT atual. Em ambos os casos `request.user` passa a ser `{ sub, authMethod: 'jwt' | 'pat', tokenId? }` (o `JwtPayload` completo não existe para PAT).
+- [x] Decorator `@SessionOnly()`: o guard recusa com 403 quando `authMethod === 'pat'`. Usado em `/auth/tokens*`.
+- [x] Rate limit por token nas rotas de escrita, reaproveitando o `RateLimiterService`.
+- [x] Testes (Vitest): criação devolve o segredo uma vez; o hash bate; token revogado ou expirado dá 401; PAT não acessa `/auth/tokens`; token de outro usuário não enxerga candidaturas (404).
+- [x] Swagger: documentar o esquema `tfp_`.
+- [x] Rotas de token passam pelo `location /api` genérico do ingress; o rate limit fica no próprio backend (criação: 10 por hora por usuário).
+- [x] Tela em Configurações → "Tokens de integração" (rota `/settings`, link no menu da conta): criar com nome e validade, mostrar o segredo uma vez com botão de copiar, listar (nome, prefixo, último uso, expiração) e revogar.
 
 ## Fase 2: pacote `mcp/`
 
@@ -42,8 +44,8 @@ mcp/
   test/*.test.ts
 ```
 
-- [ ] `api-client.ts`: transforma erros HTTP em mensagens úteis para o modelo. 401 vira "token inválido ou revogado; gere outro em ...", 404 vira "candidatura não encontrada", 429 vira "muitas requisições, tente em 1 min", e 400 traz a mensagem de validação da API. Nunca registrar o token em log.
-- [ ] **stdout é do protocolo**: log só em `stderr`.
+- [x] `api-client.ts`: transforma erros HTTP em mensagens úteis para o modelo. 401 vira "token inválido ou revogado; gere outro em ...", 404 vira "candidatura não encontrada", 429 vira "muitas requisições, tente em 1 min", e 400 traz a mensagem de validação da API. Nunca registrar o token em log.
+- [x] **stdout é do protocolo**: log só em `stderr`.
 
 Ferramentas (nomes em inglês e descrições em português, para o modelo escolher bem):
 
@@ -57,30 +59,30 @@ Ferramentas (nomes em inglês e descrições em português, para o modelo escolh
 | `move_application(id, status)`                                                         | `GET /applications?status=&limit=1` + `PATCH /applications/:id/placement` | Sem vizinhos a API põe o card no **fim** da coluna (`findMaxPosition + GAP`). Para ir ao topo, a tool busca o primeiro card da coluna (o board ordena por posição) e envia `afterId`.                                                                                                                            |
 | `pipeline_summary(staleDays = 7)`                                                      | `GET /applications/stats` + `GET /applications?sort=stale&limit=100`      | Só leitura. Totais por status e candidaturas em Aguardando/Em andamento paradas há mais de `staleDays` dias. Não usa `/board`, que corta por coluna.                                                                                                                                                             |
 
-- [ ] Mapear status para os nomes da interface (`frontend/src/services/applications.types.ts`): `PENDING` = Aguardando, `IN_PROGRESS` = Em andamento, `COMPLETED` = Finalizada, `REJECTED` = Recusada. A tool aceita o enum ou o nome.
-- [ ] (Opcional) Um prompt MCP `revisar_funil`, que chama `pipeline_summary` e sugere próximos passos.
+- [x] Mapear status para os nomes da interface (`frontend/src/services/applications.types.ts`): `PENDING` = Aguardando, `IN_PROGRESS` = Em andamento, `COMPLETED` = Finalizada, `REJECTED` = Recusada. A tool aceita o enum ou o nome.
+- [x] (Opcional) Um prompt MCP `revisar_funil`, que chama `pipeline_summary` e sugere próximos passos.
 
 ## Fase 3: testes
 
-- [ ] Unitários (Vitest) com `fetch` mockado: cada tool chama a rota certa com o payload certo; o `create_application` usa o preview e não inventa dados; os erros são mapeados.
-- [ ] Teste de integração com `Client` + `InMemoryTransport` do SDK: listar as tools e chamar uma.
+- [x] Unitários (Vitest) com `fetch` mockado: cada tool chama a rota certa com o payload certo; o `create_application` usa o preview e não inventa dados; os erros são mapeados.
+- [x] Teste de integração com `Client` + `InMemoryTransport` do SDK: listar as tools e chamar uma.
 - [ ] Manual com o MCP Inspector: `npx @modelcontextprotocol/inspector node mcp/dist/index.js`.
 - [ ] Ponta a ponta: subir o `docker-compose` local, criar um PAT, plugar no Claude Code e rodar os três exemplos do objetivo.
 
 ## Fase 4: uso e documentação
 
-- [ ] Claude Code:
+- [x] Claude Code:
   ```
   claude mcp add trampo-flow \
     -e TRAMPO_API_URL=https://trampo-flow.neubergerdev.com.br/api \
     -e TRAMPO_API_TOKEN=tfp_... \
     -- node /caminho/trampo-flow-software/mcp/dist/index.js
   ```
-- [ ] Claude Desktop: o mesmo bloco em `claude_desktop_config.json`.
-- [ ] README: seção "Usando com agentes de IA (MCP)", com setup, lista de tools, decisões de segurança (PAT com hash, sem delete, escopo por usuário) e um GIF curto de uso.
-- [ ] Monorepo: `mcp/` com lockfile próprio, entrada no `lint-staged` e no script `lint` da raiz.
-- [ ] CI: job de lint, typecheck, teste e build para `mcp/` no `ci.yml`.
-- [ ] Release **3.1.0** (a 3.0.0 já está tagueada): CHANGELOG reúne o "Since 3.0 (unreleased)" do README (Grafite, sidebar, prefill pelo link) com PAT, tela de tokens e MCP; bump de versão em `package.json` da raiz, backend, frontend e mcp; README com "Highlights of 3.1".
+- [x] Claude Desktop: o mesmo bloco em `claude_desktop_config.json`.
+- [x] README: seção "Usando com agentes de IA (MCP)", com setup, lista de tools, decisões de segurança (PAT com hash, sem delete, escopo por usuário) e um GIF curto de uso.
+- [x] Monorepo: `mcp/` com lockfile próprio, entrada no `lint-staged` e no script `lint` da raiz.
+- [x] CI: job de lint, typecheck, teste e build para `mcp/` no `ci.yml`.
+- [x] Release **3.1.0** (a 3.0.0 já está tagueada): CHANGELOG reúne o "Since 3.0 (unreleased)" do README (Grafite, sidebar, prefill pelo link) com PAT, tela de tokens e MCP; bump de versão em `package.json` da raiz, backend, frontend e mcp; README com "Highlights of 3.1".
 - [ ] GIF de uso: gravado manualmente; o README deixa o lugar reservado.
 
 ## Como executar com Claude Code
