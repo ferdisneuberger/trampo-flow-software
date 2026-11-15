@@ -15,7 +15,12 @@ import {
   type AuthenticatedRequest,
 } from '../../src/infrastructure/auth/jwt-auth.guard';
 import { RateLimiterService } from '../../src/infrastructure/auth/rate-limiter.service';
+import {
+  SCOPE_APPLICATIONS_READ,
+  SCOPE_APPLICATIONS_WRITE,
+} from '../../src/domain/auth/scopes';
 import { IS_PUBLIC_KEY } from '../../src/infrastructure/auth/public.decorator';
+import { REQUIRED_SCOPE_KEY } from '../../src/infrastructure/auth/required-scope.decorator';
 import { IS_SESSION_ONLY_KEY } from '../../src/infrastructure/auth/session-only.decorator';
 import {
   TokenService,
@@ -43,10 +48,14 @@ function createRequest(
   } as AuthenticatedRequest;
 }
 
-function createContext(request: AuthenticatedRequest): ExecutionContext {
+function createContext(
+  request: AuthenticatedRequest,
+  reply: { header: ReturnType<typeof vi.fn> } = { header: vi.fn() },
+): ExecutionContext {
   return {
     switchToHttp: () => ({
       getRequest: () => request,
+      getResponse: () => reply,
     }),
     getHandler: () => undefined,
     getClass: () => undefined,
@@ -55,14 +64,30 @@ function createContext(request: AuthenticatedRequest): ExecutionContext {
 
 const TOKEN_ID = '0b6a8c1e-2222-4c1e-9a0e-2b6a4f5c8d10';
 
-function createGuard(isPublic = false, isSessionOnly = false) {
+type GuardOptions = {
+  /** `null` simula uma rota sem @RequiredScope. */
+  requiredScope?: string | null;
+  patScopes?: string[];
+};
+
+function createGuard(
+  isPublic = false,
+  isSessionOnly = false,
+  options: GuardOptions = {},
+) {
+  const requiredScope =
+    options.requiredScope === undefined
+      ? SCOPE_APPLICATIONS_READ
+      : (options.requiredScope ?? undefined);
   const reflector = {
     getAllAndOverride: vi.fn((key: string) =>
       key === IS_PUBLIC_KEY
         ? isPublic
         : key === IS_SESSION_ONLY_KEY
           ? isSessionOnly
-          : undefined,
+          : key === REQUIRED_SCOPE_KEY
+            ? requiredScope
+            : undefined,
     ),
   };
   const tokenService = {
@@ -72,7 +97,14 @@ function createGuard(isPublic = false, isSessionOnly = false) {
     existsById: vi.fn().mockResolvedValue(true),
   };
   const authenticatePat = {
-    execute: vi.fn().mockResolvedValue({ userId: USER_ID, tokenId: TOKEN_ID }),
+    execute: vi.fn().mockResolvedValue({
+      userId: USER_ID,
+      tokenId: TOKEN_ID,
+      scopes: options.patScopes ?? [
+        SCOPE_APPLICATIONS_READ,
+        SCOPE_APPLICATIONS_WRITE,
+      ],
+    }),
   };
   const rateLimiter = new RateLimiterService();
   const guard = new JwtAuthGuard(
@@ -165,6 +197,7 @@ describe('JwtAuthGuard', () => {
         sub: USER_ID,
         authMethod: 'pat',
         tokenId: TOKEN_ID,
+        scopes: [SCOPE_APPLICATIONS_READ, SCOPE_APPLICATIONS_WRITE],
       });
     });
 
@@ -228,6 +261,85 @@ describe('JwtAuthGuard', () => {
               method: 'GET',
               headers: { authorization: 'Bearer tfp_segredo' },
             }),
+          ),
+        ),
+      ).resolves.toBe(true);
+    });
+  });
+
+  describe('escopos do token de integração (negado por padrão)', () => {
+    const withToken = (method = 'GET') =>
+      createRequest({
+        method,
+        headers: { authorization: 'Bearer tfp_segredo' },
+      });
+
+    it('nega rota sem @RequiredScope, mesmo com token válido', async () => {
+      const { guard } = createGuard(false, false, { requiredScope: null });
+      const reply = { header: vi.fn() };
+
+      await expect(
+        guard.canActivate(createContext(withToken(), reply)),
+      ).rejects.toThrow(/não está disponível para tokens de integração/);
+    });
+
+    it('token somente leitura lê, mas não escreve (403 + insufficient_scope)', async () => {
+      const readOnly = { patScopes: [SCOPE_APPLICATIONS_READ] };
+      const reader = createGuard(false, false, {
+        ...readOnly,
+        requiredScope: SCOPE_APPLICATIONS_READ,
+      });
+      const writer = createGuard(false, false, {
+        ...readOnly,
+        requiredScope: SCOPE_APPLICATIONS_WRITE,
+      });
+      const reply = { header: vi.fn() };
+
+      await expect(
+        reader.guard.canActivate(createContext(withToken(), reply)),
+      ).resolves.toBe(true);
+      await expect(
+        writer.guard.canActivate(createContext(withToken('POST'), reply)),
+      ).rejects.toThrow(ForbiddenException);
+      expect(reply.header).toHaveBeenCalledWith(
+        'WWW-Authenticate',
+        'Bearer error="insufficient_scope", scope="applications:write"',
+      );
+    });
+
+    it('token com leitura e escrita escreve', async () => {
+      const { guard } = createGuard(false, false, {
+        requiredScope: SCOPE_APPLICATIONS_WRITE,
+      });
+
+      await expect(
+        guard.canActivate(createContext(withToken('PATCH'))),
+      ).resolves.toBe(true);
+    });
+
+    it('a recusa por escopo não consome o limite de escritas', async () => {
+      const { guard } = createGuard(false, false, {
+        requiredScope: SCOPE_APPLICATIONS_WRITE,
+        patScopes: [SCOPE_APPLICATIONS_READ],
+      });
+
+      for (let i = 0; i < 70; i += 1) {
+        await expect(
+          guard.canActivate(createContext(withToken('PATCH'))),
+        ).rejects.toThrow(ForbiddenException);
+      }
+    });
+
+    it('a sessão (JWT) não depende de escopo', async () => {
+      const { guard, tokenService } = createGuard(false, false, {
+        requiredScope: null,
+      });
+      tokenService.verify.mockReturnValue(payload);
+
+      await expect(
+        guard.canActivate(
+          createContext(
+            createRequest({ headers: { authorization: 'Bearer jwt' } }),
           ),
         ),
       ).resolves.toBe(true);

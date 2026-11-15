@@ -199,6 +199,12 @@ export class PersonalAccessTokenResponse {
   @ApiProperty({ nullable: true, type: String })
   revokedAt!: string | null;
 
+  @ApiProperty({
+    example: 'applications:read applications:write',
+    description: 'Permissões do token.',
+  })
+  scope!: string;
+
   @ApiProperty({ example: '2026-11-15T12:00:00.000Z' })
   createdAt!: string;
 }

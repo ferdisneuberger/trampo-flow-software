@@ -15,6 +15,7 @@ export type CreatePersonalAccessTokenInput = {
   userId: string;
   name: string;
   expiresInDays?: number;
+  scope?: string;
 };
 
 export type CreatePersonalAccessTokenOutput = {
@@ -65,6 +66,7 @@ export class CreatePersonalAccessTokenUseCase {
       tokenHash: this.hasher.hash(secret),
       prefix,
       expiresAt: new Date(now.getTime() + days * DAY_IN_MS),
+      scope: input.scope,
     });
 
     await this.repository.create(token);

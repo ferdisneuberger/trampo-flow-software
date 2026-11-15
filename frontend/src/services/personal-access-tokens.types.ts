@@ -5,6 +5,8 @@ export type PersonalAccessToken = {
   lastUsedAt: string | null;
   expiresAt: string;
   revokedAt: string | null;
+  /** Permissões do token, por exemplo `applications:read`. */
+  scope: string;
   createdAt: string;
 };
 
@@ -16,6 +18,7 @@ export type CreatedPersonalAccessToken = PersonalAccessToken & {
 export type CreatePersonalAccessTokenInput = {
   name: string;
   expiresInDays: number;
+  scope?: string;
 };
 
 export type PersonalAccessTokenState = 'active' | 'expired' | 'revoked';
@@ -32,3 +35,11 @@ export function getTokenState(
     ? 'expired'
     : 'active';
 }
+
+export const SCOPE_READ_WRITE = 'applications:read applications:write';
+export const SCOPE_READ_ONLY = 'applications:read';
+
+export const SCOPE_LABELS: Record<string, string> = {
+  [SCOPE_READ_WRITE]: 'Leitura e escrita',
+  [SCOPE_READ_ONLY]: 'Somente leitura',
+};

@@ -7,6 +7,9 @@ import {
   type CreatedPersonalAccessToken,
   type PersonalAccessToken,
   type PersonalAccessTokenState,
+  SCOPE_LABELS,
+  SCOPE_READ_ONLY,
+  SCOPE_READ_WRITE,
 } from '../../services/personal-access-tokens.types';
 import { cn } from '../../utils/cn';
 import { Alert } from '../ui/Alert';
@@ -16,6 +19,11 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Skeleton } from '../ui/Skeleton';
+
+const SCOPE_OPTIONS = [
+  { value: SCOPE_READ_WRITE, label: SCOPE_LABELS[SCOPE_READ_WRITE] ?? '' },
+  { value: SCOPE_READ_ONLY, label: SCOPE_LABELS[SCOPE_READ_ONLY] ?? '' },
+];
 
 const EXPIRATION_OPTIONS = [
   { value: '30', label: '30 dias' },
@@ -161,7 +169,8 @@ function TokenRow({
           </span>
         </div>
         <p className="mt-0.5 text-xs text-muted">
-          <span className="font-mono">{token.prefix}…</span> · último uso{' '}
+          <span className="font-mono">{token.prefix}…</span> ·{' '}
+          {SCOPE_LABELS[token.scope] ?? token.scope} · último uso{' '}
           {formatDate(token.lastUsedAt)} ·{' '}
           {state === 'revoked'
             ? `revogado em ${formatDate(token.revokedAt)}`
@@ -187,6 +196,7 @@ export function PersonalAccessTokensSection() {
   const { tokens, create, revoke } = usePersonalAccessTokens();
   const [name, setName] = useState('');
   const [expiresInDays, setExpiresInDays] = useState('90');
+  const [scope, setScope] = useState(SCOPE_READ_WRITE);
   const [created, setCreated] = useState<CreatedPersonalAccessToken | null>(
     null,
   );
@@ -205,6 +215,7 @@ export function PersonalAccessTokensSection() {
       const result = await create.mutateAsync({
         name: trimmedName,
         expiresInDays: Number(expiresInDays),
+        scope,
       });
       setCreated(result);
       setName('');
@@ -259,7 +270,7 @@ export function PersonalAccessTokensSection() {
       <Card className="p-4">
         <form
           onSubmit={(event) => void handleSubmit(event)}
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
         >
           <Input
             label="Nome"
@@ -268,6 +279,13 @@ export function PersonalAccessTokensSection() {
             maxLength={60}
             onChange={(event) => setName(event.target.value)}
             containerClassName="flex-1"
+          />
+          <Select
+            label="Permissões"
+            value={scope}
+            options={SCOPE_OPTIONS}
+            onChange={(event) => setScope(event.target.value)}
+            containerClassName="sm:w-44"
           />
           <Select
             label="Validade"

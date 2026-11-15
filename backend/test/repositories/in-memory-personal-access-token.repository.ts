@@ -14,6 +14,7 @@ function clone(
     lastUsedAt: token.lastUsedAt,
     expiresAt: token.expiresAt,
     revokedAt: token.revokedAt,
+    scope: token.scope,
     createdAt: token.createdAt,
     ...overrides,
   });

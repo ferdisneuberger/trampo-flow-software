@@ -6,18 +6,20 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthenticatePersonalAccessTokenUseCase } from '../../application/auth/use-cases/authenticate-personal-access-token.use-case';
+import { hasScope } from '../../domain/auth/scopes';
 import { isPersonalAccessToken } from '../../domain/auth/services/personal-access-token-generator';
 import { UserRepository } from '../../domain/users/repositories/user.repository';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { RateLimiterService } from './rate-limiter.service';
+import { REQUIRED_SCOPE_KEY } from './required-scope.decorator';
 import { IS_SESSION_ONLY_KEY } from './session-only.decorator';
 import { TokenService } from './token.service';
 
 export type AuthenticatedUser =
   | { sub: string; authMethod: 'jwt' }
-  | { sub: string; authMethod: 'pat'; tokenId: string };
+  | { sub: string; authMethod: 'pat'; tokenId: string; scopes: string[] };
 
 export type AuthenticatedRequest = FastifyRequest & {
   user?: AuthenticatedUser;
@@ -80,8 +82,10 @@ export class JwtAuthGuard implements CanActivate {
         );
       }
 
-      const { userId, tokenId } =
+      const { userId, tokenId, scopes } =
         await this.authenticatePersonalAccessToken.execute(token);
+
+      this.assertScope(context, targets, scopes);
 
       if (!READ_METHODS.has(request.method)) {
         this.rateLimiter.consume(
@@ -91,7 +95,7 @@ export class JwtAuthGuard implements CanActivate {
         );
       }
 
-      request.user = { sub: userId, authMethod: 'pat', tokenId };
+      request.user = { sub: userId, authMethod: 'pat', tokenId, scopes };
 
       return true;
     }
@@ -106,5 +110,42 @@ export class JwtAuthGuard implements CanActivate {
     request.user = { sub: payload.sub, authMethod: 'jwt' };
 
     return true;
+  }
+
+  /**
+   * Negado por padrão: o token só alcança rotas que declaram um escopo
+   * (`@RequiredScope`) e só se o token o possuir.
+   */
+  private assertScope(
+    context: ExecutionContext,
+    targets: (object | undefined)[],
+    granted: readonly string[],
+  ): void {
+    const required = this.reflector.getAllAndOverride<string | undefined>(
+      REQUIRED_SCOPE_KEY,
+      targets as never,
+    );
+
+    if (!required) {
+      throw new ForbiddenException(
+        'Esta rota não está disponível para tokens de integração.',
+      );
+    }
+
+    if (hasScope(granted, required)) {
+      return;
+    }
+
+    context
+      .switchToHttp()
+      .getResponse<FastifyReply>()
+      .header(
+        'WWW-Authenticate',
+        `Bearer error="insufficient_scope", scope="${required}"`,
+      );
+
+    throw new ForbiddenException(
+      'Este token não tem permissão para esta ação. Crie um token com permissão de leitura e escrita.',
+    );
   }
 }
