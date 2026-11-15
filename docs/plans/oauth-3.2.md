@@ -24,7 +24,7 @@ Sequência de PRs (cada um verde e com testes): **PR0** aviso + guia do `tfp_`; 
 | #59 | PR 0: guia do `tfp_` (`docs/guia-conexao-mcp.md`, parte B), aviso na tela, tabela de compatibilidade no README | Mesclado                                                                       |
 | #60 | PR 1: `tfp_` com escopo (somente leitura), guard negado por padrão, `@RequiredScope`, `GET /auth/whoami`       | Mesclado (revisão de segurança sem achados)                                    |
 | #62 | PR 2: servidor de autorização (fase 1) + ramo `tfo_` no guard, atrás de `OAUTH_ENABLED`                        | Mesclado (revisão de segurança sem achados; teste ao vivo em stack isolada OK) |
-| —   | PR 3: MCP (metadata do recurso, 401 com `resource_metadata`, `tfo_`) + infra (nginx, compose, variáveis)       | Pendente                                                                       |
+| #63 | PR 3: MCP (metadata do recurso, 401 com `resource_metadata`, `tfo_`) + infra (nginx, compose, variáveis)       | Mesclado (teste ao vivo com ingress, flag ligada e desligada, OK)              |
 | —   | PR 4: frontend (tela de permissão, "Aplicativos conectados", painel "Como conectar")                           | Pendente                                                                       |
 | —   | PR 5: guia do OAuth (parte A), README, `scripts/oauth-smoke.mjs`, CHANGELOG, bump para 3.2.0                   | Pendente                                                                       |
 | —   | PR `release/v3.2.0` → `main`: aberto por quem implementa, **mesclado só pelo dono**                            | Pendente                                                                       |
@@ -64,6 +64,13 @@ Sequência de PRs (cada um verde e com testes): **PR0** aviso + guia do `tfp_`; 
 - A migration do OAuth se chama `20261117000000_oauth` (precisa ordenar **depois** de `20261116000000`); o índice único parcial dos grants está no SQL e o Prisma não o trata como drift.
 - Limites por IP no `/oauth/token` (30/min) valem para o egress compartilhado do Claude: se aparecer `temporarily_unavailable` em produção, revisar os limites.
 - `prisma migrate reset` é barrado pelo Prisma em sessões de IA; usar `migrate deploy` em banco descartável.
+
+### Lições do PR 3
+
+- Em `nginx`, um `add_header` ou `proxy_hide_header` dentro de um `location` desliga a herança **dos dois grupos** definidos no `server`: os locations do OAuth repetem os cabeçalhos de segurança e os `proxy_hide_header` (sem isso, `X-Frame-Options` etc. saem duplicados).
+- O limite de registro existe em dois lugares (nginx 5/min e a API, 5/min por IP): ao repetir testes ao vivo, espere a janela ou reinicie o `ingress` e aguarde.
+- O MCP guarda por 60 s o resultado da validação do token (`/auth/whoami`): após revogar um app, `tools/list` ainda pode responder até 60 s, mas qualquer chamada de ferramenta falha na hora, porque o token é repassado à API.
+- `/mcp` não tem CORS aberto (só `.well-known` e `/api/oauth/token|register|revoke`): o MCP Inspector deve ser usado em modo proxy.
 
 ### Pendências manuais (dependem do dono)
 

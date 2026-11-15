@@ -72,6 +72,15 @@ export function toApiError(
         code,
       );
     case 403:
+      // `insufficient_scope`: o token não pode escrever (ou a rota exige login).
+      if (apiMessage && /permiss/i.test(apiMessage)) {
+        return new ApiError(
+          `${apiMessage} Se você conectou pelo login (OAuth), reconecte o Trampo Flow e autorize a escrita.`,
+          status,
+          code,
+        );
+      }
+
       return new ApiError(
         apiMessage ?? 'Acesso negado para tokens de integração.',
         status,

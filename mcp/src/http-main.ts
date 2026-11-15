@@ -10,6 +10,9 @@ const envSchema = z.object({
     .trim()
     .url('TRAMPO_API_URL deve ser uma URL.'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3100),
+  OAUTH_ENABLED: z.enum(['true', 'false']).default('false'),
+  OAUTH_ISSUER: z.string().trim().optional(),
+  MCP_PUBLIC_URL: z.string().trim().optional(),
   TRAMPO_API_TIMEOUT_MS: z.coerce
     .number()
     .int()
@@ -28,10 +31,46 @@ if (!parsed.success) {
 }
 
 const { TRAMPO_API_URL, PORT, TRAMPO_API_TIMEOUT_MS } = parsed.data;
+
+function secureOrLocal(value: string | undefined): value is string {
+  try {
+    const url = new URL(value ?? '');
+
+    return (
+      url.protocol === 'https:' ||
+      (url.protocol === 'http:' &&
+        ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))
+    );
+  } catch {
+    return false;
+  }
+}
+
+if (
+  parsed.data.OAUTH_ENABLED === 'true' &&
+  !(
+    secureOrLocal(parsed.data.OAUTH_ISSUER) &&
+    secureOrLocal(parsed.data.MCP_PUBLIC_URL)
+  )
+) {
+  console.error(
+    'Com OAUTH_ENABLED=true, OAUTH_ISSUER e MCP_PUBLIC_URL são obrigatórias e devem ser https (ou http em localhost).',
+  );
+  process.exit(1);
+}
+
+const oauth =
+  parsed.data.OAUTH_ENABLED === 'true'
+    ? {
+        issuer: parsed.data.OAUTH_ISSUER as string,
+        resource: parsed.data.MCP_PUBLIC_URL as string,
+      }
+    : undefined;
 const server = createHttpServer(
   createHttpHandler({
     apiUrl: TRAMPO_API_URL.replace(/\/+$/, ''),
     timeoutMs: TRAMPO_API_TIMEOUT_MS,
+    oauth,
   }),
 );
 
