@@ -10,10 +10,10 @@ Entregas:
 
 | Versão | O que entrega                                                                                                                                                                                                          |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 3.1.1  | Só um aviso claro, na tela e no README, de onde o MCP funciona hoje (seção 5). Sem backend.                                                                                                                            |
+| 3.1.1  | Aviso claro, na tela e no README, de onde o MCP funciona hoje, e o **guia de uso do `tfp_`** (seção 5). Sem backend.                                                                                                   |
 | 3.2.0  | OAuth 2.1: o Trampo Flow vira um conector que se adiciona só com a URL `https://trampo-flow.neubergerdev.com.br/mcp`. A pessoa faz login (senha ou Google), aprova e pronto, sem ver nem copiar token (seções 6 a 12). |
 
-O token `tfp_` continua existindo. Motivação do dono: usar no Claude web e no celular e compor portfólio, então as **decisões e os testes de segurança importam tanto quanto o código** (seção 13).
+O token `tfp_` **continua existindo** (decisão 11) e passa a poder ser criado como "só leitura" (decisão 12). O dono quer **instruções de uso para cada forma de conexão, por OAuth e por `tfp_`** (decisão 13, seções 5 e 12): o guia do `tfp_` sai já na 3.1.1, o do OAuth na 3.2.0. Motivação do dono: usar no Claude web e no celular e compor portfólio, então as **decisões e os testes de segurança importam tanto quanto o código** (seção 13).
 
 ## 2. Compatibilidade por cliente (corrigida)
 
@@ -43,6 +43,9 @@ Todas foram apresentadas ao dono, que as aceitou sem objeções (as marcadas "re
 8. **Consentimento é uma página do frontend** (`/oauth/authorize`) atrás do login existente. Sem HTML no servidor. A decisão vai por `POST` autenticado com o JWT de sessão em `Authorization` (não cookie), então não há CSRF. O nginx já envia `X-Frame-Options: DENY` (anti-clickjacking).
 9. **Entrega escura:** tudo atrás de `OAUTH_ENABLED` (padrão `false`). Sem a flag, as rotas e a metadata não existem e o `401` do MCP continua como hoje.
 10. **Durações (recomendação):** access 1 h, refresh 30 dias com rotação, código 60 s.
+11. **O `tfp_` permanece.** Fica como caminho para o modo stdio local (o `mcp/` exige `tfp_` nele), para automação e testes (sem navegador), para clientes sem OAuth e como plano B se o OAuth ou a flag estiverem fora. Não há usuários dele hoje, então remover seria barato, mas tira capacidade sem ganho. Reavaliar com dados (a tela já mostra o último uso de cada token). O OAuth é o caminho padrão para o usuário final; o `tfp_` é o caminho de quem automatiza a própria conta. Automação **não** deve usar OAuth: o fluxo exige navegador, o access token dura 1 h e o refresh rotativo revoga a família se dois processos renovarem ao mesmo tempo.
+12. **`tfp_` com escopo.** Ao criar o token, a pessoa escolhe **Leitura e escrita** (padrão, mantém o comportamento atual) ou **Somente leitura**. Os escopos ficam gravados no token (coluna `scope`, mesmos nomes `applications:read` / `applications:write`) e o guard usa o gravado, em vez de assumir os dois. Para automações que só consultam (relatório semanal, resumo do funil).
+13. **Documentação por forma de conexão é entrega obrigatória**, não um extra: cada método tem guia próprio, testado por quem escreve e revisado seguindo-o do zero (seção 12.1).
 
 ## 4. Estado atual do repositório (o que existe e será reaproveitado)
 
@@ -83,9 +86,9 @@ Peças existentes para reaproveitar (caminhos relativos a `backend/src/`):
 8. **nginx remove `/api`** (`proxy_pass http://api:3000/`). As rotas OAuth ficam em `/api/oauth/*` para o mundo e `/oauth/*` na API. Já as URLs `.well-known` precisam estar na **raiz do host** (o issuer não tem caminho), então exigem `location` próprios, declarados **antes** de `location /`.
 9. **Rate limit é em memória** e o IP real vem de `CF-Connecting-IP` (mapa `$client_ip` do nginx). Não é compartilhado entre réplicas (igual ao resto do projeto).
 
-## 5. Fase 0: release 3.1.1 (aviso de compatibilidade)
+## 5. Fase 0: release 3.1.1 (aviso de compatibilidade e guia do `tfp_`)
 
-Só texto. Branch sugerida: `docs/mcp-compat-notice`.
+Só texto e uma pequena mudança de tela (sem backend). Branch sugerida: `docs/mcp-compat-notice`.
 
 - [ ] `frontend/src/components/settings/PersonalAccessTokensSection.tsx`:
   - Trocar o parágrafo introdutório (cita "Claude Code, Claude Desktop ou qualquer cliente MCP") por um que diga o que realmente funciona.
@@ -93,6 +96,7 @@ Só texto. Branch sugerida: `docs/mcp-compat-notice`.
   - Manter o bloco do comando `claude mcp add --transport http` como está.
 - [ ] `frontend/src/pages/SettingsPage.test.tsx`: afirmar que o aviso aparece.
 - [ ] `README.md`: incluir a tabela da seção 2; corrigir a frase de `Claude Desktop accepts the same command…` (vale **só para o modo stdio local**); ajustar "MCP authentication and token scopes" em "Decisions and known limitations". Tudo em inglês, como o resto do README.
+- [ ] **Guia de uso do `tfp_`** (decisão 13): escrever as partes B1 a B5 da seção 12.1 em `docs/guia-conexao-mcp.md` (em português, para ser enviado a quem for usar), com link no README. Na tela de Configurações, mostrar um resumo curto por método ao lado do comando já existente.
 - [ ] `CHANGELOG.md`: entrada `3.1.1` (`### Changed`).
 - [ ] Release: `npm version 3.1.1 --no-git-tag-version` em `.`, `backend`, `frontend` e `mcp` (atualiza os lockfiles); commit `chore(release): 3.1.1`. Depois do merge, tag anotada `v3.1.1` no commit de merge.
 - **Pronto quando:** testes do frontend passam, `npm run format:check` passa, a tela de Configurações mostra o aviso e o README tem a tabela.
@@ -190,10 +194,12 @@ Pode ir no mesmo PR da Fase 1 ou logo depois (branch `feat/oauth-guard`). **Esta
 - [ ] `AuthenticatedUser` vira `{ sub, authMethod: 'jwt' } | { sub, authMethod: 'pat', tokenId } | { sub, authMethod: 'oauth', tokenId, grantId, scopes }`.
 - [ ] `@RequiredScope('applications:read' | 'applications:write')` (metadata em handler).
 - [ ] No `JwtAuthGuard`: bearer `tfo_` autentica pelo hash (`AuthenticateOAuthAccessToken`): token existe, não expirado, grant não revogado, `resource` igual a `MCP_PUBLIC_URL`, usuário existe; atualiza `last_used_at` do grant com o mesmo throttle de 1 min.
-- [ ] **Deny-by-default** para `oauth` e `pat`: rota sem `@RequiredScope` (e não `@Public`) devolve `403`. `pat` conta como tendo `read` + `write`. `jwt` ignora escopos.
+- [ ] **Deny-by-default** para `oauth` e `pat`: rota sem `@RequiredScope` (e não `@Public`) devolve `403`. `pat` usa o escopo **gravado no token** (decisão 12); tokens antigos recebem `read` + `write` na migration. `jwt` ignora escopos.
 - [ ] Marcar handlers: `ApplicationsController` → `create` (write), `preview` (read), `list`, `board`, `stats`, `findOne` (read), `update`, `place` (write); `remove` continua `@SessionOnly()`. Novo `GET /auth/whoami` (read). Atualizar `test/infrastructure/applications.controller.spec.ts`, que já inspeciona os metadados.
 - [ ] Escopo ausente: `403` com `WWW-Authenticate: Bearer error="insufficient_scope", scope="<necessário>", resource_metadata="<URL da PRM>"` (o guard define o header na resposta antes de lançar a exceção).
 - [ ] Rate limit de escrita por grant (60/min), como hoje por token PAT.
+- [ ] **`tfp_` com escopo (decisão 12):** migration adicionando `scope VARCHAR(100) NOT NULL DEFAULT 'applications:read applications:write'` em `personal_access_tokens` (tokens existentes mantêm leitura e escrita); `PersonalAccessToken` (entidade, mapper, repositório, em memória) passa a ter `scope`; `CreatePersonalAccessTokenDto` ganha `scope` opcional validado (`applications:read` ou `applications:read applications:write`); `AuthenticatePersonalAccessTokenUseCase` devolve os escopos e o guard os usa em `request.user.scopes`; `GET /auth/tokens` e a resposta de criação passam a incluir `scope`. Escrita com token somente leitura ⇒ `403 insufficient_scope`.
+- [ ] Testes: token somente leitura lê e não escreve (`create`, `update`, `place` dão 403); padrão continua lendo e escrevendo; migration não altera tokens antigos; `DELETE` segue só com sessão.
 - **Pronto quando:** PAT e OAuth **não** alcançam `PATCH /auth/me/theme`, `POST /auth/verification/resend`, `/auth/tokens*`, `/oauth/grants*`, `DELETE /applications/:id`; alcançam as rotas de candidaturas com o escopo certo; o JWT segue igual.
 
 ## 8. Fase 3: frontend
@@ -204,6 +210,8 @@ Branch sugerida: `feat/oauth-ui`.
 - [ ] `pages/OAuthAuthorizePage.tsx`: lê a query, chama `preview`; mostra "**{app}** quer acessar sua conta no Trampo Flow", host de destino, selo "verificado" (só Claude) ou aviso, o que poderá (ver, criar, atualizar e mover candidaturas) e o que **não** poderá (apagar). Botões **Autorizar** e **Cancelar**; ao decidir faz `window.location.assign(redirectTo)`. Estados: carregando, pedido inválido (mensagem do `preview`, sem redirecionar), erro de rede.
 - [ ] `services/api/oauth.service.ts`, `services/oauth.types.ts`, `hooks/useOAuthGrants.ts`, chaves em `lib/query-keys.ts`.
 - [ ] `components/settings/ConnectedAppsSection.tsx` em `SettingsPage` (abaixo dos tokens): lista (app, permissões, desde, último uso) e **Revogar** com `ConfirmDialog`. Estado vazio.
+- [ ] Criação do `tfp_`: seletor **Permissões** (Leitura e escrita / Somente leitura) em `PersonalAccessTokensSection.tsx`; a lista de tokens mostra a permissão de cada um. Testes em `SettingsPage.test.tsx`.
+- [ ] Painel **Como conectar** em Configurações, com uma aba por forma de conexão (Claude web e celular, Claude Code, Outros clientes, Automação), com os comandos já preenchidos com a URL do MCP e o link para o guia completo (seção 12.1). Substitui o texto avulso da Fase 0.
 - [ ] Atualizar o aviso da Fase 0: tirar "em breve" quando `OAUTH_ENABLED` estiver ligado em produção.
 - [ ] Testes (Testing Library, padrão de `SettingsPage.test.tsx`): autorizar, negar, parâmetro inválido, usuário não logado, lista e revogação.
 - Se o layout mudar, regenerar os baselines visuais: `npm run test:visual:update` em `frontend/` (usa o container Linux do Playwright; sem isso o workflow visual falha).
@@ -282,11 +290,43 @@ Branch sugerida: `feat/oauth-infra` (pode ir junto da Fase 4).
 
 ## 12. Fase 7: documentação e release 3.2.0
 
+- [ ] **Guia de uso do OAuth** (partes A1 a A4 da seção 12.1) em `docs/guia-conexao-mcp.md`, testado nos clientes reais.
 - [ ] README: seção "Conectar pelo Claude web e celular" (passo a passo, fluxo, segurança, variáveis, `scripts/oauth-smoke.mjs`); atualizar a tabela da seção 2 e "Decisions and known limitations" (sai o aviso de OAuth ausente; entram: tokens opacos, desvio do passthrough, redirect allowlist, rate limit em memória).
 - [ ] Registrar as decisões da seção 3 (principalmente a 5) num texto curto no README ou em `docs/`, com o porquê.
 - [ ] `frontend/README.md`: nova rota `/oauth/authorize`, serviço, hook e componentes.
 - [ ] CHANGELOG `3.2.0`; `npm version 3.2.0 --no-git-tag-version` nos 4 pacotes; commit `chore(release): 3.2.0`; tag anotada `v3.2.0` depois do merge.
 - [ ] Marcar este plano como implementado e mover o que sobrar para "Depois".
+
+### 12.1 Guia de uso por forma de conexão (entrega obrigatória)
+
+Arquivo: `docs/guia-conexao-mcp.md`, **em português**, para o dono poder mandar o link a quem for usar. O README (inglês) resume e aponta para ele; a tela de Configurações traz o resumo de cada método (aba "Como conectar", Fase 3). A parte **B** (`tfp_`) é escrita na 3.1.1; a parte **A** (OAuth) na 3.2.0.
+
+**Estrutura de cada método** (usar sempre os mesmos tópicos): 1) para quem é; 2) pré-requisitos; 3) passo a passo numerado, com comandos copiáveis e a URL real `https://trampo-flow.neubergerdev.com.br/mcp`; 4) como confirmar que conectou; 5) três pedidos de exemplo para testar ("cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?", "move a vaga da Haytek para Em andamento, fase Entrevista técnica"); 6) como desconectar ou revogar; 7) erros comuns e solução; 8) cuidados de segurança.
+
+**A. Por OAuth (3.2.0): sem token, o Claude pede a autorização**
+
+- [ ] **A1. Claude web (claude.ai):** Configurações → Conectores → adicionar conector personalizado → informar a URL do MCP → janela do Trampo Flow → login (senha ou Google) → **Autorizar**. Confirmar: o conector aparece como conectado e o Claude lista as ferramentas.
+- [ ] **A2. Claude Desktop:** mesmo caminho, pela tela de Conectores do aplicativo (**não** pelo `claude_desktop_config.json`, que só aceita servidores locais).
+- [ ] **A3. Claude no celular:** adicionar o conector no claude.ai e usar no app. **Validar na prática** antes de afirmar; se não for assim, documentar o que for.
+- [ ] **A4. Claude Code (terminal):** `claude mcp add --transport http trampo-flow https://…/mcp` **sem** cabeçalho; em `/mcp` escolher autenticar; o navegador abre; autorizar. Opção `-s user` para valer em todos os projetos.
+- [ ] **Desconectar:** Configurações → **Aplicativos conectados** → Revogar (e remover o conector no próprio Claude).
+- [ ] **Erros comuns:** "Couldn't reach" (WAF/Cloudflare ou DNS), "Authorization with the MCP server failed" (redirecionamento para outro host), plano do Claude sem conectores personalizados, `redirect_uri` não permitido (cliente fora da allowlist), sessão expirada no meio, conta Google sem e-mail verificado.
+- [ ] **Segurança:** o que o aplicativo pode (ver, criar, atualizar e mover) e o que não pode (apagar); conferir o nome e o host de destino na tela de permissão; nada para copiar nem guardar.
+
+**B. Por token `tfp_` (3.1.1): token criado em Configurações e enviado no cabeçalho**
+
+- [ ] **B1. Claude Code (terminal):** criar o token (nome, validade e, depois da 3.2.0, permissão) → `claude mcp add --transport http trampo-flow https://…/mcp -s user --header "Authorization: Bearer tfp_…"` → `/mcp` mostra `trampo-flow` conectado. Remover: `claude mcp remove trampo-flow`.
+- [ ] **B2. Cursor, VS Code e outros que aceitam cabeçalho:** URL do MCP, transporte Streamable HTTP e cabeçalho `Authorization: Bearer tfp_…`. **O formato exato do JSON de cada cliente deve ser conferido na documentação dele no momento de escrever**; não copiar de memória. Marcar no guia o que foi testado e o que não foi.
+- [ ] **B3. Claude Desktop:** duas saídas, ambas marcadas com o que foi testado: (a) modo local stdio (`mcp/dist/index.js`, com `TRAMPO_API_URL` e `TRAMPO_API_TOKEN` no `env` do `claude_desktop_config.json`; exige clonar o repositório e rodar o build); (b) ponte `mcp-remote` apontando para a URL com `--header` (**não testada até aqui**: testar antes de documentar como funcionando). Depois da 3.2.0, apontar para o método A2.
+- [ ] **B4. Automação e scripts (sem navegador):** um token **por automação**, com nome claro e validade curta (30 a 90 dias); **somente leitura** quando só consulta (depois da 3.2.0); guardar em gerenciador de segredos ou variável de ambiente, nunca no repositório. Dois exemplos testados e copiáveis: (1) cliente MCP em Node (SDK `StreamableHTTPClientTransport` com `requestInit.headers`) chamando `pipeline_summary`; (2) `curl` na API REST (`GET /api/applications/stats`). Informar os limites: 60 escritas por minuto por token, nada apaga, e que o token vence. Explicar por que **não** usar OAuth aqui (decisão 11).
+- [ ] **B5. Desenvolvimento local (stdio):** `cd mcp && npm ci && npm run build` e `claude mcp add trampo-flow -e TRAMPO_API_URL=http://localhost:5173/api -e TRAMPO_API_TOKEN=tfp_… -- node …/mcp/dist/index.js`; como usar o MCP Inspector (`npx @modelcontextprotocol/inspector -e … node dist/index.js`) e a diferença entre o token do Inspector (`MCP_PROXY_AUTH_TOKEN`) e o `tfp_`.
+- [ ] **Revogar:** Configurações → Tokens de integração → Revogar (efeito imediato).
+- [ ] **Erros comuns:** `401` "token inválido, expirado ou revogado" (criar outro), `403` (token somente leitura tentando escrever, ou rota que exige login), `429` (limite de escritas), cabeçalho sem o prefixo `Bearer`, token colado com espaço ou quebra de linha, URL sem `/mcp`.
+- [ ] **Segurança:** o token vale como senha da conta (menos apagar); não colar em chat nem em repositório; revogar se vazar.
+
+**Comparativo no início do guia** (o que o leitor vê primeiro): qual forma usar para cada situação: "uso o Claude no navegador ou no celular" → A1/A3; "uso o Claude Code" → A4 (ou B1 se quiser sem navegador); "script, cron ou CI" → B4; "Cursor ou VS Code" → B2; "só quero testar localmente" → B5.
+
+**Pronto quando:** cada passo foi executado por quem escreveu (ou está explicitamente marcado "não testado"); os comandos são copiáveis sem edição além do token; outra pessoa conseguiu conectar seguindo o guia do zero; o README e a tela de Configurações apontam para o guia.
 
 ## 13. Checklist de segurança (conferir antes de ligar a flag)
 
@@ -296,6 +336,7 @@ Branch sugerida: `feat/oauth-infra` (pode ir junto da Fase 4).
 - [ ] Tokens, códigos e refresh só como HMAC no banco; nunca em log nem em mensagem de erro.
 - [ ] Refresh rotativo com detecção de reuso; `invalid_grant` em qualquer falha.
 - [ ] Audiência (`resource`) conferida na API; escopo mínimo; nenhum escopo apaga.
+- [ ] `tfp_` somente leitura nunca escreve; migration não amplia nem reduz os tokens antigos.
 - [ ] Deny-by-default para `pat` e `oauth`; `DELETE`, `/auth/tokens*` e `/oauth/grants*` só com sessão.
 - [ ] CIMD sem SSRF (IP público, sem redirecionamento, tamanho e tempo limitados).
 - [ ] DCR: só clientes públicos, allowlist de redirect, teto de clientes, rate limit.
@@ -308,7 +349,8 @@ Branch sugerida: `feat/oauth-infra` (pode ir junto da Fase 4).
 1. Confirmar as recomendações da decisão 10 (1 h / 30 dias) e da entrega escura (decisão 9) se houver dúvida.
 2. Quais clientes além do Claude entram em `OAUTH_EXTRA_REDIRECT_URIS` (Cursor, VS Code, ChatGPT), conforme demanda.
 3. Se o GIF/demo do README deve mostrar o fluxo OAuth no Claude web (gravação é manual).
-4. Quem faz os testes manuais em produção (seção 10): exigem conta Claude com conectores personalizados.
+4. Quem testa e valida cada método do guia (seção 12.1) em clientes reais, incluindo Cursor/VS Code e a ponte `mcp-remote`.
+5. Quem faz os testes manuais em produção (seção 10): exigem conta Claude com conectores personalizados.
 
 ## 15. Riscos
 
