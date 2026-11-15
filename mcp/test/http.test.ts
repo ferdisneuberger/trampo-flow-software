@@ -40,13 +40,18 @@ function fakeApi() {
   });
 }
 
-async function start(api = fakeApi(), tokenCacheMs?: number) {
+async function start(
+  api = fakeApi(),
+  tokenCacheMs?: number,
+  oauth?: { resource: string; issuer: string },
+) {
   server = createServer(
     createHttpHandler({
       apiUrl: API_URL,
       timeoutMs: 5000,
       fetch: api.fetchMock,
       tokenCacheMs,
+      oauth,
     }),
   );
   await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', resolve));
@@ -192,5 +197,124 @@ describe('MCP via HTTP', () => {
     });
 
     expect(response.status).toBe(502);
+  });
+});
+
+describe('OAuth (OAUTH_ENABLED)', () => {
+  const OAUTH = {
+    resource: 'https://trampo.example.com/mcp',
+    issuer: 'https://trampo.example.com',
+  };
+  const OAUTH_TOKEN = 'tfo_alice_oauth';
+  const PRM_URL =
+    'https://trampo.example.com/.well-known/oauth-protected-resource/mcp';
+
+  function oauthApi() {
+    return createFakeApi({
+      'GET /auth/whoami': ({ headers }) =>
+        [ALICE, OAUTH_TOKEN].includes(
+          headers.get('authorization')?.replace('Bearer ', '') ?? '',
+        )
+          ? { body: { id: 'u1' } }
+          : { status: 401, body: { message: 'Token inválido' } },
+      'GET /applications': page([makeApplication({ company: 'Acme' })]),
+    });
+  }
+
+  const post = (base: string, authorization?: string) =>
+    fetch(`${base}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authorization ? { Authorization: authorization } : {}),
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    });
+
+  it.each([
+    '/.well-known/oauth-protected-resource',
+    '/.well-known/oauth-protected-resource/mcp',
+  ])(
+    'serve a metadata do recurso em %s com resource idêntico à URL do MCP',
+    async (path) => {
+      const { base } = await start(oauthApi(), undefined, {
+        ...OAUTH,
+        resource: 'https://TRAMPO.example.com/mcp/',
+      });
+      const response = await fetch(`${base}${path}`);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        resource: 'https://trampo.example.com/mcp',
+        authorization_servers: ['https://trampo.example.com'],
+        scopes_supported: ['applications:read', 'applications:write'],
+        bearer_methods_supported: ['header'],
+      });
+    },
+  );
+
+  it('401 sem token traz resource_metadata e scope (sem error=invalid_token)', async () => {
+    const { base } = await start(oauthApi(), undefined, OAUTH);
+    const response = await post(base);
+    const header = response.headers.get('www-authenticate') ?? '';
+
+    expect(response.status).toBe(401);
+    expect(header).toBe(
+      `Bearer resource_metadata="${PRM_URL}", scope="applications:read applications:write"`,
+    );
+  });
+
+  it('401 de token inválido ou expirado acrescenta error="invalid_token"', async () => {
+    const { base } = await start(oauthApi(), undefined, OAUTH);
+    const response = await post(base, 'Bearer tfo_expirado');
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('www-authenticate')).toBe(
+      `Bearer error="invalid_token", resource_metadata="${PRM_URL}", scope="applications:read applications:write"`,
+    );
+  });
+
+  it('aceita tfo_ e continua aceitando tfp_', async () => {
+    const { base } = await start(oauthApi(), undefined, OAUTH);
+
+    for (const token of [OAUTH_TOKEN, ALICE]) {
+      const client = await connect(base, token);
+
+      expect(
+        textOf(
+          await client.callTool({ name: 'list_applications', arguments: {} }),
+        ),
+      ).toContain('Acme');
+    }
+  });
+
+  it('com OAUTH_ENABLED=false: sem metadata (404), tfo_ recusado e 401 como antes', async () => {
+    const { base } = await start(oauthApi());
+
+    expect(
+      (await fetch(`${base}/.well-known/oauth-protected-resource`)).status,
+    ).toBe(404);
+    expect(
+      (await fetch(`${base}/.well-known/oauth-protected-resource/mcp`)).status,
+    ).toBe(404);
+
+    const refused = await post(base, `Bearer ${OAUTH_TOKEN}`);
+
+    expect(refused.status).toBe(401);
+    expect(refused.headers.get('www-authenticate')).toBe(
+      'Bearer realm="trampo-flow"',
+    );
+  });
+
+  it('a metadata só responde a GET', async () => {
+    const { base } = await start(oauthApi(), undefined, OAUTH);
+
+    expect(
+      (
+        await fetch(`${base}/.well-known/oauth-protected-resource`, {
+          method: 'POST',
+        })
+      ).status,
+    ).toBe(404);
   });
 });

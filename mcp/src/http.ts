@@ -17,7 +17,35 @@ export type HttpOptions = {
   tokenCacheMs?: number;
   fetch?: typeof fetch;
   now?: () => number;
+  /**
+   * OAuth 2.1 (`OAUTH_ENABLED`). Ausente = como antes: só `tfp_`, sem metadata
+   * do recurso e `401` sem `resource_metadata`.
+   */
+  oauth?: OAuthOptions;
 };
+
+export type OAuthOptions = {
+  /** URL pública do MCP (a audiência dos tokens), ex.: https://host/mcp. */
+  resource: string;
+  /** Servidor de autorização (a API), sem caminho. */
+  issuer: string;
+};
+
+export const OAUTH_SCOPES = ['applications:read', 'applications:write'];
+
+/** Forma canônica da URL do recurso: sem barra final, igual à que a API usa. */
+export function canonicalResource(value: string): string {
+  const url = new URL(value);
+
+  return `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, '')}${url.search}`;
+}
+
+/** URL da metadata do recurso (RFC 9728): o caminho do MCP vai depois do `.well-known`. */
+export function protectedResourceMetadataUrl(resource: string): string {
+  const url = new URL(resource);
+
+  return `${url.origin}/.well-known/oauth-protected-resource${url.pathname === '/' ? '' : url.pathname}`;
+}
 
 const MCP_PATH = '/mcp';
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
@@ -110,6 +138,36 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const tokenCacheMs = options.tokenCacheMs ?? DEFAULT_TOKEN_CACHE_MS;
   const now = options.now ?? Date.now;
+  const oauth = options.oauth
+    ? {
+        resource: canonicalResource(options.oauth.resource),
+        issuer: options.oauth.issuer.replace(/\/+$/, ''),
+      }
+    : undefined;
+  const resourceMetadataUrl = oauth
+    ? protectedResourceMetadataUrl(oauth.resource)
+    : undefined;
+
+  /** `WWW-Authenticate` do 401: com OAuth aponta para a metadata do recurso (RFC 9728). */
+  function challenge(invalidToken: boolean): string {
+    if (!resourceMetadataUrl) {
+      return invalidToken
+        ? 'Bearer realm="trampo-flow", error="invalid_token"'
+        : 'Bearer realm="trampo-flow"';
+    }
+
+    return [
+      'Bearer',
+      [
+        invalidToken ? 'error="invalid_token"' : null,
+        `resource_metadata="${resourceMetadataUrl}"`,
+        `scope="${OAUTH_SCOPES.join(' ')}"`,
+      ]
+        .filter(Boolean)
+        .join(', '),
+    ].join(' ');
+  }
+
   // Só o hash do token fica em memória, com validade curta.
   const validTokens = new Map<string, number>();
 
@@ -150,6 +208,22 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
       return;
     }
 
+    if (
+      oauth &&
+      req.method === 'GET' &&
+      (path === '/.well-known/oauth-protected-resource' ||
+        path === `/.well-known/oauth-protected-resource${MCP_PATH}`)
+    ) {
+      // Metadata do recurso (RFC 9728). `resource` é idêntico à URL do MCP.
+      sendJson(res, 200, {
+        resource: oauth.resource,
+        authorization_servers: [oauth.issuer],
+        scopes_supported: OAUTH_SCOPES,
+        bearer_methods_supported: ['header'],
+      });
+      return;
+    }
+
     if (path !== MCP_PATH) {
       sendJson(res, 404, { message: 'Não encontrado. O endpoint MCP é /mcp.' });
       return;
@@ -163,12 +237,17 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
 
     const token = readBearer(req);
 
-    if (!token?.startsWith('tfp_')) {
+    if (
+      !token ||
+      !(token.startsWith('tfp_') || (oauth && token.startsWith('tfo_')))
+    ) {
       sendRpcError(
         res,
         401,
-        'Envie um token de integração em Authorization: Bearer tfp_... (crie em Configurações → Tokens de integração).',
-        { 'WWW-Authenticate': 'Bearer realm="trampo-flow"' },
+        oauth
+          ? 'Autorize o Trampo Flow pelo login (OAuth) ou envie um token em Authorization: Bearer tfp_... (Configurações → Tokens de integração).'
+          : 'Envie um token de integração em Authorization: Bearer tfp_... (crie em Configurações → Tokens de integração).',
+        { 'WWW-Authenticate': challenge(false) },
       );
       return;
     }
@@ -178,8 +257,7 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         sendRpcError(res, 401, error.message, {
-          'WWW-Authenticate':
-            'Bearer realm="trampo-flow", error="invalid_token"',
+          'WWW-Authenticate': challenge(true),
         });
         return;
       }

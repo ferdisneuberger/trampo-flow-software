@@ -62,6 +62,15 @@ services:
       REFRESH_TOKEN_GRACE_SECONDS: '${REFRESH_TOKEN_GRACE_SECONDS:-10}'
       LOGIN_MAX_ATTEMPTS: '${LOGIN_MAX_ATTEMPTS:-10}'
       LOGIN_WINDOW_SECONDS: '${LOGIN_WINDOW_SECONDS:-120}'
+      # OAuth 2.1 (entrega escura: desligado por padrão). Sem barra final.
+      OAUTH_ENABLED: '${OAUTH_ENABLED:-false}'
+      OAUTH_ISSUER: '${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}'
+      MCP_PUBLIC_URL: '${MCP_PUBLIC_URL:-${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}/mcp}'
+      OAUTH_EXTRA_REDIRECT_URIS: '${OAUTH_EXTRA_REDIRECT_URIS:-}'
+      OAUTH_ACCESS_TOKEN_TTL_SECONDS: '${OAUTH_ACCESS_TOKEN_TTL_SECONDS:-3600}'
+      OAUTH_REFRESH_TOKEN_TTL_DAYS: '${OAUTH_REFRESH_TOKEN_TTL_DAYS:-30}'
+      OAUTH_CODE_TTL_SECONDS: '${OAUTH_CODE_TTL_SECONDS:-60}'
+      OAUTH_MAX_CLIENTS: '${OAUTH_MAX_CLIENTS:-1000}'
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,6 +99,10 @@ services:
       PORT: 3100
       # Rede interna: o MCP repassa o token tfp_ de cada usuário para a API.
       TRAMPO_API_URL: http://api:3000
+      # OAuth 2.1 (entrega escura: desligado por padrão). Sem barra final.
+      OAUTH_ENABLED: '${OAUTH_ENABLED:-false}'
+      OAUTH_ISSUER: '${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}'
+      MCP_PUBLIC_URL: '${MCP_PUBLIC_URL:-${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}/mcp}'
     depends_on:
       api:
         condition: service_healthy
