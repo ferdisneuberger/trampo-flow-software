@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { TokenHasher } from '../../../domain/auth/services/token-hasher';
 import { OAuthGrantRepository } from '../../../domain/oauth/repositories/oauth-grant.repository';
 import { OAuthTokenRepository } from '../../../domain/oauth/repositories/oauth-token.repository';
@@ -17,6 +18,7 @@ export class RevokeOAuthTokenUseCase {
     private readonly tokens: OAuthTokenRepository,
     private readonly grants: OAuthGrantRepository,
     private readonly hasher: TokenHasher,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(token: string): Promise<void> {
@@ -29,13 +31,18 @@ export class RevokeOAuthTokenUseCase {
       if (record) {
         await this.grants.revoke(record.grantId, now);
         await this.tokens.revokeAllForGrant(record.grantId, now);
+        this.metrics.oauthRevocation('grant');
       }
 
       return;
     }
 
     if (isOAuthAccessToken(token)) {
-      await this.tokens.deleteAccessTokenByHash(hash);
+      // Só conta quando o token existia (a revogação nunca revela isso ao cliente).
+      if (await this.tokens.findAccessTokenByHash(hash)) {
+        await this.tokens.deleteAccessTokenByHash(hash);
+        this.metrics.oauthRevocation('token');
+      }
     }
   }
 }

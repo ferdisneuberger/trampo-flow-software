@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { AuthToken } from '../../../domain/auth/entities/auth-token.entity';
 import { AuthTokenRepository } from '../../../domain/auth/repositories/auth-token.repository';
 import { Mailer } from '../../../domain/auth/services/mailer';
@@ -8,6 +8,7 @@ import { UserRepository } from '../../../domain/users/repositories/user.reposito
 import { UnauthorizedError } from '../../shared/errors/unauthorized.error';
 import { buildVerificationEmail } from '../emails/verification-email';
 import { AuthSettings } from '../services/auth-settings';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { sendMailInBackground } from '../services/send-mail-in-background';
 
 export type ResendVerificationResult = {
@@ -26,6 +27,7 @@ export class ResendVerificationUseCase {
     private readonly tokenHasher: TokenHasher,
     private readonly mailer: Mailer,
     private readonly settings: AuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(userId: string): Promise<ResendVerificationResult> {
@@ -91,6 +93,7 @@ export class ResendVerificationUseCase {
       { to: user.email ?? '', ...message },
       this.logger,
       'Falha ao reenviar verificação',
+      { template: 'verification', metrics: this.metrics },
     );
 
     return {

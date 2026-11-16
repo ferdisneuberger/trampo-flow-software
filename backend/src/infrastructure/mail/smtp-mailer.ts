@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, type Transporter } from 'nodemailer';
-import { Mailer, type MailMessage } from '../../domain/auth/services/mailer';
+import {
+  Mailer,
+  MailerDisabledError,
+  type MailMessage,
+} from '../../domain/auth/services/mailer';
 
 type SmtpError = Error & {
   code?: string;
@@ -72,7 +76,7 @@ export class SmtpMailer extends Mailer {
 
   async send(message: MailMessage): Promise<void> {
     if (!this.transporter) {
-      throw new Error('SMTP não configurado.');
+      throw new MailerDisabledError();
     }
 
     this.logger.log(

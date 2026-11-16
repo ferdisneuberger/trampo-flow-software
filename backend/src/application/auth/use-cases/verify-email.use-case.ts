@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { AuthTokenRepository } from '../../../domain/auth/repositories/auth-token.repository';
 import { Mailer } from '../../../domain/auth/services/mailer';
 import { TokenHasher } from '../../../domain/auth/services/token-hasher';
@@ -6,6 +6,7 @@ import { DomainError } from '../../../domain/shared/errors/domain.error';
 import { UserRepository } from '../../../domain/users/repositories/user.repository';
 import { buildVerifiedEmail } from '../emails/verified-email';
 import { AuthSettings } from '../services/auth-settings';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { sendMailInBackground } from '../services/send-mail-in-background';
 import { normalizeVerificationCode } from '../services/verification-code';
 
@@ -23,6 +24,7 @@ export class VerifyEmailUseCase {
     private readonly tokenHasher: TokenHasher,
     private readonly mailer: Mailer,
     private readonly settings: AuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(input: VerifyEmailInput): Promise<void> {
@@ -82,6 +84,7 @@ export class VerifyEmailUseCase {
       },
       this.logger,
       'Falha ao enviar confirmação de verificação',
+      { template: 'verified', metrics: this.metrics },
     );
   }
 }
