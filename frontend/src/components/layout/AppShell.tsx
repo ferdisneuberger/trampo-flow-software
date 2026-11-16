@@ -14,6 +14,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import { SETTINGS_SECTIONS } from '../../config/settings-sections';
 import { useAuth } from '../../contexts/auth-context';
 import { useLogout } from '../../hooks/useLogout';
 import { cn } from '../../utils/cn';
@@ -113,6 +114,16 @@ export function AppShell() {
         void navigate('/configuracoes');
       },
     },
+    // Subitens de Configurações (no celular o menu da conta é o caminho).
+    ...SETTINGS_SECTIONS.map(({ id, label, path, icon }): MenuItem => ({
+      id: `settings-${id}`,
+      label,
+      icon,
+      nested: true,
+      onSelect: () => {
+        void navigate(path);
+      },
+    })),
     {
       id: 'logout',
       separatorBefore: true,
@@ -238,6 +249,7 @@ export function AppShell() {
           </NavLink>
           <NavLink
             to="/configuracoes"
+            end
             title={collapsed ? 'Configurações' : undefined}
             className={({ isActive }) =>
               cn(
@@ -252,6 +264,24 @@ export function AppShell() {
             <Settings className="size-4 shrink-0" aria-hidden="true" />
             <span className={cn(collapsed && 'sr-only')}>Configurações</span>
           </NavLink>
+          {!collapsed &&
+            SETTINGS_SECTIONS.map(({ id, label, path, icon: Icon }) => (
+              <NavLink
+                key={id}
+                to={path}
+                className={({ isActive }) =>
+                  cn(
+                    'ml-4 flex items-center gap-2.5 rounded-btn border-l border-line py-1.5 pl-3 pr-2.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/30',
+                    isActive
+                      ? 'bg-surface-2 text-fg'
+                      : 'text-muted hover:bg-surface-2 hover:text-fg',
+                  )
+                }
+              >
+                <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+                {label}
+              </NavLink>
+            ))}
         </nav>
 
         <div

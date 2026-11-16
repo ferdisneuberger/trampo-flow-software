@@ -46,6 +46,11 @@ const ResetPasswordPage = lazy(() =>
     default: module.ResetPasswordPage,
   })),
 );
+const McpSettingsPage = lazy(() =>
+  import('./pages/McpSettingsPage').then((module) => ({
+    default: module.McpSettingsPage,
+  })),
+);
 const SettingsPage = lazy(() =>
   import('./pages/SettingsPage').then((module) => ({
     default: module.SettingsPage,
@@ -93,6 +98,10 @@ export function App() {
                     element={<ApplicationDetailPage />}
                   />
                   <Route path="configuracoes" element={<SettingsPage />} />
+                  <Route
+                    path="configuracoes/mcp"
+                    element={<McpSettingsPage />}
+                  />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Route>

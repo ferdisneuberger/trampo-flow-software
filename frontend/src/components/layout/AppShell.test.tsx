@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,6 +41,7 @@ function renderShell() {
         <Route path="/candidaturas" element={<p>conteúdo do quadro</p>} />
         <Route path="/login" element={<p>login</p>} />
         <Route path="/configuracoes" element={<p>página de configurações</p>} />
+        <Route path="/configuracoes/mcp" element={<p>tela do MCP</p>} />
       </Route>
     </Routes>,
     { route: '/candidaturas' },
@@ -98,5 +99,55 @@ describe('AppShell', () => {
     expect(
       await screen.findByText('página de configurações'),
     ).toBeInTheDocument();
+  });
+
+  it('mostra o MCP como subitem de Configurações no menu da conta (celular)', async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    await user.click(
+      screen.getByRole('button', { name: /Menu da conta de Fernando/ }),
+    );
+
+    const items = screen
+      .getAllByRole('menuitem')
+      .map((item) => item.textContent);
+
+    // O MCP vem logo depois de Configurações e antes de Sair.
+    expect(items).toEqual(['Configurações', 'MCP', 'Sair']);
+
+    await user.click(screen.getByRole('menuitem', { name: 'MCP' }));
+
+    expect(await screen.findByText('tela do MCP')).toBeInTheDocument();
+  });
+
+  it('na barra lateral o MCP é um subitem de Configurações, visível com o menu expandido', async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
+
+    // A barra começa recolhida: só os ícones principais.
+    expect(within(nav).queryByRole('link', { name: 'MCP' })).toBeNull();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Expandir menu lateral' }),
+    );
+
+    const mcp = within(nav).getByRole('link', { name: 'MCP' });
+
+    expect(mcp).toHaveAttribute('href', '/configuracoes/mcp');
+
+    await user.click(mcp);
+
+    expect(await screen.findByText('tela do MCP')).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'MCP' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    // Configurações só fica ativo na própria página, não na do subitem.
+    expect(
+      within(nav).getByRole('link', { name: 'Configurações' }),
+    ).not.toHaveAttribute('aria-current');
   });
 });

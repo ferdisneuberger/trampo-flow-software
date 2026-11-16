@@ -245,8 +245,8 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
         res,
         401,
         oauth
-          ? 'Autorize o Trampo Flow pelo login (OAuth) ou envie um token em Authorization: Bearer tfp_... (Configurações → Tokens de integração).'
-          : 'Envie um token de integração em Authorization: Bearer tfp_... (crie em Configurações → Tokens de integração).',
+          ? 'Autorize o Trampo Flow pelo login (OAuth) ou envie um token em Authorization: Bearer tfp_... (Configurações → MCP → Tokens de integração).'
+          : 'Envie um token de integração em Authorization: Bearer tfp_... (crie em Configurações → MCP → Tokens de integração).',
         { 'WWW-Authenticate': challenge(false) },
       );
       return;
