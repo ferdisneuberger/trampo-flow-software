@@ -90,9 +90,10 @@ describe('McpSettingsPage — tokens de integração', () => {
 
     renderWithProviders(<McpSettingsPage />);
 
-    expect(
-      await screen.findByRole('tab', { name: 'Claude web e celular' }),
-    ).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('tab', { name: 'Claude' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
 
     await user.click(screen.getByRole('tab', { name: 'Claude Code' }));
 

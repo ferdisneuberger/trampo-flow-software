@@ -6,14 +6,14 @@ O agente **não apaga** candidaturas (apagar é só pela interface) e só enxerg
 
 ## Qual forma de conexão usar
 
-| Eu quero…                                               | Use                                                                                        |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Usar no **Claude Code** (terminal)                      | [A4](#a4-claude-code-terminal-com-login) (login) ou [B1](#b1-claude-code-terminal) (token) |
-| Usar no **Cursor** ou no **VS Code**                    | [B2](#b2-cursor-vs-code-e-similares)                                                       |
-| Usar no **Claude Desktop**                              | [A2](#a2-claude-desktop) (login) ou [B3](#b3-claude-desktop) (token)                       |
-| Rodar um **script, cron ou CI**                         | [B4](#b4-automação-e-scripts)                                                              |
-| **Testar localmente** ou desenvolver                    | [B5](#b5-desenvolvimento-local-stdio)                                                      |
-| Usar no **Claude web ou no celular** (login, sem token) | [A1](#a1-claude-web-claudeai) e [A3](#a3-claude-no-celular)                                |
+| Eu quero…                                               | Use                                                                                                            |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Usar no **Claude Code** (terminal)                      | [A4](#a4-claude-code-terminal-com-login) (login) ou [B1](#b1-claude-code-terminal) (token)                     |
+| Usar no **Cursor**, **VS Code** ou **OpenCode**         | [A5](#a5-cursor-vs-code-e-opencode-com-login) (login) ou [B2](#b2-cursor-vs-code-opencode-e-similares) (token) |
+| Usar no **Claude Desktop**                              | [A2](#a2-claude-desktop) (login) ou [B3](#b3-claude-desktop) (token)                                           |
+| Rodar um **script, cron ou CI**                         | [B4](#b4-automação-e-scripts)                                                                                  |
+| **Testar localmente** ou desenvolver                    | [B5](#b5-desenvolvimento-local-stdio)                                                                          |
+| Usar no **Claude web ou no celular** (login, sem token) | [A1](#a1-claude-web-claudeai) e [A3](#a3-claude-no-celular)                                                    |
 
 > **Estado:** há duas formas de conectar. Por **login (OAuth)**, parte A: o Claude abre uma janela do Trampo Flow, você entra e clica em **Autorizar**, sem copiar token. Por **token** (`tfp_…`), parte B: você cria o token em Configurações e o envia num cabeçalho. O OAuth só funciona se o servidor estiver com `OAUTH_ENABLED=true`; a tela de Configurações mostra **Aplicativos conectados** quando ele está ligado.
 
@@ -25,9 +25,10 @@ O agente **não apaga** candidaturas (apagar é só pela interface) e só enxerg
 | A1 Claude web                         | **Não testado** (exige URL pública e uma conta Claude com conectores personalizados).                                                                                                              |
 | A2 Claude Desktop (Conectores)        | **Não testado.**                                                                                                                                                                                   |
 | A3 Claude no celular                  | **Não testado.**                                                                                                                                                                                   |
+| A5 Cursor, VS Code e OpenCode (login) | **Não testado.** Só o OpenCode deve funcionar sem ajuste no servidor; o Cursor precisa de `OAUTH_EXTRA_REDIRECT_URIS`; o VS Code não foi verificado.                                               |
 | A4 Claude Code com login              | O fluxo que ele usa foi testado pelo script; o cliente real **não foi executado** nesta instalação.                                                                                                |
 | B1 Claude Code                        | Endereço e cabeçalho testados ao vivo; a sintaxe do comando conferida na ajuda do CLI (`claude mcp add --help`). O comando em si não foi executado em uma instalação real.                         |
-| B2 Cursor e VS Code                   | Formato conferido na documentação de cada um (consulta em 2026-11-15). **Não testado nos aplicativos.**                                                                                            |
+| B2 Cursor, VS Code e OpenCode         | Formato conferido na documentação de cada um (consulta em 2026-11-15). **Não testado nos aplicativos.**                                                                                            |
 | B3 Claude Desktop, modo local (stdio) | Testado.                                                                                                                                                                                           |
 | B3 Claude Desktop, ponte `mcp-remote` | **Não testada.**                                                                                                                                                                                   |
 | B4 Automação (script Node, `curl`)    | Testado ao vivo, incluindo os erros descritos.                                                                                                                                                     |
@@ -45,10 +46,10 @@ Endereço do MCP em todos os métodos: `https://trampo-flow.neubergerdev.com.br/
 
 ### A1. Claude web (claude.ai)
 
-**Para quem é:** quem usa o Claude no navegador. **Pré-requisitos:** conta Claude com conectores personalizados (o plano necessário **não foi confirmado**: uma fonte da Anthropic cita só planos pagos, outra inclui o gratuito) e conta no Trampo Flow com e-mail verificado.
+**Para quem é:** quem usa o Claude no navegador. **Pré-requisitos:** conta Claude com conectores personalizados (pela [ajuda da Anthropic](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp), os planos Pro, Max e Ultra podem adicionar conectores e o plano gratuito pode ter um; Team e Enterprise dependem de um administrador) e conta no Trampo Flow com e-mail verificado.
 
-1. No claude.ai, abra **Configurações → Conectores** e adicione um **conector personalizado**.
-2. Informe o endereço `https://trampo-flow.neubergerdev.com.br/mcp` (um nome, como "Trampo Flow", é opcional).
+1. No claude.ai, abra **Customize (Personalizar) → Connectors (Conectores)**, clique em **Add** e em **Add custom connector** (os nomes dos menus mudam com o tempo: confira a [documentação](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp)).
+2. Informe um nome (por exemplo, "Trampo Flow") e o endereço `https://trampo-flow.neubergerdev.com.br/mcp`. Em autenticação, escolha entrar agora (**Sign in now**). O servidor precisa estar na porta padrão do HTTPS e acessível pela internet.
 3. Uma janela do Trampo Flow abre. Entre (senha ou Google) se pedir.
 4. Confira o nome do aplicativo e o **endereço de destino** na tela de permissão. Quando for o Claude, aparece o selo **Aplicativo verificado (Claude)**. Clique em **Autorizar**.
 5. **Confirme:** o conector aparece como conectado e o Claude lista as ferramentas do Trampo Flow.
@@ -90,6 +91,14 @@ Pela documentação da Anthropic, o conector é adicionado no **claude.ai** (A1)
 
 **Automação não usa OAuth.** O fluxo exige uma pessoa no navegador, o acesso dura 1 hora e o refresh é rotativo: dois processos renovando ao mesmo tempo derrubam a conexão inteira. Para cron, CI e scripts, use o [token](#b4-automação-e-scripts).
 
+### A5. Cursor, VS Code e OpenCode, com login
+
+Estes três aceitam OAuth, mas cada um tem as suas regras. **Nenhum foi testado** aqui; o que segue vem da documentação oficial de cada um.
+
+- **OpenCode** ([documentação](https://opencode.ai/docs/mcp-servers/)): para servidores remotos o OAuth é o padrão. Rode `opencode mcp add trampo-flow --url https://trampo-flow.neubergerdev.com.br/mcp` e depois `opencode mcp auth trampo-flow`; o navegador abre na janela do Trampo Flow. O endereço de retorno é `localhost`/`127.0.0.1`, que o servidor já aceita. É o mais provável de funcionar sem ajuste.
+- **Cursor** ([documentação](https://cursor.com/docs/mcp)): o Cursor lê a metadata do servidor, registra-se sozinho e usa PKCE, mas com endereços de retorno **fixos**: `http://localhost:8787/callback` (o servidor já aceita) e `https://www.cursor.com/agents/mcp/oauth/callback` (**não** está liberado por padrão). Como o registro é recusado se um endereço não for permitido, o login do Cursor só funciona depois que quem administra o servidor acrescentar `OAUTH_EXTRA_REDIRECT_URIS=https://www.cursor.com/agents/mcp/oauth/callback` e recriar a `api` e o `mcp`. Sem isso, use o token (B2). Há relatos na comunidade do Cursor de que, quando o servidor anuncia OAuth, os cabeçalhos configurados podem ser ignorados: se o token falhar, esse é um suspeito.
+- **VS Code** ([documentação](https://code.visualstudio.com/docs/agent-customization/mcp-servers)): ele também pode abrir o OAuth, mas eu **não verifiquei** quais endereços de retorno ele usa. Use o token (B2) até testar.
+
 ### Erros comuns
 
 | Sintoma                                                                 | Causa e solução                                                                                                                                                                                                                                  |
@@ -98,6 +107,7 @@ Pela documentação da Anthropic, o conector é adicionado no **claude.ai** (A1)
 | "Authorization with the MCP server failed"                              | Redirecionamento do domínio para outro host (por exemplo, apex para `www`): o cabeçalho de autorização se perde. Use o endereço final direto.                                                                                                    |
 | O botão de conector personalizado não existe                            | O plano da conta Claude pode não incluir conectores personalizados.                                                                                                                                                                              |
 | Tela de permissão mostra "Não foi possível autorizar"                   | O pedido tem um parâmetro inválido ou um `redirect_uri` que não é permitido (só Claude, endereços locais `localhost` e os extras configurados em `OAUTH_EXTRA_REDIRECT_URIS`). A mensagem explica o motivo; volte ao aplicativo e tente de novo. |
+| "redirect_uri não permitido" no Cursor ou em outro cliente              | O endereço de retorno do cliente não está liberado. O administrador do servidor acrescenta o endereço em `OAUTH_EXTRA_REDIRECT_URIS` (veja A5) e recria a `api` e o `mcp`; o Claude e `localhost` já são aceitos.                                |
 | A janela pede login de novo no meio                                     | A sessão do Trampo Flow expirou: entre de novo e o pedido continua.                                                                                                                                                                              |
 | Conta Google sem e-mail verificado                                      | O Trampo Flow pede a verificação antes de qualquer coisa; conclua e volte.                                                                                                                                                                       |
 | Depois de revogar, o Claude ainda lista as ferramentas por até 1 minuto | O MCP guarda a validação por 60 segundos; qualquer chamada de ferramenta já falha na hora. Remova o conector no Claude.                                                                                                                          |
@@ -169,7 +179,7 @@ Regras do token: vale até 365 dias (padrão 90), no máximo 20 ativos por conta
 - O token foi colado com espaço ou quebra de linha no meio. Cole de novo em uma linha só.
 - A URL precisa terminar em `/mcp`.
 
-## B2. Cursor, VS Code e similares
+## B2. Cursor, VS Code, OpenCode e similares
 
 **Para quem é:** quem usa clientes que aceitam um servidor MCP remoto com cabeçalho. Os formatos abaixo seguem a documentação oficial consultada em 2026-11-15; **confira a página do seu cliente**, porque eles mudam.
 
@@ -226,6 +236,26 @@ O formato antigo, `.vscode/mcp.json` (raiz `servers`), permite pedir o token ao 
   }
 }
 ```
+
+**OpenCode** ([documentação](https://opencode.ai/docs/mcp-servers/)). Em `opencode.json`, com o token na variável `TRAMPO_API_TOKEN` e o OAuth desligado (para servidores remotos o padrão é OAuth):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "trampo-flow": {
+        "type": "remote",
+        "url": "https://trampo-flow.neubergerdev.com.br/mcp",
+        "oauth": false,
+        "headers": { "Authorization": "Bearer {env:TRAMPO_API_TOKEN}" }
+      }
+    }
+  }
+}
+```
+
+A documentação atual aninha os servidores em `mcp.servers`; versões antigas usam `mcp.trampo-flow` direto. Confira a documentação da sua versão. Pela linha de comando: `opencode mcp add trampo-flow --url https://trampo-flow.neubergerdev.com.br/mcp --header 'Authorization=Bearer {env:TRAMPO_API_TOKEN}'` (o formato do `--header` segue o exemplo da documentação, que usa `NOME=valor`; confira se a sua versão aceita assim).
 
 **Nunca escreva o token literal em um arquivo que vá para o Git.** **Confirme:** o cliente lista o servidor `trampo-flow` e as 7 ferramentas; faça os pedidos de teste. **Problemas comuns:** variável de ambiente não definida na sessão em que o aplicativo foi aberto (reabra o app depois de definir); falta de `Bearer ` antes do token.
 
