@@ -1,5 +1,14 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+} from '../../application/shared/metrics/app-metrics';
 
 type AttemptState = {
   failures: number;
@@ -13,7 +22,10 @@ export class LoginRateLimiter {
   private readonly windowMs: number;
   private state: AttemptState | null = null;
 
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
+  ) {
     this.maxFailures = readPositiveInt(
       configService.get<string>('LOGIN_MAX_ATTEMPTS'),
       10,
@@ -61,11 +73,17 @@ export class LoginRateLimiter {
         ? current.failures + 1
         : 1;
 
+    const blocked = failures >= this.maxFailures;
+
     this.state = {
       failures,
       lastAttemptAt: now,
-      blockedUntil: failures >= this.maxFailures ? now + this.windowMs : 0,
+      blockedUntil: blocked ? now + this.windowMs : 0,
     };
+
+    if (blocked) {
+      this.metrics.loginLockedOut();
+    }
   }
 
   registerSuccess(): void {

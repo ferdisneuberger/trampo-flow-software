@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Optional,
   Param,
   ParseUUIDPipe,
   Post,
@@ -19,6 +20,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+} from '../../../application/shared/metrics/app-metrics';
 import { CreatePersonalAccessTokenDto } from '../../../application/auth/dtos/create-personal-access-token.dto';
 import { CreatePersonalAccessTokenUseCase } from '../../../application/auth/use-cases/create-personal-access-token.use-case';
 import { ListPersonalAccessTokensUseCase } from '../../../application/auth/use-cases/list-personal-access-tokens.use-case';
@@ -58,6 +63,7 @@ export class PersonalAccessTokensController {
     private readonly listTokens: ListPersonalAccessTokensUseCase,
     private readonly revokeToken: RevokePersonalAccessTokenUseCase,
     private readonly rateLimiter: RateLimiterService,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   @Post()
@@ -90,6 +96,11 @@ export class PersonalAccessTokensController {
       expiresInDays: dto.expiresInDays,
       scope: dto.scope,
     });
+
+    this.metrics.personalToken(
+      'created',
+      token.scopes.includes('applications:write') ? 'read_write' : 'read',
+    );
 
     return { ...toResponse(token), token: secret };
   }
@@ -124,5 +135,6 @@ export class PersonalAccessTokensController {
     @CurrentUserId() userId: string,
   ): Promise<void> {
     await this.revokeToken.execute({ userId, id });
+    this.metrics.personalToken('revoked', 'unknown');
   }
 }

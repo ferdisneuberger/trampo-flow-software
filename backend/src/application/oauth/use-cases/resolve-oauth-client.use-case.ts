@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   CLAUDE_ORIGINS,
   isAllowedRedirectUri,
@@ -7,6 +7,7 @@ import { validateClientMetadata } from '../../../domain/oauth/client-metadata';
 import { OAuthClientRepository } from '../../../domain/oauth/repositories/oauth-client.repository';
 import type { OAuthClientSource } from '../../../domain/oauth/records';
 import { ClientMetadataFetcher } from '../../../domain/oauth/services/client-metadata-fetcher';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { OAuthError } from '../errors/oauth.error';
 import { OAuthSettings } from '../services/oauth-settings';
 
@@ -41,6 +42,7 @@ export class ResolveOAuthClientUseCase {
     private readonly clients: OAuthClientRepository,
     private readonly fetcher: ClientMetadataFetcher,
     private readonly settings: OAuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(clientId: string): Promise<ResolvedOAuthClient> {
@@ -73,14 +75,22 @@ export class ResolveOAuthClientUseCase {
     const cached = this.cache.get(clientId);
 
     if (cached && cached.expiresAt > Date.now()) {
+      this.metrics.oauthCimdCache('hit');
+
       return cached.client;
     }
 
+    this.metrics.oauthCimdCache('miss');
+
     const url = this.parseMetadataUrl(clientId);
+    const startedAt = performance.now();
     const result = await this.fetcher.fetch(url.toString());
+    const seconds = (): number => (performance.now() - startedAt) / 1000;
 
     // Falha de rede não é cacheada.
     if (!result.ok) {
+      this.metrics.oauthCimdFetch(result.reason, seconds());
+
       throw new OAuthError(
         'invalid_client',
         'Não foi possível obter os metadados do aplicativo.',
@@ -95,6 +105,8 @@ export class ResolveOAuthClientUseCase {
       Array.isArray(document) ||
       (document as Record<string, unknown>).client_id !== clientId
     ) {
+      this.metrics.oauthCimdFetch('invalid', seconds());
+
       throw new OAuthError(
         'invalid_client',
         'O client_id do documento não é igual à sua URL.',
@@ -107,8 +119,12 @@ export class ResolveOAuthClientUseCase {
     );
 
     if (!metadata.ok) {
+      this.metrics.oauthCimdFetch('invalid', seconds());
+
       throw new OAuthError('invalid_client', metadata.description);
     }
+
+    this.metrics.oauthCimdFetch('ok', seconds());
 
     const client: ResolvedOAuthClient = {
       clientId,

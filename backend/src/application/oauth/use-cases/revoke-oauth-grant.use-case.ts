@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { OAuthGrantRepository } from '../../../domain/oauth/repositories/oauth-grant.repository';
 import { OAuthTokenRepository } from '../../../domain/oauth/repositories/oauth-token.repository';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { NotFoundError } from '../../shared/errors/not-found.error';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class RevokeOAuthGrantUseCase {
   constructor(
     private readonly grants: OAuthGrantRepository,
     private readonly tokens: OAuthTokenRepository,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(input: { userId: string; grantId: string }): Promise<void> {
@@ -22,5 +24,6 @@ export class RevokeOAuthGrantUseCase {
     }
 
     await this.tokens.revokeAllForGrant(input.grantId, now);
+    this.metrics.oauthRevocation('grant');
   }
 }

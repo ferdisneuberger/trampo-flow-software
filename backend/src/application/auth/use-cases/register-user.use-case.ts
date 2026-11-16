@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConflictError } from '../../shared/errors/conflict.error';
 import { ForbiddenError } from '../../shared/errors/forbidden.error';
 import { AuthToken } from '../../../domain/auth/entities/auth-token.entity';
@@ -17,6 +17,7 @@ import { assertPasswordPolicy } from '../../../domain/users/services/password-po
 import { DomainError } from '../../../domain/shared/errors/domain.error';
 import { buildVerificationEmail } from '../emails/verification-email';
 import { AuthSettings } from '../services/auth-settings';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { sendMailInBackground } from '../services/send-mail-in-background';
 
 export type RegisterUserInput = {
@@ -39,6 +40,7 @@ export class RegisterUserUseCase {
     private readonly tokenHasher: TokenHasher,
     private readonly mailer: Mailer,
     private readonly settings: AuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(input: RegisterUserInput): Promise<void> {
@@ -128,6 +130,7 @@ export class RegisterUserUseCase {
       },
       this.logger,
       `Falha ao enviar verificação para ${email}`,
+      { template: 'verification', metrics: this.metrics },
     );
   }
 }

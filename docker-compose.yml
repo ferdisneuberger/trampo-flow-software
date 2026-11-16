@@ -71,6 +71,11 @@ services:
       OAUTH_REFRESH_TOKEN_TTL_DAYS: '${OAUTH_REFRESH_TOKEN_TTL_DAYS:-30}'
       OAUTH_CODE_TTL_SECONDS: '${OAUTH_CODE_TTL_SECONDS:-60}'
       OAUTH_MAX_CLIENTS: '${OAUTH_MAX_CLIENTS:-1000}'
+      # Métricas do Prometheus: porta interna, não publicada e não roteada pelo ingress.
+      METRICS_ENABLED: '${METRICS_ENABLED:-true}'
+      METRICS_PORT: '${METRICS_PORT:-9464}'
+      METRICS_BEARER_TOKEN: '${METRICS_BEARER_TOKEN:-}'
+      BUSINESS_GAUGES_INTERVAL_SECONDS: '${BUSINESS_GAUGES_INTERVAL_SECONDS:-60}'
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,6 +108,10 @@ services:
       OAUTH_ENABLED: '${OAUTH_ENABLED:-false}'
       OAUTH_ISSUER: '${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}'
       MCP_PUBLIC_URL: '${MCP_PUBLIC_URL:-${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}/mcp}'
+      # Métricas do Prometheus: porta interna, não publicada (o ingress só roteia /mcp).
+      METRICS_ENABLED: '${METRICS_ENABLED:-true}'
+      METRICS_PORT: '${MCP_METRICS_PORT:-9465}'
+      METRICS_BEARER_TOKEN: '${METRICS_BEARER_TOKEN:-}'
     depends_on:
       api:
         condition: service_healthy

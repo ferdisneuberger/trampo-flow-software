@@ -4,6 +4,20 @@
 
 Full-stack application for tracking job applications. The backend is a Node.js API built with NestJS, Fastify, Prisma, and PostgreSQL, organized in layers following DDD and SOLID principles. The frontend is a React SPA built with Vite, TypeScript, and Tailwind CSS, structured into components, hooks, and services.
 
+## Highlights of 3.4
+
+- **Prometheus metrics for the API and the MCP service**, on **internal ports**
+  (`9464` and `9465`) that are neither published nor routed by the ingress: an
+  HTTP middleware (requests, latency and errors by route template and by who
+  called: web, integration token, or OAuth), product usage (active users, the
+  activation funnel, applications by status and channel, where jobs come from,
+  status transitions), security signals (reused sessions and OAuth codes, login
+  attempts, guard denials, rate limits), the OAuth/MCP funnel (which agents and
+  tools are used), job-link prefill quality, email delivery, and database and
+  process health. See [Metrics and observability](#metrics-and-observability).
+- **A Grafana dashboard and 17 email alerts** you can import, in
+  [`infra/observability/`](infra/observability/README.md).
+
 ## Highlights of 3.2
 
 - **OAuth 2.1 for the MCP server:** Claude (web, mobile, and the Desktop
@@ -43,7 +57,7 @@ and persisted ordering, server-side search, light/dark/system themes saved per
 user, a short-lived access token in memory with an `HttpOnly` refresh cookie,
 and Playwright visual regression.
 
-**Current version:** 3.3.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
+**Current version:** 3.4.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Stack
 
@@ -816,6 +830,27 @@ npm run inspect    # MCP Inspector against dist/index.js
 npm run start:http # hosted mode on :3100 (needs TRAMPO_API_URL)
 ```
 
+## Metrics and observability
+
+The API and the MCP service expose Prometheus metrics, so the Grafana you already run can show how the system is used and whether it is healthy. Everything is off the public path:
+
+- The metrics server listens on **its own internal port** (`METRICS_PORT`, default `9464` for the API and `9465` for the MCP service). The port is **not published** on the host and **not routed by the ingress**; nginx also answers `404` for `/metrics` and `/api/metrics` (the ingress strips `/api`, so a `/metrics` on the main port would otherwise be public). Set `METRICS_BEARER_TOKEN` to require `Authorization: Bearer …` on a shared network.
+- Labels only take values from **closed lists**. Routes are templates (`/applications/:id`), job sites are categories (`linkedin`, `gupy`, … or `other`), and the MCP client is a category (`claude`, `claude_code`, `cursor`, `vscode`, `opencode`, `other`). Emails, IPs, tokens, ids, company names, phases, and URLs never become labels, and tests enforce it, including that a value outside the list cannot create a new series.
+- **Instrumentation never breaks a request**: errors while recording a metric are swallowed and logged. The domain stays free of Prometheus: use cases talk to an `AppMetrics` port, with a no-op default.
+- The business stock gauges (users, active users, funnel, applications by status, stale pipeline, tokens, OAuth grants) are computed in the database **every 60 seconds** (`BUSINESS_GAUGES_INTERVAL_SECONDS`), never on each scrape.
+
+| Group           | Examples                                                                                                                                                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| HTTP middleware | `trampo_http_requests_total{method,route,status,auth}`, `trampo_http_request_duration_seconds`, in-flight requests, request size                                                                                                                             |
+| Usage           | `trampo_users`, `trampo_users_active{window}`, `trampo_users_funnel{stage}`, `trampo_applications{status}`, `trampo_applications_created_total{channel,source}`, `trampo_applications_transitions_total{from,to,channel}`, `trampo_applications_stale{days}` |
+| Security        | `trampo_auth_login_attempts_total`, `trampo_auth_session_refreshes_total{result="reused"}`, `trampo_oauth_code_reuse_total`, `trampo_auth_guard_denials_total{reason,auth}`, `trampo_rate_limit_hits_total{rule}`                                            |
+| OAuth and MCP   | `trampo_oauth_authorizations_total`, `trampo_oauth_token_requests_total`, `trampo_mcp_tool_calls_total{tool,result}`, `trampo_mcp_token_kind_total{kind}`, `trampo_mcp_client_requests_total{client}`                                                        |
+| Other           | `trampo_job_preview_total{status,source}`, `trampo_mail_sent_total{template,result}`, `trampo_db_up`, `trampo_db_query_duration_seconds{operation,table}`, `trampo_build_info`, and the standard Node metrics                                                |
+
+To wire it up, see [`infra/observability/README.md`](infra/observability/README.md): the dedicated `monitoring` network, the scrape config, **the dashboard JSON to import into Grafana**, and **the 17 Grafana alerts** (email) with a script to apply them. The dashboard and the alerts are generated from `infra/observability/dashboard.mjs` and `alerts.mjs`, and CI checks the generated files are up to date.
+
+Variables: `METRICS_ENABLED` (default `true`), `METRICS_PORT` (`9464`), `MCP_METRICS_PORT` (`9465`), `METRICS_BEARER_TOKEN`, and `BUSINESS_GAUGES_INTERVAL_SECONDS` (`60`).
+
 ## Tests
 
 Unit tests use **Vitest** and an in-memory repository that clones entities to isolate each operation. No database is needed to run them.
@@ -1217,7 +1252,7 @@ This section makes explicit what the project does **not** do, and why. None of t
 - **Guard cost.** It validates the signature and queries `users` on every request (one primary-key `SELECT`); integration tokens add one lookup by hash. To change it: an in-memory cache with a short TTL, if the volume justifies it.
 - **MCP authentication and token scopes.** Integration tokens (`tfp_`, read-only or read and write) and OAuth access tokens (`tfo_`) only reach the applications routes that declare a scope; they cannot delete applications, change the profile, or manage tokens. OAuth ships behind `OAUTH_ENABLED` and has **not been exercised with the real Claude clients** (web, mobile, Desktop, Cursor, VS Code): the flow is verified by `scripts/oauth-smoke.mjs` and the test suite, and the manual checks are listed in the [connection guide](docs/guia-conexao-mcp.md). The MCP forwards the OAuth token to its own API instead of minting a second one (a deliberate deviation from the spec's passthrough rule, explained above). Only public OAuth clients exist (no `client_secret`), scopes are just read and write, and rate limits are in memory. To change it: a confidential-client flow, finer scopes, and a shared rate limiter.
 - **UI tests.** Components and pages have Testing Library tests, hooks/services have coverage, and Playwright covers the critical path (login, creation, search, detail, and deletion). E2E runs on PRs, on demand, and on a schedule. Visual regression uses Linux snapshots and runs in a separate workflow.
-- **Observability.** Default Nest/Fastify logging, with no request ID or metrics. To change it: structured Pino logging, request correlation, and a metrics endpoint.
+- **Observability.** Prometheus metrics on internal ports plus a Grafana dashboard and alerts (see above), but logging is still the default Nest/Fastify one, with no request ID, tracing, or time-in-status (there is no status history, so only the number of transitions is measured). "Active user" is a proxy: activity on applications, not page views. The login limiter keeps a single global state, so enough failed logins lock **everyone** out for the window (the metric `trampo_auth_login_lockouts_total` makes it visible). To change it: structured Pino logging with request correlation, an application events table, and a per-email-and-IP login limiter.
 
 ## License
 

@@ -3,7 +3,9 @@ import {
   Controller,
   Header,
   HttpCode,
+  HttpException,
   HttpStatus,
+  Optional,
   Post,
   Req,
   UseFilters,
@@ -11,6 +13,13 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 import { OAuthError } from '../../../application/oauth/errors/oauth.error';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+  type OAuthGrantTypeMetric,
+  type OAuthRegistrationResult,
+  type OAuthTokenResult,
+} from '../../../application/shared/metrics/app-metrics';
 import { ExchangeAuthorizationCodeUseCase } from '../../../application/oauth/use-cases/exchange-authorization-code.use-case';
 import { RefreshOAuthTokenUseCase } from '../../../application/oauth/use-cases/refresh-oauth-token.use-case';
 import { RegisterOAuthClientUseCase } from '../../../application/oauth/use-cases/register-oauth-client.use-case';
@@ -51,6 +60,46 @@ function required(body: Params, name: string): string {
   return value;
 }
 
+function grantLabel(value: unknown): OAuthGrantTypeMetric {
+  return value === 'authorization_code' || value === 'refresh_token'
+    ? value
+    : 'other';
+}
+
+const TOKEN_ERRORS: OAuthTokenResult[] = [
+  'invalid_grant',
+  'invalid_request',
+  'invalid_target',
+  'invalid_scope',
+  'invalid_client',
+  'unsupported_grant_type',
+];
+
+function tokenResult(error: unknown): OAuthTokenResult {
+  if (error instanceof OAuthError) {
+    return TOKEN_ERRORS.find((code) => code === error.code) ?? 'error';
+  }
+
+  return error instanceof HttpException && error.getStatus() === 429
+    ? 'rate_limited'
+    : 'error';
+}
+
+function registrationResult(error: unknown): OAuthRegistrationResult {
+  if (error instanceof OAuthError) {
+    if (
+      error.code === 'invalid_redirect_uri' ||
+      error.code === 'invalid_client_metadata'
+    ) {
+      return error.code;
+    }
+
+    return error.code === 'temporarily_unavailable' ? 'limit' : 'error';
+  }
+
+  return 'error';
+}
+
 /**
  * Endpoints públicos do servidor de autorização (RFC 6749, 7591 e 7009).
  * Recebem `Record<string, unknown>` de propósito: o `ValidationPipe` global é
@@ -68,6 +117,7 @@ export class OAuthController {
     private readonly refreshToken: RefreshOAuthTokenUseCase,
     private readonly revokeToken: RevokeOAuthTokenUseCase,
     private readonly rateLimiter: RateLimiterService,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   @Post('register')
@@ -79,7 +129,17 @@ export class OAuthController {
       MINUTE_IN_MS,
     );
 
-    return this.registerClient.execute(body ?? {});
+    try {
+      const registered = await this.registerClient.execute(body ?? {});
+
+      this.metrics.oauthClientRegistered('created');
+
+      return registered;
+    } catch (error) {
+      this.metrics.oauthClientRegistered(registrationResult(error));
+
+      throw error;
+    }
   }
 
   @Post('token')
@@ -92,7 +152,22 @@ export class OAuthController {
   })
   async token(@Body() body: Params, @Req() request: FastifyRequest) {
     const params = body ?? {};
+    const grant = grantLabel(params.grant_type);
 
+    try {
+      const response = await this.handleToken(params, request);
+
+      this.metrics.oauthTokenRequest(grant, 'ok');
+
+      return response;
+    } catch (error) {
+      this.metrics.oauthTokenRequest(grant, tokenResult(error));
+
+      throw error;
+    }
+  }
+
+  private async handleToken(params: Params, request: FastifyRequest) {
     this.rateLimiter.consume(
       `oauth:token:ip:${request.ip}`,
       TOKEN_LIMIT,

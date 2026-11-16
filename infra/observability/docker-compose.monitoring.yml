@@ -1,0 +1,24 @@
+# Rede dedicada de monitoramento: a API e o MCP entram nela para o Prometheus
+# raspar o /metrics (portas internas 9464 e 9465), sem expor as métricas aos
+# outros apps da rede `edge` nem ao ingress.
+#
+# Uso (na VPS, junto dos outros arquivos de compose do projeto):
+#   docker network create monitoring        # uma vez
+#   docker compose -f docker-compose.yml -f docker-compose.edge.yml \
+#                  -f infra/observability/docker-compose.monitoring.yml up -d
+#
+# O Prometheus (projeto neuberger-infra) também precisa entrar na rede
+# `monitoring`: veja infra/observability/README.md.
+services:
+  api:
+    networks:
+      - backend
+      - monitoring
+  mcp:
+    networks:
+      - backend
+      - monitoring
+
+networks:
+  monitoring:
+    external: true

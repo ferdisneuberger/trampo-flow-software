@@ -6,3 +6,6 @@ package-lock.json
 .env
 .env.*
 LICENSE
+
+# Gerados por infra/observability/build.mjs (formatação própria; o CI confere que estão em dia)
+infra/observability/grafana/

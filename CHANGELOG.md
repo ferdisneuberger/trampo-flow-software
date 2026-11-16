@@ -3,6 +3,51 @@
 All notable changes to the project. The format follows Conventional Commits and
 semantic versioning.
 
+## 3.4.0 — 2026-11-16
+
+### Added
+
+- Prometheus metrics for the API and the MCP service, on **internal ports**
+  (`METRICS_PORT`, default 9464 for the API and 9465 for the MCP service) that
+  are not published or routed by the ingress. The nginx ingress also answers
+  404 for `/metrics` and `/api/metrics`, and `METRICS_BEARER_TOKEN` can require
+  a token. Instrumentation never breaks a request, and labels only take values
+  from closed lists (route templates, job-site and agent categories), with
+  tests that no email, IP, token, id, or free text becomes a label.
+- HTTP middleware: requests, latency, in-flight requests and request size by
+  route template, status, and who called (web, integration token, or OAuth).
+- Usage: users by state and provider, active users (1, 7, and 30 days), the
+  activation funnel, applications by status, stale open applications,
+  applications created by channel and job-site category, status transitions,
+  phase updates, reordering, deletions, and job-link prefill results and
+  duration. The stock gauges are computed in the database every 60 seconds.
+- Security: login attempts and lockouts, registrations, email verification,
+  password reset, session refresh (including **reused refresh tokens**), guard
+  denials by reason and auth kind, integration token events, and rate-limit
+  hits by rule.
+- OAuth and MCP: client registrations, the authorization funnel, token
+  requests by grant type and result, **reused authorization codes and refresh
+  tokens**, revocations, access-token authentication results, CIMD fetches and
+  cache, the hourly cleanup, email delivery by template, MCP requests, 401
+  challenges, credential kind (`tfp` or `tfo`), the agent (Claude, Claude Code,
+  Cursor, VS Code, OpenCode), tool calls with result and duration, and the
+  calls the MCP makes to the API.
+- Database: `trampo_db_up`, query duration by operation and table, and errors.
+- `infra/observability/`: a Grafana **dashboard** (79 panels, 8 sections) to
+  import, **17 Grafana alerts** that notify by email (with a script to apply
+  them through the API, or a provisioning file), the `monitoring` network
+  override for Compose, the Prometheus scrape config, and the generators CI
+  checks.
+
+### Changed
+
+- The database client now emits Prisma query and error events (warnings still
+  go to the log), and the SMTP mailer throws `MailerDisabledError` (same message
+  as before) when it is not configured, so a disabled mailer is distinguished
+  from a failed one.
+- The cleanup service marks its last success at startup, so the "cleanup
+  stalled" alert does not fire right after a deploy.
+
 ## 3.3.0 — 2026-11-15
 
 ### Fixed

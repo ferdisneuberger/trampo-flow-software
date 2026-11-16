@@ -1,5 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { TrampoApiClient } from './api-client.js';
+import type { McpMetrics } from './metrics.js';
 import { registerPrompts } from './prompts.js';
 import { registerCreateApplication } from './tools/create-application.js';
 import { registerGetApplication } from './tools/get-application.js';
@@ -10,7 +12,7 @@ import { registerPreviewJobPosting } from './tools/preview-job-posting.js';
 import { registerUpdateApplication } from './tools/update-application.js';
 
 export const SERVER_NAME = 'trampo-flow';
-export const SERVER_VERSION = '3.3.0';
+export const SERVER_VERSION = '3.4.0';
 
 const INSTRUCTIONS = [
   'Ferramentas para acompanhar as candidaturas de emprego do usuário no Trampo Flow.',
@@ -21,11 +23,47 @@ const INSTRUCTIONS = [
   'Se o usuário quiser descartar uma candidatura, explique isso e ofereça movê-la para Recusada (REJECTED) ou Finalizada (COMPLETED) com move_application, perguntando qual faz sentido.',
 ].join(' ');
 
-export function createServer(client: TrampoApiClient): McpServer {
+/** Mede cada ferramenta (resultado e duração) sem mexer no código de cada uma. */
+function instrumentTools(server: McpServer, metrics: McpMetrics): void {
+  const original = server.registerTool.bind(server) as (
+    ...args: unknown[]
+  ) => unknown;
+
+  (server as unknown as { registerTool: unknown }).registerTool = (
+    name: string,
+    config: unknown,
+    handler: (...args: unknown[]) => Promise<CallToolResult>,
+  ) =>
+    original(name, config, async (...args: unknown[]) => {
+      const startedAt = performance.now();
+      const seconds = () => (performance.now() - startedAt) / 1000;
+
+      try {
+        const result = await handler(...args);
+
+        metrics.toolCall(name, result?.isError ? 'error' : 'ok', seconds());
+
+        return result;
+      } catch (error) {
+        metrics.toolCall(name, 'error', seconds());
+
+        throw error;
+      }
+    });
+}
+
+export function createServer(
+  client: TrampoApiClient,
+  metrics?: McpMetrics,
+): McpServer {
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     { instructions: INSTRUCTIONS },
   );
+
+  if (metrics) {
+    instrumentTools(server, metrics);
+  }
 
   registerPreviewJobPosting(server, client);
   registerCreateApplication(server, client);

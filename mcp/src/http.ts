@@ -6,6 +6,13 @@ import type {
 } from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ApiError, TrampoApiClient } from './api-client.js';
+import {
+  classifyClient,
+  clientInfoName,
+  McpMetrics,
+  routeLabel,
+  rpcMethodLabel,
+} from './metrics.js';
 import { createServer } from './server.js';
 
 export type HttpOptions = {
@@ -17,6 +24,8 @@ export type HttpOptions = {
   tokenCacheMs?: number;
   fetch?: typeof fetch;
   now?: () => number;
+  /** Métricas do Prometheus; sem isto o handler usa um registro próprio. */
+  metrics?: McpMetrics;
   /**
    * OAuth 2.1 (`OAUTH_ENABLED`). Ausente = como antes: só `tfp_`, sem metadata
    * do recurso e `401` sem `resource_metadata`.
@@ -138,6 +147,7 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const tokenCacheMs = options.tokenCacheMs ?? DEFAULT_TOKEN_CACHE_MS;
   const now = options.now ?? Date.now;
+  const metrics = options.metrics ?? new McpMetrics();
   const oauth = options.oauth
     ? {
         resource: canonicalResource(options.oauth.resource),
@@ -177,6 +187,7 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
       token,
       timeoutMs: options.timeoutMs,
       fetch: options.fetch,
+      metrics,
     });
   }
 
@@ -185,10 +196,24 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
     const expiresAt = validTokens.get(key);
 
     if (expiresAt && expiresAt > now()) {
+      metrics.tokenValidation('cache_hit');
+
       return;
     }
 
-    await clientFor(token).whoami();
+    try {
+      await clientFor(token).whoami();
+    } catch (error) {
+      metrics.tokenValidation(
+        error instanceof ApiError && error.status === 401
+          ? 'invalid'
+          : 'upstream_error',
+      );
+
+      throw error;
+    }
+
+    metrics.tokenValidation('ok');
 
     if (validTokens.size >= MAX_CACHED_TOKENS) {
       validTokens.clear();
@@ -241,6 +266,8 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
       !token ||
       !(token.startsWith('tfp_') || (oauth && token.startsWith('tfo_')))
     ) {
+      metrics.authChallenge(token ? 'unsupported_token' : 'missing');
+
       sendRpcError(
         res,
         401,
@@ -252,10 +279,13 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
       return;
     }
 
+    metrics.tokenKind(token.startsWith('tfo_') ? 'tfo' : 'tfp');
+
     try {
       await ensureValidToken(token);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
+        metrics.authChallenge('invalid_token');
         sendRpcError(res, 401, error.message, {
           'WWW-Authenticate': challenge(true),
         });
@@ -273,7 +303,13 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
     }
 
     const body = await readJsonBody(req, maxBodyBytes);
-    const server = createServer(clientFor(token));
+
+    metrics.rpcRequest(rpcMethodLabel(body));
+    metrics.clientRequest(
+      classifyClient(clientInfoName(body), req.headers['user-agent']),
+    );
+
+    const server = createServer(clientFor(token), metrics);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
@@ -289,6 +325,10 @@ export function createHttpHandler(options: HttpOptions): RequestListener {
   }
 
   return (req, res) => {
+    res.on('finish', () =>
+      metrics.httpRequest(routeLabel(req.url), res.statusCode),
+    );
+
     handle(req, res).catch((error: unknown) => {
       if (error instanceof HttpError) {
         sendRpcError(res, error.status, error.message);

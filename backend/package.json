@@ -1,6 +1,6 @@
 {
   "name": "trampo-flow-backend",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Trampo Flow API built with NestJS, Fastify and Prisma.",
   "private": true,
   "license": "UNLICENSED",
@@ -45,6 +45,7 @@
     "google-auth-library": "^11.3.2",
     "nodemailer": "^10.3.1",
     "prisma": "^6.19.3",
+    "prom-client": "^15.1.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
