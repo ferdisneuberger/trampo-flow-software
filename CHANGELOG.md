@@ -3,6 +3,54 @@
 All notable changes to the project. The format follows Conventional Commits and
 semantic versioning.
 
+## 3.2.0 — 2026-11-15
+
+### Added
+
+- OAuth 2.1 for the MCP server, so Claude (web, mobile, and the Desktop
+  connectors) connects with just `https://<host>/mcp`: the API is now an
+  authorization server (`/.well-known/oauth-authorization-server`,
+  `POST /oauth/register` with dynamic client registration and Client ID
+  Metadata Documents, `/oauth/authorize/preview` and `/decision`,
+  `POST /oauth/token`, `POST /oauth/revoke`, `GET/DELETE /oauth/grants`) and
+  `/mcp` serves its protected resource metadata
+  (`/.well-known/oauth-protected-resource`) and answers `401` with
+  `resource_metadata`. PKCE S256 only, opaque `tfo_` (1 h) and rotating `tfr_`
+  (30 days) tokens stored as HMAC, single-use authorization codes, a redirect
+  URI allowlist (Claude, loopback, `OAUTH_EXTRA_REDIRECT_URIS`), and an
+  SSRF-guarded CIMD fetcher. It ships **dark**: everything answers `404` until
+  `OAUTH_ENABLED=true`.
+- Consent screen `/oauth/authorize`, **Aplicativos conectados** (list and
+  revoke), and a "Como conectar" panel in Settings.
+- Permission choice for integration tokens (read-only or read and write) and
+  `GET /auth/whoami`, which returns only the user id.
+- `scripts/oauth-smoke.mjs`: dependency-free end-to-end check of the OAuth flow
+  against any URL.
+- Portuguese connection guide, `docs/guia-conexao-mcp.md`, covering OAuth and
+  tokens, with what was and was not tested.
+- Ingress routes, CORS for the OAuth endpoints, rate limits, and the `OAUTH_*`
+  variables in Compose and `.env.example`.
+
+### Changed
+
+- Integration tokens and OAuth tokens are **denied by default**: they only
+  reach routes that declare a scope (`@RequiredScope`), so profile, theme,
+  email verification, token management, and `DELETE /applications/:id` need a
+  session. Existing `tfp_` tokens keep read and write.
+- The hosted MCP validates tokens with `GET /auth/whoami` instead of
+  `GET /auth/me`.
+- The SSRF-safe HTTP client was extracted from the job page fetcher and is
+  shared with the CIMD fetcher.
+- The README compatibility table no longer claims Claude Desktop accepts the
+  hosted URL through its configuration file.
+
+### Notes
+
+- Not exercised with the real clients yet (Claude web, mobile, Desktop, Cursor,
+  VS Code, `mcp-remote`): see the connection guide.
+- The OAuth endpoints rely on Nest's built-in form parser; do not add
+  `@fastify/formbody`.
+
 ## 3.1.0 — 2026-11-15
 
 ### Added

@@ -10,6 +10,7 @@ export const LAST_USED_THROTTLE_MS = 60 * 1000;
 export type AuthenticatedPersonalAccessToken = {
   userId: string;
   tokenId: string;
+  scopes: string[];
 };
 
 @Injectable()
@@ -47,6 +48,6 @@ export class AuthenticatePersonalAccessTokenUseCase {
       await this.repository.touchLastUsed(token.id, now);
     }
 
-    return { userId: token.userId, tokenId: token.id };
+    return { userId: token.userId, tokenId: token.id, scopes: token.scopes };
   }
 }

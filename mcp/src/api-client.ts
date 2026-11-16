@@ -72,6 +72,15 @@ export function toApiError(
         code,
       );
     case 403:
+      // `insufficient_scope`: o token não pode escrever (ou a rota exige login).
+      if (apiMessage && /permiss/i.test(apiMessage)) {
+        return new ApiError(
+          `${apiMessage} Se você conectou pelo login (OAuth), reconecte o Trampo Flow e autorize a escrita.`,
+          status,
+          code,
+        );
+      }
+
       return new ApiError(
         apiMessage ?? 'Acesso negado para tokens de integração.',
         status,
@@ -119,9 +128,9 @@ export class TrampoApiClient {
     this.fetchImpl = options.fetch ?? fetch;
   }
 
-  /** Valida o token: `GET /auth/me` aceita PAT e responde 401 se ele for inválido. */
-  getMe(): Promise<{ id: string; email: string }> {
-    return this.request('GET', '/auth/me');
+  /** Valida o token: `GET /auth/whoami` devolve só o id e responde 401 se ele for inválido. */
+  whoami(): Promise<{ id: string }> {
+    return this.request('GET', '/auth/whoami');
   }
 
   previewJobPosting(link: string): Promise<JobPostingPreview> {

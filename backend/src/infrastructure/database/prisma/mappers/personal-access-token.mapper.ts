@@ -15,6 +15,7 @@ export class PersonalAccessTokenMapper {
       lastUsedAt: record.lastUsedAt,
       expiresAt: record.expiresAt,
       revokedAt: record.revokedAt,
+      scope: record.scope,
       createdAt: record.createdAt,
     });
   }
@@ -31,6 +32,7 @@ export class PersonalAccessTokenMapper {
       lastUsedAt: token.lastUsedAt,
       expiresAt: token.expiresAt,
       revokedAt: token.revokedAt,
+      scope: token.scope,
       createdAt: token.createdAt,
     };
   }

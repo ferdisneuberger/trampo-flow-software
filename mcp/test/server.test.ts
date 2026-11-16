@@ -299,6 +299,29 @@ describe('create_application', () => {
   });
 });
 
+describe('token somente leitura', () => {
+  it('repassa a mensagem de permissão da API quando uma escrita é recusada', async () => {
+    const { call } = await setup({
+      [`PATCH /applications/${ID}`]: {
+        status: 403,
+        body: {
+          message:
+            'Este token não tem permissão para esta ação. Crie um token com permissão de leitura e escrita.',
+        },
+      },
+    });
+
+    const { result, text } = await call('update_application', {
+      id: ID,
+      currentPhase: 'Entrevista técnica',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(text).toMatch(/não tem permissão para esta ação/);
+    expect(text).toMatch(/leitura e escrita/);
+  });
+});
+
 describe('update_application', () => {
   it('envia só os campos informados', async () => {
     const { call, calls } = await setup({

@@ -77,6 +77,36 @@ describe.skipIf(!TEST_DATABASE_URL)(
       expect(stored.isRevoked()).toBe(true);
     });
 
+    it('grava e devolve a permissão do token; linhas antigas ficam com leitura e escrita', async () => {
+      const user = await createUser();
+      const readOnly = PersonalAccessToken.create({
+        userId: user.id,
+        name: 'somente leitura',
+        tokenHash: 'b'.repeat(64),
+        prefix: 'tfp_read',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        scope: 'applications:read',
+      });
+      await repository.create(readOnly);
+      await repository.create(makeToken(user.id));
+
+      expect((await repository.findByHash('b'.repeat(64)))?.scopes).toEqual([
+        'applications:read',
+      ]);
+      expect((await repository.findByHash('a'.repeat(64)))?.scope).toBe(
+        'applications:read applications:write',
+      );
+
+      // Linha criada antes da coluna existir (sem escopo informado) usa o padrão.
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "personal_access_tokens" ("id","user_id","name","token_hash","prefix","expires_at")
+       VALUES (gen_random_uuid(), '${user.id}', 'antigo', '${'c'.repeat(64)}', 'tfp_old1', now() + interval '1 day')`,
+      );
+      expect((await repository.findByHash('c'.repeat(64)))?.scope).toBe(
+        'applications:read applications:write',
+      );
+    });
+
     it('apaga os tokens junto com o usuário', async () => {
       const user = await createUser();
       await repository.create(makeToken(user.id));

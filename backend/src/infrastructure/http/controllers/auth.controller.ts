@@ -45,6 +45,8 @@ import { UnauthorizedError } from '../../../application/shared/errors/unauthoriz
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import { LoginRateLimiter } from '../../auth/login-rate-limiter.service';
 import { Public } from '../../auth/public.decorator';
+import { RequiredScope } from '../../auth/required-scope.decorator';
+import { SCOPE_APPLICATIONS_READ } from '../../../domain/auth/scopes';
 import { RateLimiterService } from '../../auth/rate-limiter.service';
 import { TokenService } from '../../auth/token.service';
 import {
@@ -338,6 +340,20 @@ export class AuthController {
       await this.getUserProfile.execute(userId);
 
     return this.toAuthenticatedUser(user, verificationResendAvailableAt);
+  }
+
+  @Get('whoami')
+  @RequiredScope(SCOPE_APPLICATIONS_READ)
+  @ApiBearerAuth('bearer')
+  @ApiOperation({
+    summary: 'Confirma que o token é válido e devolve só o id do usuário',
+    description:
+      'Usado por integrações (como o servidor MCP) para validar um token sem expor o perfil.',
+  })
+  @ApiResponse({ status: 200, description: 'Token válido.' })
+  @ApiResponse({ status: 401, description: 'Token ausente ou inválido.' })
+  whoami(@CurrentUserId() userId: string) {
+    return { id: userId };
   }
 
   @Patch('me/theme')

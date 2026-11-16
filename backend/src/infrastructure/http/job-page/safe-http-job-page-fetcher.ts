@@ -1,12 +1,12 @@
-import { lookup as dnsLookup, type LookupAddress } from 'node:dns';
-import { request as httpRequest, type IncomingMessage } from 'node:http';
-import { request as httpsRequest } from 'node:https';
-import { isIP, type LookupFunction } from 'node:net';
 import {
   JobPageFetcher,
   type JobPageFetchResult,
 } from '../../../domain/applications/services/job-page-fetcher';
-import { isPublicAddress } from './public-address';
+import {
+  BlockedAddressError,
+  readBody,
+  SafeHttpClient,
+} from '../safe-http-client';
 
 export type SafeHttpJobPageFetcherOptions = {
   timeoutMs?: number;
@@ -24,14 +24,6 @@ const DEFAULT_MAX_REDIRECTS = 3;
 const USER_AGENT =
   'Mozilla/5.0 (compatible; TrampoFlowBot/1.0; +https://github.com/ferdisneuberger/trampo-flow-software)';
 
-class BlockedAddressError extends Error {
-  constructor() {
-    super('Endereço bloqueado.');
-  }
-}
-
-class UnreachableError extends Error {}
-
 /**
  * Busca a página pública de uma vaga com proteção contra SSRF:
  * - só http/https nas portas 80 e 443;
@@ -47,21 +39,17 @@ export class SafeHttpJobPageFetcher extends JobPageFetcher {
   private readonly timeoutMs: number;
   private readonly maxBytes: number;
   private readonly maxRedirects: number;
-  private readonly isAllowedAddress: (address: string) => boolean;
-  private readonly allowedPorts: Set<string>;
+  private readonly http: SafeHttpClient;
 
   constructor(options: SafeHttpJobPageFetcherOptions = {}) {
     super();
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
     this.maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
-    this.isAllowedAddress = options.isAllowedAddress ?? isPublicAddress;
-    this.allowedPorts = new Set([
-      '',
-      '80',
-      '443',
-      ...(options.allowedPorts ?? []),
-    ]);
+    this.http = new SafeHttpClient({
+      isAllowedAddress: options.isAllowedAddress,
+      allowedPorts: options.allowedPorts,
+    });
   }
 
   async fetch(url: string): Promise<JobPageFetchResult> {
@@ -71,9 +59,7 @@ export class SafeHttpJobPageFetcher extends JobPageFetcher {
       let current = new URL(url);
 
       for (let redirects = 0; ; redirects += 1) {
-        this.assertAllowedUrl(current);
-
-        const response = await this.get(current, signal);
+        const response = await this.http.get(current, signal, HEADERS);
         const status = response.statusCode ?? 0;
         const location = response.headers.location;
 
@@ -102,7 +88,10 @@ export class SafeHttpJobPageFetcher extends JobPageFetcher {
           return { ok: false, reason: 'not_html' };
         }
 
-        const html = await this.readBody(response, contentType, signal);
+        const html = decode(
+          await readBody(response, this.maxBytes, 'truncate', signal),
+          contentType,
+        );
 
         return { ok: true, html, finalUrl: current.toString() };
       }
@@ -118,125 +107,13 @@ export class SafeHttpJobPageFetcher extends JobPageFetcher {
       return { ok: false, reason: 'unreachable' };
     }
   }
-
-  private assertAllowedUrl(url: URL): void {
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new BlockedAddressError();
-    }
-
-    if (url.username || url.password || !this.allowedPorts.has(url.port)) {
-      throw new BlockedAddressError();
-    }
-
-    const hostname = url.hostname.replace(/^\[|\]$/g, '');
-
-    // IP literal não passa pela resolução de DNS: valida aqui.
-    if (isIP(hostname) && !this.isAllowedAddress(hostname)) {
-      throw new BlockedAddressError();
-    }
-  }
-
-  private get(url: URL, signal: AbortSignal): Promise<IncomingMessage> {
-    const request = url.protocol === 'https:' ? httpsRequest : httpRequest;
-
-    return new Promise((resolve, reject) => {
-      const req = request(
-        url,
-        {
-          method: 'GET',
-          signal,
-          lookup: this.guardedLookup,
-          headers: {
-            'user-agent': USER_AGENT,
-            accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
-            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8',
-          },
-        },
-        resolve,
-      );
-
-      req.on('error', reject);
-      req.end();
-    });
-  }
-
-  /** Resolve o DNS e recusa a conexão se qualquer IP for interno. */
-  private readonly guardedLookup: LookupFunction = (
-    hostname,
-    options,
-    callback,
-  ) => {
-    dnsLookup(hostname, { all: true }, (error, addresses) => {
-      if (error) {
-        callback(error, '', 0);
-        return;
-      }
-
-      const list = addresses;
-
-      if (
-        list.length === 0 ||
-        list.some((entry) => !this.isAllowedAddress(entry.address))
-      ) {
-        callback(new BlockedAddressError(), '', 0);
-        return;
-      }
-
-      if (options.all) {
-        (
-          callback as unknown as (
-            error: null,
-            addresses: LookupAddress[],
-          ) => void
-        )(null, list);
-        return;
-      }
-
-      const [first] = list;
-
-      callback(null, first?.address ?? '', first?.family ?? 4);
-    });
-  };
-
-  private readBody(
-    response: IncomingMessage,
-    contentType: string,
-    signal: AbortSignal,
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      let size = 0;
-      let finished = false;
-
-      const finish = () => {
-        if (finished) return;
-        finished = true;
-        resolve(decode(Buffer.concat(chunks), contentType));
-      };
-
-      response.on('data', (chunk: Buffer) => {
-        if (finished) return;
-
-        const remaining = this.maxBytes - size;
-
-        if (chunk.length >= remaining) {
-          chunks.push(chunk.subarray(0, remaining));
-          size = this.maxBytes;
-          response.destroy();
-          finish();
-          return;
-        }
-
-        chunks.push(chunk);
-        size += chunk.length;
-      });
-      response.on('end', finish);
-      response.on('error', (error) => {
-        if (!finished) reject(signal.aborted ? error : new UnreachableError());
-      });
-    });
-  }
 }
+
+const HEADERS = {
+  'user-agent': USER_AGENT,
+  accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
+  'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8',
+};
 
 function decode(buffer: Buffer, contentType: string): string {
   const charset = /charset\s*=\s*["']?([\w-]+)/i.exec(contentType)?.[1];
