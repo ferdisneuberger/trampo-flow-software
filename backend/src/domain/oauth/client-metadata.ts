@@ -3,9 +3,14 @@ import { isAllowedRedirectUri } from './redirect-uri-policy';
 export const CLIENT_NAME_MAX_LENGTH = 120;
 export const MAX_REDIRECT_URIS = 5;
 
+/** Concessões que este servidor realmente atende. */
+export const SUPPORTED_GRANT_TYPES = ['authorization_code', 'refresh_token'];
+
 export type ClientMetadata = {
   name: string;
   redirectUris: string[];
+  /** Só as concessões suportadas que o cliente declarou (padrão: as duas). */
+  grantTypes: string[];
 };
 
 export type ClientMetadataError =
@@ -57,34 +62,45 @@ export function validateClientMetadata(
     };
   }
 
+  // RFC 7591 §2: o servidor pode ignorar o que não suporta. O Claude declara
+  // tipos além dos nossos, então os extras são descartados (o /token já recusa
+  // qualquer concessão que não seja uma das duas) e o que falta é só exigir
+  // `authorization_code` e `code`, sem os quais o cliente não funciona aqui.
   const grantTypes = input.grant_types;
+  let acceptedGrantTypes = [...SUPPORTED_GRANT_TYPES];
 
-  if (
-    grantTypes !== undefined &&
-    (!isStringArray(grantTypes) ||
-      grantTypes.some(
-        (grant) => grant !== 'authorization_code' && grant !== 'refresh_token',
-      ))
-  ) {
-    return {
-      ok: false,
-      error: 'invalid_client_metadata',
-      description: 'grant_types aceita só authorization_code e refresh_token.',
-    };
+  if (grantTypes !== undefined) {
+    if (!isStringArray(grantTypes)) {
+      return {
+        ok: false,
+        error: 'invalid_client_metadata',
+        description: 'grant_types deve ser uma lista de textos.',
+      };
+    }
+
+    acceptedGrantTypes = SUPPORTED_GRANT_TYPES.filter((grant) =>
+      grantTypes.includes(grant),
+    );
+
+    if (!acceptedGrantTypes.includes('authorization_code')) {
+      return {
+        ok: false,
+        error: 'invalid_client_metadata',
+        description: 'grant_types deve incluir authorization_code.',
+      };
+    }
   }
 
   const responseTypes = input.response_types;
 
-  if (
-    responseTypes !== undefined &&
-    (!isStringArray(responseTypes) ||
-      responseTypes.some((type) => type !== 'code'))
-  ) {
-    return {
-      ok: false,
-      error: 'invalid_client_metadata',
-      description: 'response_types aceita só "code".',
-    };
+  if (responseTypes !== undefined) {
+    if (!isStringArray(responseTypes) || !responseTypes.includes('code')) {
+      return {
+        ok: false,
+        error: 'invalid_client_metadata',
+        description: 'response_types deve incluir "code".',
+      };
+    }
   }
 
   const redirectUris = input.redirect_uris;
@@ -118,6 +134,7 @@ export function validateClientMetadata(
     value: {
       name: input.client_name.trim(),
       redirectUris: [...new Set(redirectUris)],
+      grantTypes: acceptedGrantTypes,
     },
   };
 }

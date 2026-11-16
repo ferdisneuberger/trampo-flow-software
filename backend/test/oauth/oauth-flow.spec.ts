@@ -87,7 +87,7 @@ describe('registro dinâmico (DCR)', () => {
       'invalid_client_metadata',
     ],
     [
-      'grant implícito',
+      'grant_types sem authorization_code',
       { grant_types: ['implicit'] },
       'invalid_client_metadata',
     ],
@@ -739,5 +739,53 @@ describe('metadata do servidor de autorização', () => {
       'applications:write',
       'offline_access',
     ]);
+  });
+});
+
+describe('DCR tolera tipos de concessão e de resposta extras (RFC 7591 §2)', () => {
+  it('descarta o que não suporta e devolve só o que registrou', async () => {
+    const response = await stack.register.execute({
+      client_name: 'Claude',
+      redirect_uris: [CLAUDE_CALLBACK],
+      token_endpoint_auth_method: 'none',
+      grant_types: [
+        'authorization_code',
+        'refresh_token',
+        'client_credentials',
+        'urn:ietf:params:oauth:grant-type:device_code',
+      ],
+      response_types: ['code', 'id_token'],
+    });
+
+    expect(response.grant_types).toEqual([
+      'authorization_code',
+      'refresh_token',
+    ]);
+  });
+
+  it('aceita só authorization_code e devolve só ele', async () => {
+    const response = await stack.register.execute({
+      client_name: 'Claude',
+      redirect_uris: [CLAUDE_CALLBACK],
+      grant_types: ['authorization_code', 'implicit'],
+    });
+
+    expect(response.grant_types).toEqual(['authorization_code']);
+  });
+
+  it.each([
+    ['sem authorization_code', { grant_types: ['refresh_token', 'implicit'] }],
+    ['lista vazia', { grant_types: [] }],
+    ['não é lista', { grant_types: 'authorization_code' }],
+    ['response_types sem code', { response_types: ['token'] }],
+  ])('continua recusando: %s', async (_label, patch) => {
+    await expectOAuthError(
+      stack.register.execute({
+        client_name: 'App',
+        redirect_uris: [CLAUDE_CALLBACK],
+        ...patch,
+      }),
+      'invalid_client_metadata',
+    );
   });
 });

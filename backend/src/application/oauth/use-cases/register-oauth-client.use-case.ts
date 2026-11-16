@@ -83,7 +83,7 @@ export class RegisterOAuthClientUseCase {
       client_id_issued_at: Math.floor(now.getTime() / 1000),
       client_name: metadata.value.name,
       redirect_uris: metadata.value.redirectUris,
-      grant_types: ['authorization_code', 'refresh_token'],
+      grant_types: metadata.value.grantTypes,
       response_types: ['code'],
       token_endpoint_auth_method: 'none',
       ...(typeof scope === 'string' ? { scope } : {}),

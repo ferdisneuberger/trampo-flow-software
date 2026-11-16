@@ -225,3 +225,30 @@ describe('CIMD: fluxo de autorização', () => {
     ).rejects.toMatchObject({ code: 'invalid_client' });
   });
 });
+
+describe('CIMD: concessões e respostas extras no documento', () => {
+  it('um documento com grant_types além dos suportados (como o do Claude web) é aceito', async () => {
+    serve(
+      CLIENT,
+      document({
+        grant_types: [
+          'authorization_code',
+          'refresh_token',
+          'client_credentials',
+        ],
+        response_types: ['code', 'id_token'],
+      }),
+    );
+
+    await expect(stack.resolveClient.execute(CLIENT)).resolves.toMatchObject({
+      clientId: CLIENT,
+      source: 'cimd',
+    });
+  });
+
+  it('continua recusando um documento que nem declara authorization_code', async () => {
+    serve(CLIENT, document({ grant_types: ['client_credentials'] }));
+
+    expect((await resolveError(CLIENT)).code).toBe('invalid_client');
+  });
+});
