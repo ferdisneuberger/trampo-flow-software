@@ -41,7 +41,14 @@ import { ResendVerificationUseCase } from '../../../application/auth/use-cases/r
 import { ResetPasswordUseCase } from '../../../application/auth/use-cases/reset-password.use-case';
 import { UpdateThemePreferenceUseCase } from '../../../application/auth/use-cases/update-theme-preference.use-case';
 import { VerifyEmailUseCase } from '../../../application/auth/use-cases/verify-email.use-case';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+} from '../../../application/shared/metrics/app-metrics';
+import { ConflictError } from '../../../application/shared/errors/conflict.error';
+import { ForbiddenError } from '../../../application/shared/errors/forbidden.error';
 import { UnauthorizedError } from '../../../application/shared/errors/unauthorized.error';
+import { DomainError } from '../../../domain/shared/errors/domain.error';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import { LoginRateLimiter } from '../../auth/login-rate-limiter.service';
 import { Public } from '../../auth/public.decorator';
@@ -80,6 +87,7 @@ export class AuthController {
     private readonly tokenService: TokenService,
     private readonly loginRateLimiter: LoginRateLimiter,
     configService: ConfigService,
+    private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {
     this.cookieSecure = configService.get<string>('NODE_ENV') === 'production';
     this.allowedOrigins = (configService.get<string>('CORS_ORIGINS') ?? '')
@@ -103,7 +111,13 @@ export class AuthController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    this.loginRateLimiter.assertAllowed();
+    try {
+      this.loginRateLimiter.assertAllowed();
+    } catch (error) {
+      this.metrics.loginAttempted('password', 'blocked');
+
+      throw error;
+    }
 
     try {
       const user = await this.authenticateUser.execute({
@@ -114,12 +128,18 @@ export class AuthController {
       const response = await this.issueSession(user, request, reply);
 
       this.loginRateLimiter.registerSuccess();
+      this.metrics.loginAttempted('password', 'success');
 
       return response;
     } catch (error) {
       if (error instanceof UnauthorizedError) {
         this.loginRateLimiter.registerFailure();
       }
+
+      this.metrics.loginAttempted(
+        'password',
+        error instanceof UnauthorizedError ? 'invalid_credentials' : 'error',
+      );
 
       throw error;
     }
@@ -140,12 +160,31 @@ export class AuthController {
   ) {
     this.rateLimiter.consume(`google:ip:${request.ip}`, 10, 60 * 1000);
 
-    const { user } = await this.googleSignIn.execute({
-      credential: dto.credential,
-      termsAccepted: dto.termsAccepted,
-    });
+    let result: Awaited<ReturnType<GoogleSignInUseCase['execute']>>;
 
-    return this.issueSession(user, request, reply);
+    try {
+      result = await this.googleSignIn.execute({
+        credential: dto.credential,
+        termsAccepted: dto.termsAccepted,
+      });
+    } catch (error) {
+      this.metrics.googleSignIn('failed');
+      this.metrics.loginAttempted(
+        'google',
+        error instanceof UnauthorizedError ? 'invalid_credentials' : 'error',
+      );
+
+      throw error;
+    }
+
+    this.metrics.googleSignIn(result.isNew ? 'created' : 'existing');
+    this.metrics.loginAttempted('google', 'success');
+
+    if (result.isNew) {
+      this.metrics.registrationAttempted('google', 'created');
+    }
+
+    return this.issueSession(result.user, request, reply);
   }
 
   @Public()
@@ -159,13 +198,27 @@ export class AuthController {
   async register(@Body() dto: RegisterUserDto, @Req() request: FastifyRequest) {
     this.rateLimiter.consume(`register:ip:${request.ip}`, 5, 60 * 60 * 1000);
 
-    await this.registerUser.execute({
-      email: dto.email,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      password: dto.password,
-      termsAccepted: dto.termsAccepted,
-    });
+    try {
+      await this.registerUser.execute({
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        password: dto.password,
+        termsAccepted: dto.termsAccepted,
+      });
+      this.metrics.registrationAttempted('password', 'created');
+    } catch (error) {
+      this.metrics.registrationAttempted(
+        'password',
+        error instanceof ForbiddenError
+          ? 'disabled'
+          : error instanceof ConflictError
+            ? 'email_taken'
+            : 'invalid',
+      );
+
+      throw error;
+    }
 
     return {
       message:
@@ -194,7 +247,14 @@ export class AuthController {
       60 * 60 * 1000,
     );
 
-    await this.verifyEmail.execute({ token: dto.token });
+    try {
+      await this.verifyEmail.execute({ token: dto.token });
+      this.metrics.emailVerification('confirmed');
+    } catch (error) {
+      this.metrics.emailVerification('invalid');
+
+      throw error;
+    }
   }
 
   @Post('verification/resend')
@@ -218,7 +278,15 @@ export class AuthController {
       60 * 60 * 1000,
     );
 
-    return this.resendVerification.execute(userId);
+    const result = await this.resendVerification.execute(userId);
+
+    if (result.sent) {
+      this.metrics.emailVerification('resent');
+    } else if (result.retryAfterSeconds > 0) {
+      this.metrics.emailVerification('rate_limited');
+    }
+
+    return result;
   }
 
   @Public()
@@ -243,6 +311,7 @@ export class AuthController {
     );
 
     await this.forgotPassword.execute({ email: dto.email });
+    this.metrics.passwordReset('requested');
 
     return {
       message:
@@ -267,10 +336,19 @@ export class AuthController {
       60 * 60 * 1000,
     );
 
-    await this.resetPassword.execute({
-      token: dto.token,
-      password: dto.password,
-    });
+    try {
+      await this.resetPassword.execute({
+        token: dto.token,
+        password: dto.password,
+      });
+      this.metrics.passwordReset('completed');
+    } catch (error) {
+      if (error instanceof DomainError) {
+        this.metrics.passwordReset('invalid');
+      }
+
+      throw error;
+    }
   }
 
   @Public()
@@ -291,16 +369,37 @@ export class AuthController {
     const refreshToken = request.cookies?.[REFRESH_COOKIE];
 
     if (!refreshToken) {
+      this.metrics.sessionRefreshed('missing');
+
       throw new UnauthorizedException({
         message: 'Sessão ausente.',
         code: 'MISSING_REFRESH_TOKEN',
       });
     }
 
-    const session = await this.refreshSession.execute({
-      refreshToken,
-      userAgent: request.headers['user-agent'] ?? null,
-    });
+    let session: Awaited<ReturnType<RefreshSessionUseCase['execute']>>;
+
+    try {
+      session = await this.refreshSession.execute({
+        refreshToken,
+        userAgent: request.headers['user-agent'] ?? null,
+      });
+    } catch (error) {
+      if (error instanceof UnauthorizedError) {
+        // REFRESH_TOKEN_REUSED indica roubo de sessão: é o que mais importa alertar.
+        this.metrics.sessionRefreshed(
+          error.code === 'REFRESH_TOKEN_REUSED'
+            ? 'reused'
+            : error.code === 'EXPIRED_REFRESH_TOKEN'
+              ? 'expired'
+              : 'invalid',
+        );
+      }
+
+      throw error;
+    }
+
+    this.metrics.sessionRefreshed('ok');
 
     this.setRefreshCookie(reply, session);
 
@@ -328,6 +427,7 @@ export class AuthController {
     await this.logoutSession.execute(request.cookies?.[REFRESH_COOKIE]);
 
     reply.clearCookie(REFRESH_COOKIE, { path: '/' });
+    this.metrics.loggedOut();
   }
 
   @Get('me')
