@@ -54,7 +54,7 @@ Endereço do MCP em todos os métodos: `https://trampo-flow.neubergerdev.com.br/
 5. **Confirme:** o conector aparece como conectado e o Claude lista as ferramentas do Trampo Flow.
 6. Faça os [três pedidos de teste](#três-pedidos-para-testar-qualquer-conexão).
 
-**Desconectar:** em **Configurações → Aplicativos conectados** do Trampo Flow, clique em **Revogar** (o corte é imediato), e depois remova o conector no Claude.
+**Desconectar:** em **Configurações → MCP → Aplicativos conectados** do Trampo Flow, clique em **Revogar** (o corte é imediato), e depois remova o conector no Claude.
 
 > **Não testado** neste ambiente (exige URL pública e uma conta Claude).
 
@@ -127,7 +127,7 @@ Ele só lê dados, revoga o que autorizou ao final e termina com código diferen
 
 ## Criar e revogar o token (vale para toda a parte B)
 
-1. Entre no Trampo Flow, abra o menu da conta e vá em **Configurações → Tokens de integração**.
+1. Entre no Trampo Flow, abra o menu da conta e vá em **Configurações → MCP → Tokens de integração**.
 2. Informe um **nome** que diga onde o token será usado (ex.: "Claude Code no notebook") e a **validade**.
 3. Clique em **Criar token** e **copie na hora**: ele aparece uma única vez. O sistema guarda só um resumo (hash), então não dá para recuperá-lo depois. Se perder, revogue e crie outro.
 4. Para desligar um acesso, volte à mesma tela e clique em **Revogar**. O efeito é imediato.
@@ -369,5 +369,5 @@ Variáveis do modo stdio: `TRAMPO_API_URL` e `TRAMPO_API_TOKEN` (obrigatórias; 
 
 - O token vale como a sua senha, menos apagar candidaturas. Não cole em chats nem em repositórios.
 - Cada token enxerga só a conta de quem o criou.
-- Revogar em **Configurações → Tokens de integração** corta o acesso na hora.
+- Revogar em **Configurações → MCP → Tokens de integração** corta o acesso na hora.
 - Se um token vazar: revogue e crie outro.

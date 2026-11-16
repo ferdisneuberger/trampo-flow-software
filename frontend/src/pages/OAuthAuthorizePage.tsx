@@ -180,7 +180,7 @@ export function OAuthAuthorizePage() {
             </div>
             <p className="text-xs leading-5 text-muted">
               Você pode revogar o acesso a qualquer momento em Configurações →
-              Aplicativos conectados.
+              MCP → Aplicativos conectados.
             </p>
           </Card>
         )}

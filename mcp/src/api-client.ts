@@ -21,7 +21,7 @@ type RequestOptions = {
 };
 
 const TOKEN_HELP =
-  'Gere outro em Configurações → Tokens de integração e atualize TRAMPO_API_TOKEN.';
+  'Gere outro em Configurações → MCP → Tokens de integração e atualize TRAMPO_API_TOKEN.';
 
 /** Erro já traduzido em uma mensagem útil para o modelo. Nunca contém o token. */
 export class ApiError extends Error {
