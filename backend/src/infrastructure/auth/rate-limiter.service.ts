@@ -1,4 +1,13 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+} from '../../application/shared/metrics/app-metrics';
 
 type RateLimitEntry = {
   timestamps: number[];
@@ -8,6 +17,10 @@ type RateLimitEntry = {
 export class RateLimiterService {
   private readonly entries = new Map<string, RateLimitEntry>();
 
+  constructor(
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
+  ) {}
+
   consume(key: string, limit: number, windowMs: number): void {
     const now = Date.now();
     const entry = this.entries.get(key) ?? { timestamps: [] };
@@ -16,6 +29,7 @@ export class RateLimiterService {
     );
 
     if (timestamps.length >= limit) {
+      this.metrics.rateLimited(key);
       const oldest = timestamps[0] ?? now;
       const retryAfterSeconds = Math.max(
         1,
