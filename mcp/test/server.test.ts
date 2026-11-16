@@ -471,6 +471,6 @@ describe('pipeline_summary', () => {
     const { result, text } = await call('pipeline_summary', { staleDays: 30 });
 
     expect(result.isError).toBe(true);
-    expect(text).toMatch(/Configurações → Tokens de integração/);
+    expect(text).toMatch(/Configurações → MCP → Tokens de integração/);
   });
 });

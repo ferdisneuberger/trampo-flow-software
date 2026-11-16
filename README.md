@@ -27,7 +27,7 @@ Full-stack application for tracking job applications. The backend is a Node.js A
   applications through the API ("cadastra essa vaga: <link>", "o que está parado há mais de 7 dias?").
   See [Using with AI agents (MCP)](#using-with-ai-agents-mcp).
 - **Integration tokens:** long-lived, revocable `tfp_` personal access tokens,
-  stored only as a hash and managed in **Configurações → Tokens de integração**.
+  stored only as a hash and managed in **Configurações → MCP → Tokens de integração**.
 - **Grafite theme:** neutral graphite palette in light and dark, Hanken
   Grotesk, and a split-screen sign-in with the official Google button.
 - **Sidebar navigation:** on large screens the header became a sidebar that
@@ -338,7 +338,7 @@ DELETE /auth/tokens/:id    → revokes immediately
 - `GET /auth/whoami` returns only `{ id }` and is what the hosted MCP uses to validate a token without exposing the profile.
 - `/auth/tokens` and `DELETE /applications/:id` are `@SessionOnly()`: a PAT gets `403` there, so a leaked token cannot mint or revoke tokens, and cannot delete applications (soft or hard). Deleting stays a login-only action in the interface.
 - Writes made with a PAT are rate limited to 60 per minute per token.
-- In the interface: **Configurações → Tokens de integração** (`/configuracoes`) creates, copies, and revokes tokens, and shows a ready-to-paste `claude mcp add` command.
+- In the interface: **Configurações → MCP → Tokens de integração** (`/configuracoes/mcp`, reached from the **Configurações** submenu) creates, copies, and revokes tokens, and shows a ready-to-paste `claude mcp add` command.
 
 #### Theme preference and route protection
 
@@ -682,7 +682,7 @@ The hosted server keeps no secrets: each request carries the caller's own token 
 
 Two ways. **With login (OAuth)**, when the server has `OAUTH_ENABLED=true`: add the URL in Claude (see [Connecting with OAuth](#connecting-with-oauth-claude-web-and-mobile)). **With a token**, below:
 
-1. Sign in and create a token in **Configurações → Tokens de integração**. The screen shows the token once, together with the command below already filled in.
+1. Sign in and create a token in **Configurações → MCP → Tokens de integração**. The screen shows the token once, together with the command below already filled in.
 2. **Claude Code:**
 
    ```bash
@@ -712,7 +712,7 @@ Revoking the token in the interface disconnects the agent immediately. Claude on
 
 ### Connecting with OAuth (Claude web and mobile)
 
-With `OAUTH_ENABLED=true`, the API is also an OAuth 2.1 authorization server and `/mcp` is its protected resource. In Claude, **Settings → Connectors → custom connector** and the URL `https://trampo-flow.neubergerdev.com.br/mcp` are enough: Claude discovers everything from the `401`, you sign in (password or Google), check the permission screen (`/oauth/authorize`), and click **Authorize**. Claude Code does the same with `claude mcp add --transport http trampo-flow <url>` and `/mcp`. Revoke in **Configurações → Aplicativos conectados**.
+With `OAUTH_ENABLED=true`, the API is also an OAuth 2.1 authorization server and `/mcp` is its protected resource. In Claude, **Settings → Connectors → custom connector** and the URL `https://trampo-flow.neubergerdev.com.br/mcp` are enough: Claude discovers everything from the `401`, you sign in (password or Google), check the permission screen (`/oauth/authorize`), and click **Authorize**. Claude Code does the same with `claude mcp add --transport http trampo-flow <url>` and `/mcp`. Revoke in **Configurações → MCP → Aplicativos conectados**.
 
 ```text
 Claude ──POST /mcp (no token)──▶ 401 WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource/mcp"

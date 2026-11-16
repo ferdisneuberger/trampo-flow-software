@@ -18,7 +18,7 @@ const configSchema = z.object({
     .trim()
     .startsWith(
       'tfp_',
-      'TRAMPO_API_TOKEN deve ser um token de integração (tfp_...). Gere um em Configurações → Tokens de integração.',
+      'TRAMPO_API_TOKEN deve ser um token de integração (tfp_...). Gere um em Configurações → MCP → Tokens de integração.',
     ),
   TRAMPO_API_TIMEOUT_MS: z.coerce
     .number()

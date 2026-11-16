@@ -10,6 +10,8 @@ export type MenuItem = {
   separatorBefore?: boolean;
   icon?: LucideIcon;
   checked?: boolean;
+  /** Subitem do item anterior: aparece recuado. */
+  nested?: boolean;
 };
 
 type MenuProps = {
@@ -132,6 +134,7 @@ export function Menu({
                   onClick={() => handleSelect(item)}
                   className={cn(
                     'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium transition-colors',
+                    item.nested && 'pl-6',
                     item.tone === 'danger'
                       ? 'text-danger hover:bg-danger-soft'
                       : 'text-fg-soft hover:bg-surface-2 hover:text-fg',

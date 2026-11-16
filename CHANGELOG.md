@@ -3,6 +3,16 @@
 All notable changes to the project. The format follows Conventional Commits and
 semantic versioning.
 
+## Unreleased
+
+### Changed
+
+- Settings has a section submenu: **Configurações** opens a home with one card
+  per section, and **MCP** is a submenu item (sidebar when expanded, and the
+  account menu on mobile) that opens `/configuracoes/mcp` with how to connect,
+  connected apps, and integration tokens. User-facing paths now read
+  "Configurações → MCP → …".
+
 ## 3.2.0 — 2026-11-15
 
 ### Added
