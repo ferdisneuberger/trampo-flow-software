@@ -28,7 +28,11 @@ function Steps({ children }: { children: ReactNode }) {
 }
 
 function Mono({ children }: { children: ReactNode }) {
-  return <code className="font-mono text-fg">{children}</code>;
+  return (
+    <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-[0.85em] text-fg">
+      {children}
+    </code>
+  );
 }
 
 function mcpUrl(): string {
@@ -167,7 +171,7 @@ function TabContent({
       );
     case 'others':
       return (
-        <div className="space-y-2 text-sm leading-6 text-fg-soft">
+        <div className="space-y-3 text-sm leading-6 text-fg-soft">
           <p>
             Qualquer cliente MCP que fale Streamable HTTP funciona: use o
             endereço <Mono>{url}</Mono> e o cabeçalho{' '}
@@ -178,7 +182,7 @@ function TabContent({
               Clientes que implementam a autorização do MCP (descoberta pelo{' '}
               <Mono>401</Mono>, PKCE e registro dinâmico) podem usar o login. O
               endereço de retorno do cliente precisa estar liberado no servidor
-              (Claude e <Mono>localhost</Mono> já estão).
+              (o do Claude já está).
             </p>
           )}
           <p>
