@@ -12,7 +12,7 @@ import { registerPreviewJobPosting } from './tools/preview-job-posting.js';
 import { registerUpdateApplication } from './tools/update-application.js';
 
 export const SERVER_NAME = 'trampo-flow';
-export const SERVER_VERSION = '3.4.0';
+export const SERVER_VERSION = '3.4.1';
 
 const INSTRUCTIONS = [
   'Ferramentas para acompanhar as candidaturas de emprego do usuário no Trampo Flow.',

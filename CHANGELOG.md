@@ -3,6 +3,16 @@
 All notable changes to the project. The format follows Conventional Commits and
 semantic versioning.
 
+## 3.4.1 — 2026-11-16
+
+### Fixed
+
+- The transactional emails (account confirmation, account verified, and
+  password reset) now use the Grafite identity of the app: grafite palette,
+  the three-bar mark and the "trampo flow" wordmark, with dark mode. They
+  still used the previous beige and orange identity. The mark is drawn with
+  tables because Gmail and Outlook drop SVG.
+
 ## 3.4.0 — 2026-11-16
 
 ### Added

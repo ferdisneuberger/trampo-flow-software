@@ -57,7 +57,7 @@ and persisted ordering, server-side search, light/dark/system themes saved per
 user, a short-lived access token in memory with an `HttpOnly` refresh cookie,
 and Playwright visual regression.
 
-**Current version:** 3.4.0. The full history is in [CHANGELOG.md](CHANGELOG.md).
+**Current version:** 3.4.1. The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Stack
 
