@@ -65,13 +65,16 @@ describe('identidade dos e-mails transacionais', () => {
     expiresInHours: 12,
   });
 
-  it('usa a paleta e o wordmark da v3', () => {
-    expect(email.html).toContain('#f2e8d5');
-    expect(email.html).toContain('#f7c948');
-    expect(email.html).toContain('#ff5a3c');
-    expect(email.html).toContain('trampo');
-    expect(email.html).toContain('flow');
-    expect(email.html).not.toContain('#274dc4');
+  it('usa a paleta Grafite e o wordmark atuais, sem a identidade anterior', () => {
+    expect(email.html).toContain('#f4f4f5');
+    expect(email.html).toContain('#1d1e21');
+    expect(email.html).toContain('#dcdde1');
+    expect(email.html).toContain('trampo flow');
+    expect(email.html).toContain('tf-bar1');
+
+    for (const old of ['#f2e8d5', '#f7c948', '#ff5a3c', '#b42318', '#171512']) {
+      expect(email.html).not.toContain(old);
+    }
   });
 
   it('inclui modo escuro e metadados de cliente de e-mail', () => {
