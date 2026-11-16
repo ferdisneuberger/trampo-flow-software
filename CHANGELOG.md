@@ -3,7 +3,7 @@
 All notable changes to the project. The format follows Conventional Commits and
 semantic versioning.
 
-## Unreleased
+## 3.3.0 — 2026-11-15
 
 ### Fixed
 
@@ -12,6 +12,11 @@ semantic versioning.
   per RFC 7591 §2 the extras are ignored and only the supported grant types are
   registered. `authorization_code` and `code` are still required, and the token
   endpoint still refuses every other grant.
+
+- The login screen's decorative status pills now pass WCAG AA contrast (the
+  pending and done status colors were darkened slightly), and the end-to-end
+  create flow selects the job link field exactly. The scheduled E2E check was
+  failing on both.
 
 ### Changed
 
