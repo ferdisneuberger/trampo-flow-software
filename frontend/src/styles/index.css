@@ -42,9 +42,10 @@
   --color-warning: #86703d;
   --color-warning-soft: #f3eddf;
 
-  --color-status-pending: #86703d;
+  /* Pending e done escurecidos para o texto dos selos passar de 4,5:1 (WCAG AA) sobre a própria cor a 15%. */
+  --color-status-pending: #796537;
   --color-status-progress: #3d5e9c;
-  --color-status-done: #2e7849;
+  --color-status-done: #2d7447;
   --color-status-rejected: #a6423b;
 
   --color-overlay: rgba(29, 30, 33, 0.45);
