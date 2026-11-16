@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -59,7 +60,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly rateLimiter: RateLimiterService,
     private readonly authenticateOAuthAccessToken: AuthenticateOAuthAccessTokenUseCase,
     private readonly oauthSettings: OAuthSettings,
-    private readonly metrics: AppMetrics = new NoopAppMetrics(),
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

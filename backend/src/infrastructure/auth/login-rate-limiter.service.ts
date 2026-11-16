@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   AppMetrics,
@@ -19,7 +24,7 @@ export class LoginRateLimiter {
 
   constructor(
     configService: ConfigService,
-    private readonly metrics: AppMetrics = new NoopAppMetrics(),
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {
     this.maxFailures = readPositiveInt(
       configService.get<string>('LOGIN_MAX_ATTEMPTS'),

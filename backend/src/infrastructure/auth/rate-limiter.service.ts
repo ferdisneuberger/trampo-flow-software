@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import {
   AppMetrics,
   NoopAppMetrics,
@@ -12,7 +17,9 @@ type RateLimitEntry = {
 export class RateLimiterService {
   private readonly entries = new Map<string, RateLimitEntry>();
 
-  constructor(private readonly metrics: AppMetrics = new NoopAppMetrics()) {}
+  constructor(
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
+  ) {}
 
   consume(key: string, limit: number, windowMs: number): void {
     const now = Date.now();

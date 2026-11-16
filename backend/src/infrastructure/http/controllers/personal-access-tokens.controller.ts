@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Optional,
   Param,
   ParseUUIDPipe,
   Post,
@@ -62,7 +63,7 @@ export class PersonalAccessTokensController {
     private readonly listTokens: ListPersonalAccessTokensUseCase,
     private readonly revokeToken: RevokePersonalAccessTokenUseCase,
     private readonly rateLimiter: RateLimiterService,
-    private readonly metrics: AppMetrics = new NoopAppMetrics(),
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   @Post()

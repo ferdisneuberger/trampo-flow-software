@@ -1,4 +1,6 @@
+import { Module } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
 import { describe, expect, it } from 'vitest';
 import { LoginRateLimiter } from '../../src/infrastructure/auth/login-rate-limiter.service';
 import { RateLimiterService } from '../../src/infrastructure/auth/rate-limiter.service';
@@ -38,5 +40,26 @@ describe('métricas dos limitadores', () => {
     limiter.registerFailure();
     expect(metrics.of('loginLockedOut')).toEqual([[]]);
     expect(() => limiter.assertAllowed()).toThrow();
+  });
+});
+
+describe('injeção sem o MetricsModule', () => {
+  it('os componentes instrumentados sobem num módulo que não fornece AppMetrics', async () => {
+    // O Nest ignora o valor padrão de um parâmetro: sem @Optional() a
+    // inicialização abortava em qualquer módulo sem o MetricsModule global.
+    class TestModule {}
+
+    Module({ providers: [RateLimiterService] })(TestModule);
+
+    const context = await NestFactory.createApplicationContext(TestModule, {
+      logger: false,
+    });
+
+    expect(context.get(RateLimiterService)).toBeInstanceOf(RateLimiterService);
+    expect(() =>
+      context.get(RateLimiterService).consume('x:y', 1, 1000),
+    ).not.toThrow();
+
+    await context.close();
   });
 });

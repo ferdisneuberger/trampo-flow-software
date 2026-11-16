@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Optional,
   Patch,
   Post,
   Req,
@@ -87,7 +88,7 @@ export class AuthController {
     private readonly tokenService: TokenService,
     private readonly loginRateLimiter: LoginRateLimiter,
     configService: ConfigService,
-    private readonly metrics: AppMetrics = new NoopAppMetrics(),
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {
     this.cookieSecure = configService.get<string>('NODE_ENV') === 'production';
     this.allowedOrigins = (configService.get<string>('CORS_ORIGINS') ?? '')
