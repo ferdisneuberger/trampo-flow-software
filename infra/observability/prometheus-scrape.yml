@@ -1,0 +1,22 @@
+# Trecho para o prometheus.yml do projeto neuberger-infra (em `scrape_configs:`).
+#
+# Use o NOME DO CONTAINER, não o nome do serviço: `api` e `mcp` são apelidos
+# genéricos que outros apps da VPS (por exemplo app-financial-api) também podem ter
+# em redes compartilhadas. Os nomes abaixo assumem o projeto Compose `trampo-flow`.
+# O `job` precisa ser exatamente este: o dashboard e os alertas filtram por ele.
+- job_name: trampo-flow-api
+  metrics_path: /metrics
+  scrape_interval: 15s
+  static_configs:
+    - targets: ['trampo-flow-api-1:9464']
+  # Se definir METRICS_BEARER_TOKEN, descomente:
+  # authorization:
+  #   credentials: <o mesmo valor de METRICS_BEARER_TOKEN>
+
+- job_name: trampo-flow-mcp
+  metrics_path: /metrics
+  scrape_interval: 15s
+  static_configs:
+    - targets: ['trampo-flow-mcp-1:9465']
+  # authorization:
+  #   credentials: <o mesmo valor de METRICS_BEARER_TOKEN>

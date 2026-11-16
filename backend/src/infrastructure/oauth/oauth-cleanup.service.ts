@@ -36,6 +36,10 @@ export class OAuthCleanupService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    // O "último sucesso" parte do início do processo: sem isso o alerta de limpeza
+    // parada dispararia por até uma hora depois de cada deploy.
+    this.metrics.oauthCleanup({});
+
     this.timer = setInterval(() => void this.runOnce(), HOUR_IN_MS);
     this.timer.unref();
   }

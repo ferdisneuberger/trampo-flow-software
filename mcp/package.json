@@ -1,6 +1,6 @@
 {
   "name": "trampo-flow-mcp",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "MCP server (stdio and Streamable HTTP) that lets AI agents read and update Trampo Flow job applications through the API.",
   "private": true,
   "license": "UNLICENSED",

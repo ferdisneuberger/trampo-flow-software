@@ -170,6 +170,9 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+      - name: Check Grafana dashboard and alerts are up to date
+        run: node infra/observability/build.mjs --check
+
   docker:
     name: docker (${{ matrix.service }})
     if: github.event_name == 'pull_request'

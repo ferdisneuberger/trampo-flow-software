@@ -452,4 +452,35 @@ describe('métricas da limpeza do OAuth', () => {
     expect(metrics.of('oauthCleanupFailed')).toEqual([[]]);
     expect(metrics.of('oauthCleanup')).toEqual([]);
   });
+
+  it('ao agendar, o instante do último sucesso parte do início do processo', () => {
+    const metrics = new SpyAppMetrics();
+    const service = new OAuthCleanupService(
+      { enabled: true } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      metrics,
+    );
+
+    service.onModuleInit();
+    service.onModuleDestroy();
+
+    expect(metrics.of('oauthCleanup')).toEqual([[{}]]);
+  });
+
+  it('com o OAuth desligado nada é agendado nem marcado', () => {
+    const metrics = new SpyAppMetrics();
+    const service = new OAuthCleanupService(
+      { enabled: false } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      metrics,
+    );
+
+    service.onModuleInit();
+
+    expect(metrics.of('oauthCleanup')).toEqual([]);
+  });
 });
