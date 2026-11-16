@@ -108,6 +108,10 @@ services:
       OAUTH_ENABLED: '${OAUTH_ENABLED:-false}'
       OAUTH_ISSUER: '${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}'
       MCP_PUBLIC_URL: '${MCP_PUBLIC_URL:-${OAUTH_ISSUER:-${APP_BASE_URL:-http://localhost:5173}}/mcp}'
+      # Métricas do Prometheus: porta interna, não publicada (o ingress só roteia /mcp).
+      METRICS_ENABLED: '${METRICS_ENABLED:-true}'
+      METRICS_PORT: '${MCP_METRICS_PORT:-9465}'
+      METRICS_BEARER_TOKEN: '${METRICS_BEARER_TOKEN:-}'
     depends_on:
       api:
         condition: service_healthy
