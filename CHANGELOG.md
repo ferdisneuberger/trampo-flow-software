@@ -5,6 +5,14 @@ semantic versioning.
 
 ## Unreleased
 
+### Fixed
+
+- OAuth client registration no longer rejects clients that declare grant or
+  response types beyond the supported ones (the Claude web connector does):
+  per RFC 7591 §2 the extras are ignored and only the supported grant types are
+  registered. `authorization_code` and `code` are still required, and the token
+  endpoint still refuses every other grant.
+
 ### Changed
 
 - The "Como conectar" panel in Settings → MCP has one tab per agent (Claude,
