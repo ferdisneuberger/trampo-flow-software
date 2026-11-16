@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   JobPageFetcher,
   type JobPageFetchFailure,
 } from '../../../domain/applications/services/job-page-fetcher';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import {
   extractJobPosting,
   type JobPostingPreview,
@@ -21,12 +22,19 @@ export type JobPostingPreviewResult = JobPostingPreview & {
  */
 @Injectable()
 export class PreviewJobPostingUseCase {
-  constructor(private readonly jobPageFetcher: JobPageFetcher) {}
+  constructor(
+    private readonly jobPageFetcher: JobPageFetcher,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
+  ) {}
 
   async execute(link: string): Promise<JobPostingPreviewResult> {
+    const startedAt = performance.now();
     const page = await this.jobPageFetcher.fetch(link);
+    const seconds = (): number => (performance.now() - startedAt) / 1000;
 
     if (!page.ok) {
+      this.metrics.jobPreview(page.reason, link, seconds());
+
       return {
         title: null,
         company: null,
@@ -40,6 +48,10 @@ export class PreviewJobPostingUseCase {
       preview.title || preview.company || preview.companyUrl,
     );
 
-    return { ...preview, status: hasData ? 'found' : 'no_data' };
+    const status = hasData ? 'found' : 'no_data';
+
+    this.metrics.jobPreview(status, link, seconds());
+
+    return { ...preview, status };
   }
 }

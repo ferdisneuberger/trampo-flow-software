@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ApplicationRepository } from '../../../domain/applications/repositories/application.repository';
 import { ApplicationAlreadyDeletedError } from '../errors/application-already-deleted.error';
 import { ApplicationNotFoundError } from '../errors/application-not-found.error';
@@ -7,6 +7,7 @@ import {
   isApplicationDeleteMode,
 } from '../types/application-delete-mode';
 import { ApplicationError } from '../../shared/errors/application.error';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 
 export type DeleteApplicationInput = {
   id: string;
@@ -16,7 +17,10 @@ export type DeleteApplicationInput = {
 
 @Injectable()
 export class DeleteApplicationUseCase {
-  constructor(private readonly applicationRepository: ApplicationRepository) {}
+  constructor(
+    private readonly applicationRepository: ApplicationRepository,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
+  ) {}
 
   async execute(input: DeleteApplicationInput): Promise<void> {
     const mode = input.mode ?? 'soft';
@@ -45,10 +49,12 @@ export class DeleteApplicationUseCase {
       application.softDelete();
 
       await this.applicationRepository.update(application, input.userId);
+      this.metrics.applicationDeleted('soft');
 
       return;
     }
 
     await this.applicationRepository.delete(application, input.userId);
+    this.metrics.applicationDeleted('hard');
   }
 }

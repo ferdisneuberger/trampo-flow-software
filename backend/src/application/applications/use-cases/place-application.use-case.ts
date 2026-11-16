@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Application } from '../../../domain/applications/entities/application.entity';
 import { ApplicationStatus } from '../../../domain/applications/enums/application-status.enum';
 import { ApplicationRepository } from '../../../domain/applications/repositories/application.repository';
 import { ApplicationError } from '../../shared/errors/application.error';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+  type MetricChannel,
+} from '../../shared/metrics/app-metrics';
 import { ApplicationAlreadyDeletedError } from '../errors/application-already-deleted.error';
 import { ApplicationNotFoundError } from '../errors/application-not-found.error';
 
@@ -14,11 +19,16 @@ export type PlaceApplicationCommand = {
   status?: ApplicationStatus;
   beforeId?: string;
   afterId?: string;
+  /** Como chegou (interface, token ou OAuth); só para métricas. */
+  channel?: MetricChannel;
 };
 
 @Injectable()
 export class PlaceApplicationUseCase {
-  constructor(private readonly applicationRepository: ApplicationRepository) {}
+  constructor(
+    private readonly applicationRepository: ApplicationRepository,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
+  ) {}
 
   async execute(input: PlaceApplicationCommand): Promise<Application> {
     const application = await this.applicationRepository.findById(
@@ -91,6 +101,18 @@ export class PlaceApplicationUseCase {
     if (!updated) {
       throw new ApplicationNotFoundError(input.applicationId);
     }
+
+    const channel = input.channel ?? 'web';
+
+    if (updated.status !== application.status) {
+      this.metrics.applicationTransition(
+        application.status,
+        updated.status,
+        channel,
+      );
+    }
+
+    this.metrics.applicationReordered(channel);
 
     return updated;
   }
