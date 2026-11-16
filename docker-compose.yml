@@ -75,6 +75,7 @@ services:
       METRICS_ENABLED: '${METRICS_ENABLED:-true}'
       METRICS_PORT: '${METRICS_PORT:-9464}'
       METRICS_BEARER_TOKEN: '${METRICS_BEARER_TOKEN:-}'
+      BUSINESS_GAUGES_INTERVAL_SECONDS: '${BUSINESS_GAUGES_INTERVAL_SECONDS:-60}'
     depends_on:
       postgres:
         condition: service_healthy

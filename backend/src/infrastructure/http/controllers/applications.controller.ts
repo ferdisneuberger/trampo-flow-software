@@ -11,6 +11,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { CurrentChannel } from '../../auth/current-channel.decorator';
+import { type MetricChannel } from '../../../application/shared/metrics/app-metrics';
 import { CurrentUserId } from '../../auth/current-user-id.decorator';
 import { RateLimiterService } from '../../auth/rate-limiter.service';
 import { RequiredScope } from '../../auth/required-scope.decorator';
@@ -93,6 +95,7 @@ export class ApplicationsController {
   async create(
     @Body() dto: CreateApplicationDto,
     @CurrentUserId() userId: string,
+    @CurrentChannel() channel?: MetricChannel,
   ) {
     const application = await this.createApplicationUseCase.execute({
       userId,
@@ -102,6 +105,7 @@ export class ApplicationsController {
       companyUrl: dto.companyUrl ?? null,
       currentPhase: dto.currentPhase,
       status: dto.status,
+      channel,
     });
 
     return ApplicationPresenter.toHTTP(application);
@@ -246,6 +250,7 @@ export class ApplicationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateApplicationDto,
     @CurrentUserId() userId: string,
+    @CurrentChannel() channel?: MetricChannel,
   ) {
     const application = await this.updateApplicationUseCase.execute({
       userId,
@@ -256,6 +261,7 @@ export class ApplicationsController {
       companyUrl: dto.companyUrl,
       currentPhase: dto.currentPhase,
       status: dto.status,
+      channel,
     });
 
     return ApplicationPresenter.toHTTP(application);
@@ -281,6 +287,7 @@ export class ApplicationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: PlaceApplicationDto,
     @CurrentUserId() userId: string,
+    @CurrentChannel() channel?: MetricChannel,
   ) {
     const application = await this.placeApplicationUseCase.execute({
       userId,
@@ -288,6 +295,7 @@ export class ApplicationsController {
       status: dto.status,
       beforeId: dto.beforeId,
       afterId: dto.afterId,
+      channel,
     });
 
     return ApplicationPresenter.toHTTP(application);

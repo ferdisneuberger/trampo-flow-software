@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   Application,
   CreateApplicationProps,
@@ -6,9 +6,16 @@ import {
 import { ApplicationRepository } from '../../../domain/applications/repositories/application.repository';
 import { UserRepository } from '../../../domain/users/repositories/user.repository';
 import { ForbiddenError } from '../../shared/errors/forbidden.error';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+  type MetricChannel,
+} from '../../shared/metrics/app-metrics';
 
 export type CreateApplicationInput = CreateApplicationProps & {
   userId: string;
+  /** Como chegou (interface, token ou OAuth); só para métricas. */
+  channel?: MetricChannel;
 };
 
 @Injectable()
@@ -16,6 +23,7 @@ export class CreateApplicationUseCase {
   constructor(
     private readonly applicationRepository: ApplicationRepository,
     private readonly userRepository: UserRepository,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(input: CreateApplicationInput): Promise<Application> {
@@ -31,6 +39,8 @@ export class CreateApplicationUseCase {
     const application = Application.create(input);
 
     await this.applicationRepository.create(application, input.userId);
+
+    this.metrics.applicationCreated(input.channel ?? 'web', application.link);
 
     const stored = await this.applicationRepository.findById(
       application.id,
