@@ -8,6 +8,9 @@ import {
 } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { APP_VERSION } from './app-version';
+import { registerHttpMetrics } from './infrastructure/metrics/http-metrics.plugin';
+import { PromAppMetrics } from './infrastructure/metrics/prom-app-metrics';
 import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exception.filter';
 
 const DOCS_PATH = 'docs';
@@ -63,6 +66,9 @@ async function bootstrap(): Promise<void> {
   const port = Number(configService.get<string>('PORT') ?? 3000);
   const fastify = app.getHttpAdapter().getInstance();
 
+  // Métricas HTTP de todas as requisições; o /metrics fica em porta interna própria.
+  registerHttpMetrics(fastify, app.get(PromAppMetrics));
+
   fastify.addHook('onSend', async (request, reply, payload) => {
     reply.headers(
       isDocsRequest(request.url) ? docsSecurityHeaders : securityHeaders,
@@ -103,7 +109,7 @@ async function bootstrap(): Promise<void> {
     .setDescription(
       'API de acompanhamento de candidaturas. Todas as rotas, exceto login, health e documentação, exigem um bearer token: o JWT de sessão ou um token de integração `tfp_...` (criado em `POST /auth/tokens`). Rotas de `/auth/tokens` aceitam só o JWT de sessão.',
     )
-    .setVersion('3.3.0')
+    .setVersion(APP_VERSION)
     .addBearerAuth(
       {
         type: 'http',
