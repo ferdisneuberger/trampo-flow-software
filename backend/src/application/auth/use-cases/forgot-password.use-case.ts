@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { AuthToken } from '../../../domain/auth/entities/auth-token.entity';
 import { AuthTokenRepository } from '../../../domain/auth/repositories/auth-token.repository';
 import { Mailer } from '../../../domain/auth/services/mailer';
@@ -8,6 +8,7 @@ import { normalizeEmail } from '../../../domain/users/entities/user.entity';
 import { UserRepository } from '../../../domain/users/repositories/user.repository';
 import { buildPasswordResetEmail } from '../emails/password-reset-email';
 import { AuthSettings } from '../services/auth-settings';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { sendMailInBackground } from '../services/send-mail-in-background';
 
 export type ForgotPasswordInput = {
@@ -25,6 +26,7 @@ export class ForgotPasswordUseCase {
     private readonly tokenHasher: TokenHasher,
     private readonly mailer: Mailer,
     private readonly settings: AuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(input: ForgotPasswordInput): Promise<void> {
@@ -73,6 +75,7 @@ export class ForgotPasswordUseCase {
       { to: email, ...message },
       this.logger,
       'Falha ao enviar recuperação de senha',
+      { template: 'password_reset', metrics: this.metrics },
     );
   }
 }

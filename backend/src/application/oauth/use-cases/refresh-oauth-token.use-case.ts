@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { TokenHasher } from '../../../domain/auth/services/token-hasher';
 import { OAuthClientRepository } from '../../../domain/oauth/repositories/oauth-client.repository';
 import { OAuthGrantRepository } from '../../../domain/oauth/repositories/oauth-grant.repository';
@@ -7,6 +7,7 @@ import {
   isSubsetOfScope,
   normalizeRequestedScope,
 } from '../../../domain/oauth/scopes';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { OAuthError } from '../errors/oauth.error';
 import { canonicalResource, OAuthSettings } from '../services/oauth-settings';
 import {
@@ -33,6 +34,7 @@ export class RefreshOAuthTokenUseCase {
     private readonly issuer: OAuthTokenIssuer,
     private readonly hasher: TokenHasher,
     private readonly settings: OAuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(input: RefreshOAuthTokenInput): Promise<OAuthTokenResponse> {
@@ -75,6 +77,7 @@ export class RefreshOAuthTokenUseCase {
           this.settings.refreshGraceMs;
 
       if (!withinGrace) {
+        this.metrics.oauthRefreshReuse();
         await this.tokens.revokeFamily(record.familyId, now);
 
         throw new OAuthError('invalid_grant', INVALID_GRANT);

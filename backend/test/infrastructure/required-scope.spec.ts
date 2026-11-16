@@ -129,7 +129,9 @@ describe('escopos exigidos por rota (token de integração)', () => {
     expect(Reflect.getMetadata(IS_PUBLIC_KEY, OAuthMetadataController)).toBe(
       true,
     );
+    // `handleToken` é um auxiliar privado de `token`, não uma rota.
     expect(handlers(OAuthController).sort()).toEqual([
+      'handleToken',
       'register',
       'revoke',
       'token',

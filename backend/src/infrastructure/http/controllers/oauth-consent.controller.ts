@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Optional,
   Param,
   ParseUUIDPipe,
   Post,
@@ -12,6 +13,10 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OAuthError } from '../../../application/oauth/errors/oauth.error';
+import {
+  AppMetrics,
+  NoopAppMetrics,
+} from '../../../application/shared/metrics/app-metrics';
 import { DecideAuthorizationUseCase } from '../../../application/oauth/use-cases/decide-authorization.use-case';
 import { ListOAuthGrantsUseCase } from '../../../application/oauth/use-cases/list-oauth-grants.use-case';
 import { PreviewAuthorizationUseCase } from '../../../application/oauth/use-cases/preview-authorization.use-case';
@@ -39,6 +44,7 @@ export class OAuthConsentController {
     private readonly listGrants: ListOAuthGrantsUseCase,
     private readonly revokeGrant: RevokeOAuthGrantUseCase,
     private readonly rateLimiter: RateLimiterService,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   @Get('authorize/preview')
@@ -50,7 +56,7 @@ export class OAuthConsentController {
   @Post('authorize/decision')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Aprova ou nega; devolve a URL de retorno' })
-  decision(
+  async decision(
     @Body() body: Record<string, unknown>,
     @CurrentUserId() userId: string,
   ) {
@@ -62,7 +68,26 @@ export class OAuthConsentController {
       throw new OAuthError('invalid_request', 'approve deve ser booleano.');
     }
 
-    return this.decideAuthorization.execute({ userId, params, approve });
+    try {
+      return await this.decideAuthorization.execute({
+        userId,
+        params,
+        approve,
+      });
+    } catch (error) {
+      // Pedido inválido: o cliente é identificado só pela forma do client_id.
+      const clientId = params.client_id;
+
+      this.metrics.oauthAuthorization(
+        'error',
+        'other',
+        typeof clientId === 'string' && clientId.startsWith('https://')
+          ? 'cimd'
+          : 'dcr',
+      );
+
+      throw error;
+    }
   }
 
   @Get('grants')

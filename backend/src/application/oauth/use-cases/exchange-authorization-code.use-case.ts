@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { TokenHasher } from '../../../domain/auth/services/token-hasher';
 import { isValidCodeVerifier, verifyPkce } from '../../../domain/oauth/pkce';
 import { OAuthClientRepository } from '../../../domain/oauth/repositories/oauth-client.repository';
 import { OAuthCodeRepository } from '../../../domain/oauth/repositories/oauth-code.repository';
 import { OAuthGrantRepository } from '../../../domain/oauth/repositories/oauth-grant.repository';
 import { OAuthTokenRepository } from '../../../domain/oauth/repositories/oauth-token.repository';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import { OAuthError } from '../errors/oauth.error';
 import { canonicalResource, OAuthSettings } from '../services/oauth-settings';
 import {
@@ -32,6 +33,7 @@ export class ExchangeAuthorizationCodeUseCase {
     private readonly issuer: OAuthTokenIssuer,
     private readonly hasher: TokenHasher,
     private readonly settings: OAuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   async execute(
@@ -60,6 +62,7 @@ export class ExchangeAuthorizationCodeUseCase {
 
     // Código já usado que reaparece: sinal de roubo. Derruba o grant inteiro.
     if (code.usedAt) {
+      this.metrics.oauthCodeReuse();
       await this.revokeGrant(code.grantId, now);
 
       throw new OAuthError('invalid_grant', INVALID_GRANT);
@@ -82,6 +85,7 @@ export class ExchangeAuthorizationCodeUseCase {
 
     // Troca atômica: de duas requisições simultâneas, só uma passa.
     if (!(await this.codes.markUsed(code.id, now))) {
+      this.metrics.oauthCodeReuse();
       await this.revokeGrant(code.grantId, now);
 
       throw new OAuthError('invalid_grant', INVALID_GRANT);

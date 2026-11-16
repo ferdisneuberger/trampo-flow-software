@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { OAuthClientRepository } from '../../../domain/oauth/repositories/oauth-client.repository';
 import { OAuthCodeRepository } from '../../../domain/oauth/repositories/oauth-code.repository';
 import { OAuthGrantRepository } from '../../../domain/oauth/repositories/oauth-grant.repository';
 import { OAuthTokenGenerator } from '../../../domain/oauth/services/oauth-token-generator';
 import { TokenHasher } from '../../../domain/auth/services/token-hasher';
+import { AppMetrics, NoopAppMetrics } from '../../shared/metrics/app-metrics';
 import {
   AuthorizationParams,
   AuthorizationRequestValidator,
@@ -27,6 +28,7 @@ export class DecideAuthorizationUseCase {
     private readonly generator: OAuthTokenGenerator,
     private readonly hasher: TokenHasher,
     private readonly settings: OAuthSettings,
+    @Optional() private readonly metrics: AppMetrics = new NoopAppMetrics(),
   ) {}
 
   /** Devolve a URL para onde o navegador deve ir (com `code` ou `error`). */
@@ -37,7 +39,10 @@ export class DecideAuthorizationUseCase {
     const request = await this.validator.validate(input.params);
     const target = new URL(request.redirectUri);
 
+    const kind = request.verified ? 'claude' : 'other';
+
     if (!input.approve) {
+      this.metrics.oauthAuthorization('denied', kind, request.client.source);
       target.searchParams.set('error', 'access_denied');
     } else {
       const now = new Date();
@@ -72,6 +77,7 @@ export class DecideAuthorizationUseCase {
       });
       await this.clients.touchLastUsed(client.id, now);
 
+      this.metrics.oauthAuthorization('approved', kind, request.client.source);
       target.searchParams.set('code', code);
     }
 

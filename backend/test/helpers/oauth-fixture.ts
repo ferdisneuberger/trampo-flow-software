@@ -19,6 +19,7 @@ import {
   type ClientMetadataFetchResult,
 } from '../../src/domain/oauth/services/client-metadata-fetcher';
 import { CryptoOAuthTokenGenerator } from '../../src/infrastructure/oauth/crypto-oauth-token-generator';
+import { SpyAppMetrics } from './spy-app-metrics';
 import {
   InMemoryOAuthClientRepository,
   InMemoryOAuthCodeRepository,
@@ -63,6 +64,7 @@ export function pkcePair() {
 export function buildOAuthStack(
   overrides: Partial<{ resource: string; enabled: boolean }> = {},
 ) {
+  const metrics = new SpyAppMetrics();
   const settings = new OAuthSettings(
     overrides.enabled ?? true,
     ISSUER,
@@ -89,11 +91,13 @@ export function buildOAuthStack(
     clients,
     fetcher,
     settings,
+    metrics,
   );
   const validator = new AuthorizationRequestValidator(settings, resolveClient);
   const issuer = new OAuthTokenIssuer(tokens, generator, hasher, settings);
 
   return {
+    metrics,
     settings,
     clients,
     grants,
@@ -113,6 +117,7 @@ export function buildOAuthStack(
       generator,
       hasher,
       settings,
+      metrics,
     ),
     exchange: new ExchangeAuthorizationCodeUseCase(
       codes,
@@ -122,6 +127,7 @@ export function buildOAuthStack(
       issuer,
       hasher,
       settings,
+      metrics,
     ),
     refresh: new RefreshOAuthTokenUseCase(
       tokens,
@@ -130,16 +136,18 @@ export function buildOAuthStack(
       issuer,
       hasher,
       settings,
+      metrics,
     ),
-    revokeToken: new RevokeOAuthTokenUseCase(tokens, grants, hasher),
+    revokeToken: new RevokeOAuthTokenUseCase(tokens, grants, hasher, metrics),
     listGrants: new ListOAuthGrantsUseCase(grants, clients),
-    revokeGrant: new RevokeOAuthGrantUseCase(grants, tokens),
+    revokeGrant: new RevokeOAuthGrantUseCase(grants, tokens, metrics),
     authenticate: new AuthenticateOAuthAccessTokenUseCase(
       tokens,
       grants,
       users as never,
       hasher,
       settings,
+      metrics,
     ),
     metadata: new GetAuthorizationServerMetadataUseCase(settings),
   };
