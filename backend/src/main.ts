@@ -103,7 +103,7 @@ async function bootstrap(): Promise<void> {
     .setDescription(
       'API de acompanhamento de candidaturas. Todas as rotas, exceto login, health e documentação, exigem um bearer token: o JWT de sessão ou um token de integração `tfp_...` (criado em `POST /auth/tokens`). Rotas de `/auth/tokens` aceitam só o JWT de sessão.',
     )
-    .setVersion('3.2.0')
+    .setVersion('3.3.0')
     .addBearerAuth(
       {
         type: 'http',
