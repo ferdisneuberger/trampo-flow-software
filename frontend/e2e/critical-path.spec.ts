@@ -61,7 +61,7 @@ test.describe('fluxo crítico do quadro', () => {
 
     await page.getByLabel('Título da candidatura').fill(title);
     await page.getByLabel('Empresa', { exact: true }).fill('Acme E2E');
-    await page.getByLabel('Link da vaga').fill('https://example.com/e2e');
+    await page.getByLabel('Link da vaga', { exact: true }).fill('https://example.com/e2e');
     await page.getByLabel('Fase atual').fill('Triagem automatizada');
     await page.getByRole('button', { name: /criar candidatura/i }).click();
 
