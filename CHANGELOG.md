@@ -7,6 +7,13 @@ semantic versioning.
 
 ### Changed
 
+- The "Como conectar" panel in Settings → MCP has one tab per agent (Claude,
+  Claude Code, Cursor, VS Code, OpenCode, plus Outros and Automação), each with
+  ready-to-copy commands and a link to that agent's official documentation. The
+  guide gained OpenCode, a section on logging in from Cursor, VS Code, and
+  OpenCode, and the current Claude connector menu names. Nothing here was run in
+  the real apps.
+
 - Settings has a section submenu: **Configurações** opens a home with one card
   per section, and **MCP** is a submenu item (sidebar when expanded, and the
   account menu on mobile) that opens `/configuracoes/mcp` with how to connect,

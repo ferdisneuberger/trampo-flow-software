@@ -697,12 +697,12 @@ Two ways. **With login (OAuth)**, when the server has `OAUTH_ENABLED=true`: add 
 
 Where it works today:
 
-| Client                                      | Token (`tfp_`)                                                         | OAuth login (`OAUTH_ENABLED=true`)                                                           |
-| ------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Claude Code (terminal)                      | Works, with `--header`                                                 | Works, without a header (flow tested by `scripts/oauth-smoke.mjs`)                           |
-| Cursor, VS Code, others that accept headers | Works (formats checked in each client's docs, not run in the apps)     | Depends on the client's OAuth support; not tested                                            |
-| Claude Desktop                              | Only the local stdio mode (or a bridge such as `mcp-remote`, untested) | As a connector (Settings → Connectors); **not tested**                                       |
-| Claude web and mobile                       | No                                                                     | As a connector; **not tested** (needs a public URL and a Claude plan with custom connectors) |
+| Client                                                | Token (`tfp_`)                                                         | OAuth login (`OAUTH_ENABLED=true`)                                                                                                                                                |
+| ----------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code (terminal)                                | Works, with `--header`                                                 | Works, without a header (flow tested by `scripts/oauth-smoke.mjs`)                                                                                                                |
+| Cursor, VS Code, OpenCode, others that accept headers | Works (formats checked in each client's docs, not run in the apps)     | OpenCode should work as is (loopback callback); Cursor needs `OAUTH_EXTRA_REDIRECT_URIS=https://www.cursor.com/agents/mcp/oauth/callback`; VS Code unverified; all **not tested** |
+| Claude Desktop                                        | Only the local stdio mode (or a bridge such as `mcp-remote`, untested) | As a connector (Settings → Connectors); **not tested**                                                                                                                            |
+| Claude web and mobile                                 | No                                                                     | As a connector; **not tested** (needs a public URL and a Claude plan with custom connectors)                                                                                      |
 
 Step-by-step instructions for every method, with commands and troubleshooting, are in the [connection guide](docs/guia-conexao-mcp.md) (in Portuguese).
 
