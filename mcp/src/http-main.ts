@@ -2,6 +2,7 @@
 import { createServer as createHttpServer } from 'node:http';
 import { z } from 'zod';
 import { createHttpHandler } from './http.js';
+import { McpMetrics, startMetricsServer } from './metrics.js';
 import { SERVER_VERSION } from './server.js';
 
 const envSchema = z.object({
@@ -11,6 +12,9 @@ const envSchema = z.object({
     .url('TRAMPO_API_URL deve ser uma URL.'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3100),
   OAUTH_ENABLED: z.enum(['true', 'false']).default('false'),
+  METRICS_ENABLED: z.enum(['true', 'false']).default('true'),
+  METRICS_PORT: z.coerce.number().int().min(1).max(65535).default(9465),
+  METRICS_BEARER_TOKEN: z.string().trim().optional(),
   OAUTH_ISSUER: z.string().trim().optional(),
   MCP_PUBLIC_URL: z.string().trim().optional(),
   TRAMPO_API_TIMEOUT_MS: z.coerce
@@ -66,8 +70,10 @@ const oauth =
         resource: parsed.data.MCP_PUBLIC_URL as string,
       }
     : undefined;
+const metrics = new McpMetrics();
 const server = createHttpServer(
   createHttpHandler({
+    metrics,
     apiUrl: TRAMPO_API_URL.replace(/\/+$/, ''),
     timeoutMs: TRAMPO_API_TIMEOUT_MS,
     oauth,
@@ -80,6 +86,18 @@ server.listen(PORT, '0.0.0.0', () => {
   );
 });
 
+// Métricas do Prometheus em porta interna própria (não publicada, fora do /mcp).
+const metricsServer =
+  parsed.data.METRICS_ENABLED === 'true'
+    ? startMetricsServer(metrics, {
+        port: parsed.data.METRICS_PORT,
+        token: parsed.data.METRICS_BEARER_TOKEN || undefined,
+      })
+    : undefined;
+
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
-  process.on(signal, () => server.close(() => process.exit(0)));
+  process.on(signal, () => {
+    metricsServer?.close();
+    server.close(() => process.exit(0));
+  });
 }

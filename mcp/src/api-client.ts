@@ -1,3 +1,4 @@
+import type { McpMetrics } from './metrics.js';
 import type {
   Application,
   ApplicationStats,
@@ -13,6 +14,8 @@ export type ApiClientOptions = {
   token: string;
   timeoutMs: number;
   fetch?: FetchLike;
+  /** Mede cada chamada à API (rota como template, status e duração). */
+  metrics?: McpMetrics;
 };
 
 type RequestOptions = {
@@ -215,6 +218,13 @@ export class TrampoApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
+    const startedAt = performance.now();
+    const record = (status: string): void =>
+      this.options.metrics?.upstreamRequest(
+        path,
+        status,
+        (performance.now() - startedAt) / 1000,
+      );
     let response: Response;
 
     try {
@@ -230,6 +240,8 @@ export class TrampoApiClient {
         error instanceof Error &&
         (error.name === 'TimeoutError' || error.name === 'AbortError')
       ) {
+        record('timeout');
+
         throw new ApiError(
           `A API do Trampo Flow não respondeu em ${Math.round(this.options.timeoutMs / 1000)} segundos.`,
           undefined,
@@ -237,12 +249,16 @@ export class TrampoApiClient {
         );
       }
 
+      record('network_error');
+
       throw new ApiError(
         `Não foi possível conectar à API em ${this.options.apiUrl}. Confira TRAMPO_API_URL e se o servidor está no ar.`,
         undefined,
         'NETWORK_ERROR',
       );
     }
+
+    record(String(response.status));
 
     const text = await response.text();
     let payload: unknown = null;
