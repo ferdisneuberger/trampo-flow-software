@@ -1,0 +1,18 @@
+# Integração com o Traefik compartilhado da VPS.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.edge.yml up -d --build
+services:
+  ingress:
+    networks:
+      - backend
+      - edge
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=edge
+      - traefik.http.routers.trampo-flow.rule=Host(`trampo-flow.neubergerdev.com.br`)
+      - traefik.http.routers.trampo-flow.entrypoints=web
+      - traefik.http.routers.trampo-flow.service=trampo-flow
+      - traefik.http.services.trampo-flow.loadbalancer.server.port=8080
+
+networks:
+  edge:
+    external: true
